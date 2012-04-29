@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node name="/">
+	<interface name="net.netconfig.network">
+		<method name="UpdateDefaultConnectionInfo">
+			<arg  type="s" name="connection_type" direction="in" />
+			<arg  type="s" name="connection_state" direction="in" />
+			<arg  type="s" name="ip_addr" direction="in" />
+			<arg  type="s" name="proxy_addr" direction="in" />
+		</method>
+	</interface>
+</node>

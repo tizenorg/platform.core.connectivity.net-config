@@ -1,0 +1,421 @@
+/*
+ * Network Configuration Module
+ *
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Danny JS Seo <S.Seo@samsung.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include <dbus/dbus-glib-lowlevel.h>
+
+#include <vconf.h>
+#include <vconf-keys.h>
+
+#include "log.h"
+#include "dbus.h"
+#include "util.h"
+#include "wifi.h"
+#include "wifi-state.h"
+#include "wifi-indicator.h"
+#include "wifi-background-scan.h"
+#include "neterror.h"
+
+#define CONNMAN_SIGNAL_PROPERTY_CHANGED		"PropertyChanged"
+
+#define CONNMAN_MANAGER_SIGNAL_FILTER		"type='signal',interface='net.connman.Manager'"
+#define CONNMAN_TECHNOLOGY_SIGNAL_FILTER	"type='signal',interface='net.connman.Technology'"
+#define CONNMAN_SERVICE_SIGNAL_FILTER		"type='signal',interface='net.connman.Service'"
+
+static DBusConnection *signal_connection = NULL;
+
+static int __netconfig_get_state(DBusMessage *msg, char *state)
+{
+	char *key_name = NULL;
+	char *svc_state = NULL;
+	DBusMessageIter iter, sub_iter;
+	int Error = NETCONFIG_ERROR_INTERNAL;
+
+	/* Get state */
+	dbus_message_iter_init(msg, &iter);
+	int ArgType = dbus_message_iter_get_arg_type(&iter);
+
+	if (ArgType != DBUS_TYPE_STRING)
+		goto done;
+
+	dbus_message_iter_get_basic(&iter, &key_name);
+	if (strcmp(key_name, "State") != 0)
+		goto done;
+
+	dbus_message_iter_next(&iter);
+	ArgType = dbus_message_iter_get_arg_type(&iter);
+	if (ArgType != DBUS_TYPE_VARIANT)
+		goto done;
+
+	dbus_message_iter_recurse(&iter, &sub_iter);
+	ArgType = dbus_message_iter_get_arg_type(&sub_iter);
+	if (ArgType != DBUS_TYPE_STRING)
+		goto done;
+
+	dbus_message_iter_get_basic(&sub_iter, &svc_state);
+	snprintf(state, strlen(svc_state) + 1, "%s", svc_state);
+	Error = NETCONFIG_NO_ERROR;
+
+done:
+	return Error;
+}
+
+static char *__netconfig_get_property(DBusMessage * msg, char **property)
+{
+	DBusMessageIter args, variant;
+	char *sigvalue = NULL;
+
+	/** read these parameters */
+	if (!dbus_message_iter_init(msg, &args))
+		ERR("Message does not have parameters");
+	else if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_STRING)
+		ERR("Argument is not string");
+	else {
+		dbus_message_iter_get_basic(&args, &sigvalue);
+		dbus_message_iter_next(&args);
+		dbus_message_iter_recurse(&args, &variant);
+		if (dbus_message_iter_get_arg_type(&variant) == DBUS_TYPE_STRING)
+			dbus_message_iter_get_basic(&variant, property);
+		else
+			*property = NULL;
+	}
+
+	return sigvalue;
+}
+
+static void __netconfig_wifi_technology_state_signal_handler(
+		const char *sigvalue, const char *property)
+{
+	int wifi_state = 0;
+	static char previous_technology_state[DBUS_STATE_MAX_BUFLEN] = {0};
+
+	if (sigvalue == NULL || property == NULL)
+		return;
+
+	if (g_str_equal(sigvalue, "State") != TRUE)
+		return;
+
+	if (g_str_equal(property, "unknown") == TRUE)
+		return;
+
+	if (g_str_equal(previous_technology_state, property) == TRUE)
+		return;
+
+	g_strlcpy(previous_technology_state, property, sizeof(previous_technology_state));
+
+	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+
+	INFO("Technology state value is %s, property %s", sigvalue, property);
+	if (g_str_equal(property, "offline") == TRUE) {
+		if (netconfig_wifi_get_power_triggering_state() == WIFI_DEACTIVATING)
+			netconfig_wifi_set_power_triggering_state(WIFI_NON_OF_TRIGGERING);
+
+		if (wifi_state != VCONFKEY_WIFI_OFF) {
+			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
+
+			vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_OFF);
+
+			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
+		}
+		netconfig_wifi_bgscan_stop();
+	} else if (g_str_equal(property, "available") == TRUE) {
+		switch (netconfig_wifi_get_power_triggering_state()) {
+		case WIFI_ACTIVATING:
+			/* Wi-Fi power on triggered */
+			netconfig_wifi_enable_technology();
+
+			netconfig_wifi_device_picker_service_start();
+
+			netconfig_wifi_check_local_bssid();
+
+			break;
+
+		case WIFI_DEACTIVATING:
+			/* Wi-Fi power off triggered */
+			netconfig_wifi_remove_driver();
+
+			break;
+
+		default:
+			DBG("Wi-Fi tethering or direct enabled");
+		}
+	} else if (g_str_equal(property, "enabled") == TRUE) {
+		if (netconfig_wifi_get_power_triggering_state() == WIFI_ACTIVATING) {
+			netconfig_wifi_set_power_triggering_state(WIFI_NON_OF_TRIGGERING);
+
+			if (wifi_state == VCONFKEY_WIFI_OFF) {
+				vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
+
+				vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_ON);
+
+				vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED);
+			}
+
+			netconfig_wifi_bgscan_start();
+		}
+	}
+}
+
+static void netconfig_wifi_set_essid(const char *active_profile)
+{
+	int err;
+	int state = -1;
+	char *essid_name = NULL;
+	DBusConnection *conn = NULL;
+	DBusMessage *message = NULL;
+	int MessageType = 0;
+
+	if (active_profile == NULL) {
+		ERR("Can't get active_profile");
+		return;
+	}
+
+	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
+	if (conn == NULL) {
+		ERR("Error!!! Can't get on system bus");
+		return;
+	}
+
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, conn, active_profile,
+			CONNMAN_SERVICE_INTERFACE, "GetProperties");
+
+	if (message == NULL) {
+		ERR("Error!!! Failed to get service properties");
+		dbus_connection_unref(conn);
+		return;
+	}
+
+	MessageType = dbus_message_get_type(message);
+
+	if (MessageType == DBUS_MESSAGE_TYPE_ERROR) {
+		const char *ptr = dbus_message_get_error_name(message);
+		ERR("Error!!! Error message received [%s]", ptr);
+		goto done;
+	}
+
+	state = netconfig_extract_service_state(message, &essid_name);
+
+	if (state < 0) {
+		ERR("state is not ready");
+		goto done;
+	}
+
+	err = vconf_set_str(VCONFKEY_WIFI_CONNECTED_AP_NAME, essid_name);
+	if (err != 0) {
+		ERR("Can't set essid [%d]", err);
+	}
+
+done:
+	g_free(essid_name);
+	essid_name = NULL;
+
+	dbus_message_unref(message);
+
+	dbus_connection_unref(conn);
+}
+
+static void netconfig_wifi_unset_essid(void)
+{
+	vconf_set_str(VCONFKEY_WIFI_CONNECTED_AP_NAME, "");
+}
+
+static void __netconfig_wifi_service_state_signal_handler(DBusMessage *msg, const char *profile)
+{
+	char state[DBUS_STATE_MAX_BUFLEN] = {0};
+	static char current_profile[DBUS_PATH_MAX_BUFLEN] = {0};
+
+	if (profile == NULL)
+		return;
+
+	if (__netconfig_get_state(msg, state) == NETCONFIG_NO_ERROR) {
+		int value = 0;
+
+		DBG("Signaled profile [%s] ==> state %s", profile, state);
+
+		vconf_get_int(VCONFKEY_WIFI_STATE, &value);
+
+		if (strcmp(state, "ready") == 0 || strcmp(state, "online") == 0) {
+			if (value > VCONFKEY_WIFI_OFF && value != VCONFKEY_WIFI_CONNECTED) {
+
+				INFO("Wifi connected");
+
+				if ((vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_CONNECTED)) < 0)
+					ERR("Error!!! vconf_set_int failed");
+
+				netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_CONNECTED);
+
+				netconfig_wifi_set_essid(profile);
+
+				netconfig_wifi_indicator_start();
+
+				g_strlcpy(current_profile, profile, sizeof(current_profile));
+			}
+		} else if (strcmp(state, "failure") == 0 || strcmp(state, "disconnect") == 0 || strcmp(state, "idle") == 0) {
+			if (value > VCONFKEY_WIFI_UNCONNECTED) {
+
+				INFO("Wifi [%s] Disconnected", profile);
+				DBG("Current profile is %s", current_profile);
+
+				if ((strcmp(profile, current_profile)) == 0) {
+					if ((vconf_set_int (VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED)) < 0)
+						ERR("Error!!! vconf_set_int failed");
+
+					netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
+
+					netconfig_wifi_unset_essid();
+
+					netconfig_wifi_indicator_stop();
+
+					memset(current_profile, 0, sizeof(current_profile));
+				}
+			}
+		} else if (strcmp(state, "association") == 0 || strcmp(state, "configuration") == 0) {
+			netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_CONNECTING);
+		}
+	} else
+		DBG("Signaled profile [%s] has error to get its state", profile);
+}
+
+static DBusHandlerResult __netconfig_signal_filter_handler(
+		DBusConnection *conn, DBusMessage *msg, void *user_data)
+{
+	char *sigvalue = NULL;
+
+	if (msg == NULL) {
+		INFO("Invalid Message. Ignore");
+
+		/* We have handled this message, don't pass it on */
+		return DBUS_HANDLER_RESULT_HANDLED;
+	}
+
+	if (dbus_message_is_signal(msg, CONNMAN_MANAGER_INTERFACE,
+			CONNMAN_SIGNAL_PROPERTY_CHANGED)) {
+		/* We have handled this message, don't pass it on */
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_signal(msg, CONNMAN_TECHNOLOGY_INTERFACE,
+			CONNMAN_SIGNAL_PROPERTY_CHANGED)) {
+		char *property = NULL;
+		char *tech_path = NULL;
+
+		sigvalue = __netconfig_get_property(msg, &property);
+		if (sigvalue == NULL)
+			return DBUS_HANDLER_RESULT_HANDLED;
+
+		tech_path = (char *)dbus_message_get_path(msg);
+
+		if (strstr(tech_path, "/wifi") != NULL) {
+			__netconfig_wifi_technology_state_signal_handler((const char *)sigvalue, (const char *)property);
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		/* We have handled this message, don't pass it on */
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_signal(msg, CONNMAN_SERVICE_INTERFACE, CONNMAN_SIGNAL_PROPERTY_CHANGED)) {
+		sigvalue = netconfig_dbus_get_string(msg);
+
+		if (sigvalue == NULL)
+			return DBUS_HANDLER_RESULT_HANDLED;
+
+		if (strcmp(sigvalue, "State") == 0) {
+			char *profile = NULL;
+
+			profile = (char *)dbus_message_get_path(msg);
+
+			if (strstr(profile, "wifi_") != NULL) {
+				__netconfig_wifi_service_state_signal_handler(msg, profile);
+				return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+			}
+		}
+	}
+
+	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+void netconfig_register_signal(void)
+{
+	DBusConnection *conn = NULL;
+	DBusError err;
+
+	DBG("Register DBus signal filters");
+
+	dbus_error_init(&err);
+	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
+	if (conn == NULL) {
+		ERR("Error! Failed to connect to the D-BUS daemon: [%s]",
+				err.message);
+		dbus_error_free(&err);
+		return;
+	}
+
+	signal_connection = conn;
+
+	dbus_connection_setup_with_g_main(conn, NULL);
+
+	/* listening to messages from all objects as no path is specified */
+	/* see signals from the given interface */
+	dbus_bus_add_match(conn, CONNMAN_MANAGER_SIGNAL_FILTER, &err);
+	dbus_connection_flush(conn);
+	if (dbus_error_is_set(&err)) {
+		ERR("Error! Match Error (%s)", err.message);
+		dbus_error_free(&err);
+		return;
+	}
+
+	dbus_bus_add_match(conn, CONNMAN_TECHNOLOGY_SIGNAL_FILTER, &err);
+	dbus_connection_flush(conn);
+	if (dbus_error_is_set(&err)) {
+		ERR("Error! Match Error (%s)", err.message);
+		dbus_error_free(&err);
+		return;
+	}
+
+	dbus_bus_add_match(conn, CONNMAN_SERVICE_SIGNAL_FILTER, &err);
+	dbus_connection_flush(conn);
+	if (dbus_error_is_set(&err)) {
+		ERR("Error! Match Error (%s)", err.message);
+		dbus_error_free(&err);
+		return;
+	}
+
+	if (dbus_connection_add_filter(conn, __netconfig_signal_filter_handler, NULL, NULL)
+			== FALSE) {
+		ERR("Error! dbus_connection_add_filter() failed");
+		return;
+	}
+
+	INFO("Successfully register signal filters");
+}
+
+void netconfig_deregister_signal(void)
+{
+	if (signal_connection == NULL) {
+		ERR("Error! Already de-registered. Nothing to be done");
+		return;
+	}
+
+	dbus_connection_remove_filter(signal_connection, __netconfig_signal_filter_handler,
+			NULL);
+	INFO("Successfully remove DBus signal filters");
+
+	dbus_connection_unref(signal_connection);
+	signal_connection = NULL;
+}

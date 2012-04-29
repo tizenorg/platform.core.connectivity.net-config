@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node name="/">
+	<interface name="net.netconfig.wifi">
+		<method name="LoadDriver">
+		</method>
+		<method name="RemoveDriver">
+		</method>
+		<method name="LaunchDirect">
+		</method>
+		<method name="SetBgscan">
+			<arg type="u" name="ScanMode" direction="in"/>
+		</method>
+		<signal name="DriverLoaded">
+			<arg name="mac" type="s"/>
+		</signal>
+		<signal name="PowerOn">
+			<arg name="error" type="s"/>
+		</signal>
+	</interface>
+</node>

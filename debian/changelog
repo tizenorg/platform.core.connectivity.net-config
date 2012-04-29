@@ -1,0 +1,93 @@
+net-config (0.1.74) unstable; urgency=low
+
+  * Fix Wi-Fi power bug when Wi-Fi direct is on
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.74
+
+ -- Sanghoon Cho <sanghoon80.cho@samsung.com>  Thu, 12 Apr 2012 22:06:27 +0900
+
+net-config (0.1.73) unstable; urgency=low
+
+  * Fix Wi-Fi tethering state bugs
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.73
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Mon, 02 Apr 2012 17:27:06 +0900
+
+net-config (0.1.72) unstable; urgency=low
+
+  * Fix emulator proxy setting
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.72
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Thu, 29 Mar 2012 10:45:15 +0900
+
+net-config (0.1.71) unstable; urgency=low
+
+  * Enable DBus auto-activation
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.71
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Tue, 27 Mar 2012 14:01:40 +0900
+
+net-config (0.1.70) unstable; urgency=low
+
+  * Implement Wi-Fi device picker service
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.70
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Fri, 23 Mar 2012 19:28:01 +0900
+
+net-config (0.1.69) unstable; urgency=low
+
+  * Change alert popup name to "net-popup"
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.69
+
+ -- Sunkey Lee <yuvjjang.lee@samsung.com>  Fri, 16 Mar 2012 10:21:53 +0900
+
+net-config (0.1.68) unstable; urgency=low
+
+  * Revise Network State update DBus interface name (object path)
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.68
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Thu, 15 Mar 2012 13:33:17 +0900
+
+net-config (0.1.67) unstable; urgency=low
+
+  * Write update default connection information
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.67
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Wed, 14 Mar 2012 21:31:57 +0900
+
+net-config (0.1.66) unstable; urgency=low
+
+  * Write initial Network Configuration Module based on exist sonet
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.66
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Wed, 14 Mar 2012 19:00:26 +0900
+
+net-config (0.1.65) unstable; urgency=low
+
+  * Fix network status update
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.65
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Thu, 08 Mar 2012 22:17:24 +0900
+
+net-config (0.1.64) unstable; urgency=low
+
+  * Fix vconf memory backend to be installed
+  * Git: pkgs/n/net-config
+  * Tag: net-config_0.1.64
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Tue, 06 Mar 2012 21:11:08 +0900
+
+sonet (0.1.0) unstable; urgency=low
+
+  * Initial Release
+
+ -- DongHoo Park <donghoo.park@samsung.com>  Tue, 23 Aug 2011 11:22:04 +0900

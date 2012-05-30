@@ -7,6 +7,7 @@ Release:    1
 Group:      System/Network
 License:    Apache License Version 2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: packaging/net-config.manifest 
 
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
@@ -26,6 +27,7 @@ TIZEN Network Configuration Module
 %setup -q
 
 %build
+cp %{SOURCE1001} .
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
 make %{?jobs:-j%jobs}
 
@@ -83,6 +85,7 @@ chmod 644 /opt/etc/resolv.conf
 
 
 %files
+%manifest net-config.manifest
 %defattr(-,root,root,-)
 %{_sbindir}/*
 %{_datadir}/dbus-1/services/*

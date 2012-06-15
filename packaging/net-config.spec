@@ -37,8 +37,8 @@ rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/usr/share/dbus-1/services
 cp resources/usr/share/dbus-1/services/net.netconfig.service %{buildroot}/usr/share/dbus-1/services/net.netconfig.service
-mkdir -p %{buildroot}/usr/etc/dbus-1/system.d
-cp resources/usr/etc/dbus-1/system.d/net-config.conf %{buildroot}/usr/etc/dbus-1/system.d/net-config.conf
+mkdir -p %{buildroot}/%{_sysconfdir}/dbus-1/system.d
+cp resources/usr/etc/dbus-1/system.d/net-config.conf %{buildroot}/%{_sysconfdir}/dbus-1/system.d/net-config.conf
 mkdir -p %{buildroot}/opt/etc
 cp resources/opt/etc/resolv.conf %{buildroot}/opt/etc/resolv.conf
 mkdir -p %{buildroot}/etc/rc.d/init.d
@@ -90,7 +90,7 @@ chmod 644 /opt/etc/resolv.conf
 %{_sbindir}/*
 %{_datadir}/dbus-1/services/*
 /opt/etc/resolv.conf
-%{_prefix}/etc/dbus-1/system.d/*
+%{_sysconfdir}/dbus-1/system.d/*
 %{_sysconfdir}/rc.d/init.d/net-config
 %{_sysconfdir}/rc.d/rc3.d/S60net-config
 %{_sysconfdir}/rc.d/rc5.d/S60net-config

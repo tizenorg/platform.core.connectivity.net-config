@@ -7,6 +7,7 @@ Release:    1
 Group:      System/Network
 License:    Apache License Version 2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1:    net-config.service
 Source1001: packaging/net-config.manifest 
 
 BuildRequires:  cmake
@@ -18,6 +19,10 @@ BuildRequires:  pkgconfig(tapi)
 BuildRequires:  pkgconfig(db-util)
 BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(syspopup-caller)
+Requires:   systemd
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
 
 %description
 TIZEN Network Configuration Module
@@ -48,6 +53,11 @@ ln -s ../init.d/net-config %{buildroot}/etc/rc.d/rc3.d/S60net-config
 mkdir -p %{buildroot}/etc/rc.d/rc5.d
 ln -s ../init.d/net-config %{buildroot}/etc/rc.d/rc5.d/S60net-config
 
+# Systemd service file
+install -d %{buildroot}%{_libdir}/systemd/system/
+install -m 644 %{S:1} %{buildroot}%{_libdir}/systemd/system/net-config.service
+install -d %{buildroot}%{_libdir}/systemd/system/network.target.wants/
+ln -s ../net-config.service %{buildroot}%{_libdir}/systemd/system/network.target.wants/net-config.service
 
 %post
 
@@ -81,7 +91,14 @@ vconftool set -t int db/wifi/LastPowerOnState "0"
 #Resource
 chmod 644 /opt/etc/resolv.conf
 
+systemctl daemon-reload
+systemctl restart net-config.service
+
+%preun
+systemctl stop net-config.service
+
 %postun
+systemctl daemon-reload
 
 
 %files
@@ -94,3 +111,5 @@ chmod 644 /opt/etc/resolv.conf
 %{_sysconfdir}/rc.d/init.d/net-config
 %{_sysconfdir}/rc.d/rc3.d/S60net-config
 %{_sysconfdir}/rc.d/rc5.d/S60net-config
+%{_libdir}/systemd/system/net-config.service
+%{_libdir}/systemd/system/network.target.wants/net-config.service

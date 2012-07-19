@@ -2,7 +2,7 @@ Source: net-config
 Section: net
 Priority: extra
 Maintainer: Danny Jeongseok Seo <s.seo@samsung.com>
-Uploaders: Danny Jeongseok Seo <s.seo@samsung.com>, Jeik Jaehyun Kim <jeik01.kim@samsung.com>, Misun Kim <ms0123.kim@samsung.com>, Sunkey Lee <yuvjjang.lee@samsung.com>, Sanghoon Cho <sanghoon80.cho@samsung.com>
+Uploaders: Danny Jeongseok Seo <s.seo@samsung.com>, Jeik Jaehyun Kim <jeik01.kim@samsung.com>, Misun Kim <ms0123.kim@samsung.com>, Sanghoon Cho <sanghoon80.cho@samsung.com>
 Build-Depends: debhelper (>= 5), libdbus-1-dev (>= 1.1.1), libglib2.0-dev, libdbus-glib-1-dev, dlog-dev, syspopup-caller-dev, libwifi-direct-dev
 Standards-Version: 3.7.2
 

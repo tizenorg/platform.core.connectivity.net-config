@@ -592,51 +592,6 @@ char *netconfig_wifi_get_connected_service_name(DBusMessage *message)
 	return NULL;
 }
 
-int netconfig_extract_services_profile(DBusMessage *message, char **profile)
-{
-	DBusMessageIter iter, array;
-
-	dbus_message_iter_init(message, &iter);
-	dbus_message_iter_recurse(&iter, &array);
-
-	while (dbus_message_iter_get_arg_type(&array) == DBUS_TYPE_DICT_ENTRY) {
-		DBusMessageIter entry, array2, object_path;
-		const char *key = NULL;
-		const char *temp = NULL;
-
-		dbus_message_iter_recurse(&array, &entry);
-		dbus_message_iter_get_basic(&entry, &key);
-
-		if (strcmp(key, "Services") == 0) {
-			dbus_message_iter_next(&entry);
-			dbus_message_iter_recurse(&entry, &array2);
-
-			if (dbus_message_iter_get_arg_type(&array2) == DBUS_TYPE_ARRAY) {
-				dbus_message_iter_recurse(&array2, &object_path);
-
-				if (dbus_message_iter_get_arg_type(&object_path)
-						== DBUS_TYPE_OBJECT_PATH) {
-					dbus_message_iter_get_basic(&object_path, &temp);
-
-					if (strstr(temp, "wifi_") != NULL) {
-						if (*profile != NULL)
-							return -1;
-
-						*profile = malloc(sizeof(char)*128);
-						strcpy(*profile, temp);
-
-						return 0;
-					}
-				}
-			}
-		}
-
-		dbus_message_iter_next(&array);
-	}
-
-	return -1;
-}
-
 void netconfig_dbus_parse_recursive(DBusMessageIter *iter,
 		netconfig_dbus_result_type result_type, void *data)
 {

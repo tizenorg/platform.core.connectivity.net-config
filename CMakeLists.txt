@@ -17,9 +17,9 @@ SET(SRCS
 	src/emulator.c
 	src/wifi-power.c
 	src/wifi-state.c
+	src/network-state.c
 	src/wifi-indicator.c
 	src/signal-handler.c
-	src/network-state.c
 	src/wifi-background-scan.c
 	)
 

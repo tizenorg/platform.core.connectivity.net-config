@@ -60,7 +60,6 @@ struct dbus_input_arguments {
 };
 
 char *netconfig_wifi_get_connected_service_name(DBusMessage *message);
-int netconfig_extract_services_profile(DBusMessage *message, char **essid);
 DBusMessage *netconfig_invoke_dbus_method(const char *dest, DBusConnection *connection,
 		const char *path, const char *interface_name, const char *method);
 DBusMessage *netconfig_supplicant_invoke_dbus_method(const char *dest,

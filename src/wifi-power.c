@@ -176,7 +176,7 @@ static gboolean __netconfig_wifi_enable_technology(void)
 
 	reply = netconfig_dbus_send_request(CONNMAN_SERVICE, param_array);
 	if (reply == NULL) {
-		ERR("Error!!! Request failed");
+		ERR("Error! Request failed");
 
 		return FALSE;
 	}
@@ -205,7 +205,7 @@ static gboolean __netconfig_wifi_disable_technology(void)
 
 	reply = netconfig_dbus_send_request(CONNMAN_SERVICE, param_array);
 	if (reply == NULL) {
-		ERR("Error!!! Request failed");
+		ERR("Error! Request failed");
 
 		return FALSE;
 	}
@@ -313,9 +313,6 @@ static gboolean __netconfig_wifi_try_to_load_driver(void)
 
 		return FALSE;
 	}
-
-	/* TODO: Do I need some time to activate new link for ConnMan? I don't think so */
-	/* sleep(1); */
 
 	for (count = 0; count < 3; count++) {
 		__netconfig_wifi_enable_technology();

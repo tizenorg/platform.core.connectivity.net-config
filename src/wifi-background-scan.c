@@ -86,7 +86,7 @@ static gboolean __netconfig_wifi_bgscan_request_connman_scan(void)
 	/** dbus-send --system --print-reply --dest=net.connman / net.connman.Manager.SetProperty string:ScanMode variant:uint16:0/1/2/3 */
 	char request[] = CONNMAN_MANAGER_INTERFACE ".RequestScan";
 	char param1[] = "string:wifi";
-	char path[DBUS_PATH_MAX_BUFLEN] = "/";
+	char path[] = CONNMAN_MANAGER_PATH;
 	char *param_array[] = {
 		NULL,
 		NULL,
@@ -109,7 +109,7 @@ static gboolean __netconfig_wifi_bgscan_request_connman_scan(void)
 
 	reply = netconfig_dbus_send_request(CONNMAN_SERVICE, param_array);
 	if (reply == NULL) {
-		ERR("Error!!! Request failed");
+		ERR("Error! Request failed");
 
 		return FALSE;
 	}

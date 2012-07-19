@@ -1,3 +1,11 @@
+net-config (0.1.85-1) unstable; urgency=low
+
+  * Fix Wi-Fi BG Scan bug for default value
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.85-1
+
+ -- Sanghoon Cho <sanghoon80.cho@samsung.com>  Fri, 01 Jun 2012 15:12:49 +0900
+
 net-config (0.1.84-1) unstable; urgency=low
 
   * Fix Wi-Fi power state update

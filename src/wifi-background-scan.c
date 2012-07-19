@@ -30,15 +30,13 @@
 #include "wifi-state.h"
 #include "wifi-background-scan.h"
 
-#define SCAN_INITIAL_DELAY		10
 #define SCAN_PERIODIC_DELAY		10
 #define SCAN_EXPONENTIAL_MIN	4
 #define SCAN_EXPONENTIAL_MAX	128
 
 enum {
-	WIFI_BGSCAN_MODE_DEFAULT = 0x00,
+	WIFI_BGSCAN_MODE_EXPONENTIAL = 0x00,
 	WIFI_BGSCAN_MODE_PERIODIC,
-	WIFI_BGSCAN_MODE_EXPONENTIAL,
 	WIFI_BGSCAN_MODE_MAX,
 };
 
@@ -50,19 +48,19 @@ struct bgscan_timer_data {
 
 static struct bgscan_timer_data *__netconfig_wifi_bgscan_get_bgscan_data(void)
 {
-	static struct bgscan_timer_data timer_data = {SCAN_INITIAL_DELAY, WIFI_BGSCAN_MODE_EXPONENTIAL, 0};
+	static struct bgscan_timer_data timer_data = {SCAN_EXPONENTIAL_MIN, WIFI_BGSCAN_MODE_EXPONENTIAL, 0};
 
 	return &timer_data;
 }
 
 static guint __netconfig_wifi_bgscan_mode(gboolean is_set_mode, guint mode)
 {
-	static guint bgscan_mode = WIFI_BGSCAN_MODE_DEFAULT;
+	static guint bgscan_mode = WIFI_BGSCAN_MODE_EXPONENTIAL;
 
 	if (is_set_mode != TRUE)
 		return bgscan_mode;
 
-	if (mode < WIFI_BGSCAN_MODE_MAX && mode > WIFI_BGSCAN_MODE_DEFAULT)
+	if (mode < WIFI_BGSCAN_MODE_MAX && mode >= WIFI_BGSCAN_MODE_EXPONENTIAL)
 		bgscan_mode = mode;
 
 	DBG("Wi-Fi background scan mode set %d", bgscan_mode);
@@ -149,8 +147,8 @@ static void __netconfig_wifi_bgscan_start_timer(struct bgscan_timer_data *data)
 		break;
 
 	default:
-		data->time = SCAN_INITIAL_DELAY;
-		DBG("Wi-Fi background scan with initial delay");
+		DBG("Error! Wi-Fi background scan mode [%d]", data->mode);
+		return;
 	}
 
 	DBG("Register background scan timer with %d seconds", data->time);
@@ -220,7 +218,7 @@ gboolean netconfig_iface_wifi_set_bgscan(NetconfigWifi *wifi, guint scan_mode, G
 
 	DBG("Wi-Fi background scan mode set: %d", scan_mode);
 
-	if (scan_mode >= WIFI_BGSCAN_MODE_MAX || scan_mode == WIFI_BGSCAN_MODE_DEFAULT)
+	if (scan_mode >= WIFI_BGSCAN_MODE_MAX || scan_mode < WIFI_BGSCAN_MODE_EXPONENTIAL)
 		return FALSE;
 
 	switch (scan_mode) {

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __NETCONFIG_EMULATOR_H_
-#define __NETCONFIG_EMULATOR_H_
+#ifndef __NETCONFIG_EMULATOR_H__
+#define __NETCONFIG_EMULATOR_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ void netconfig_emulator_test_and_start(void);
 }
 #endif
 
-#endif /* __NETCONFIG_EMULATOR_H_ */
+#endif /* __NETCONFIG_EMULATOR_H__ */

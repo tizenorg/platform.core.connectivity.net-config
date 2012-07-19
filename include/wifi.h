@@ -49,29 +49,9 @@ enum netconfig_wifi_power_state {
 	WIFI_POWER_ON = 0x01,
 };
 
-enum netconfig_wifi_power_triggering_state {
-	WIFI_NON_OF_TRIGGERING = 0x01,
-
-	WIFI_ACTIVATING = 0x02,
-	WIFI_DEACTIVATING = 0x03,
-};
-
 GType netconfig_wifi_get_type(void);
 
-
 gpointer netconfig_wifi_create_and_init(DBusGConnection *conn);
-
-gboolean netconfig_wifi_remove_driver(void);
-
-gboolean netconfig_wifi_enable_technology(void);
-gboolean netconfig_wifi_disable_technology(void);
-void netconfig_wifi_set_power_triggering_state(
-		enum netconfig_wifi_power_triggering_state state);
-enum netconfig_wifi_power_triggering_state
-		netconfig_wifi_get_power_triggering_state(void);
-
-gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error);
-gboolean netconfig_iface_wifi_remove_driver(NetconfigWifi *wifi, GError **error);
 
 G_END_DECLS
 

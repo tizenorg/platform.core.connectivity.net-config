@@ -1,3 +1,12 @@
+net-config (0.1.77) unstable; urgency=low
+
+  * Revise net-config to fit Android supplicant
+  * Revise net-config log
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.77
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Tue, 24 Apr 2012 23:08:11 +0900
+
 net-config (0.1.76) unstable; urgency=low
 
   * Add a vconf key for local MAC address of Wi-Fi device

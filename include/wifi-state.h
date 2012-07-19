@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __NETCONFIG_WIFISTATE_H_
-#define __NETCONFIG_WIFISTATE_H_
+#ifndef __NETCONFIG_WIFI_STATE_H__
+#define __NETCONFIG_WIFI_STATE_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,8 +38,12 @@ void netconfig_wifi_state_set_service_state(
 enum netconfig_wifi_service_state
 	netconfig_wifi_state_get_service_state(void);
 
+gchar *netconfig_wifi_get_technology_state(void);
+
+void netconfig_wifi_update_power_state(gboolean powered);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __NETCONFIG_WIFISTATE_H_ */
+#endif /* __NETCONFIG_WIFI_STATE_H__ */

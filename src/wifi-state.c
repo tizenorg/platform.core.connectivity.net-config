@@ -19,9 +19,14 @@
  *
  */
 
+#include <vconf.h>
+#include <vconf-keys.h>
+
 #include "log.h"
 #include "dbus.h"
+#include "util.h"
 #include "wifi-state.h"
+#include "wifi-background-scan.h"
 
 static enum netconfig_wifi_service_state
 	wifi_service_state = NETCONFIG_WIFI_UNKNOWN;
@@ -215,4 +220,111 @@ netconfig_wifi_state_get_service_state(void)
 		return NETCONFIG_WIFI_CONNECTED;
 
 	return __netconfig_wifi_state_get_connman_service_state();
+}
+
+gchar *netconfig_wifi_get_technology_state(void)
+{
+	DBusConnection *connection = NULL;
+	DBusMessage *message = NULL;
+	DBusMessageIter args, dict;
+	gboolean wifi_tech_available = FALSE;
+	gboolean wifi_tech_enabled = FALSE;
+
+	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
+	if (connection == NULL) {
+		ERR("Failed to get system bus");
+		return NULL;
+	}
+
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, connection,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE, "GetProperties");
+	if (message == NULL) {
+		ERR("Failed to get Wi-Fi technology state");
+		dbus_connection_unref(connection);
+		return NULL;
+	}
+
+	dbus_message_iter_init(message, &args);
+	dbus_message_iter_recurse(&args, &dict);
+
+	while (dbus_message_iter_get_arg_type(&dict) == DBUS_TYPE_DICT_ENTRY) {
+		DBusMessageIter key_iter, sub_iter1, sub_iter2;
+		const char *key = NULL;
+		const char *tech_name = NULL;
+
+		dbus_message_iter_recurse(&dict, &key_iter);
+		dbus_message_iter_get_basic(&key_iter, &key);
+
+		if (strcmp(key, "AvailableTechnologies") == 0 ||
+				strcmp(key, "EnabledTechnologies") == 0) {
+			dbus_message_iter_next(&key_iter);
+			dbus_message_iter_recurse(&key_iter, &sub_iter1);
+
+			if (dbus_message_iter_get_arg_type(&sub_iter1) == DBUS_TYPE_ARRAY)
+				dbus_message_iter_recurse(&sub_iter1, &sub_iter2);
+			else
+				goto next_dict;
+
+			while (dbus_message_iter_get_arg_type(&sub_iter2) == DBUS_TYPE_STRING) {
+				dbus_message_iter_get_basic(&sub_iter2, &tech_name);
+
+				if (tech_name != NULL && strcmp(tech_name, "wifi") == 0) {
+					if (strcmp(key, "AvailableTechnologies") == 0)
+						wifi_tech_available = TRUE;
+					else if (strcmp(key, "EnabledTechnologies") == 0)
+						wifi_tech_enabled = TRUE;
+				}
+
+				dbus_message_iter_next(&sub_iter2);
+			}
+		}
+
+next_dict:
+		dbus_message_iter_next(&dict);
+	}
+
+	dbus_message_unref(message);
+	dbus_connection_unref(connection);
+
+	if (wifi_tech_enabled)
+		return g_strdup("EnabledTechnologies");
+	else if (wifi_tech_available)
+		return g_strdup("AvailableTechnologies");
+	else
+		return NULL;
+}
+
+void netconfig_wifi_update_power_state(gboolean powered)
+{
+	int wifi_state = 0;
+
+	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+
+	if (powered == TRUE) {
+		if (wifi_state == VCONFKEY_WIFI_OFF &&
+				netconfig_is_wifi_direct_on() != TRUE &&
+				netconfig_is_wifi_tethering_on() != TRUE) {
+			DBG("Wi-Fi successfully turned on");
+
+			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
+
+			vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_ON);
+
+			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED);
+
+			netconfig_wifi_bgscan_start();
+		}
+	} else {
+		netconfig_wifi_bgscan_stop();
+
+		if (wifi_state != VCONFKEY_WIFI_OFF) {
+			DBG("Wi-Fi successfully turned off");
+
+			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
+
+			vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_OFF);
+
+			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
+		}
+	}
 }

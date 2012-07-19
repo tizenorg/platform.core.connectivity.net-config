@@ -29,7 +29,6 @@
 #include "log.h"
 #include "dbus.h"
 #include "util.h"
-#include "wifi.h"
 #include "wifi-state.h"
 #include "wifi-indicator.h"
 #include "wifi-background-scan.h"
@@ -105,7 +104,6 @@ static char *__netconfig_get_property(DBusMessage * msg, char **property)
 static void __netconfig_wifi_technology_state_signal_handler(
 		const char *sigvalue, const char *property)
 {
-	int wifi_state = 0;
 	static char previous_technology_state[DBUS_STATE_MAX_BUFLEN] = {0};
 
 	if (sigvalue == NULL || property == NULL)
@@ -122,57 +120,20 @@ static void __netconfig_wifi_technology_state_signal_handler(
 
 	g_strlcpy(previous_technology_state, property, sizeof(previous_technology_state));
 
-	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
-
 	INFO("Technology state value is %s, property %s", sigvalue, property);
+
 	if (g_str_equal(property, "offline") == TRUE) {
-		if (netconfig_wifi_get_power_triggering_state() == WIFI_DEACTIVATING)
-			netconfig_wifi_set_power_triggering_state(WIFI_NON_OF_TRIGGERING);
+		gchar *wifi_tech_state = NULL;
 
-		if (wifi_state != VCONFKEY_WIFI_OFF) {
-			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
+		wifi_tech_state = netconfig_wifi_get_technology_state();
+		INFO("Wi-Fi technology state: %s", wifi_tech_state);
 
-			vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_OFF);
-
-			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
-		}
-		netconfig_wifi_bgscan_stop();
-	} else if (g_str_equal(property, "available") == TRUE) {
-		switch (netconfig_wifi_get_power_triggering_state()) {
-		case WIFI_ACTIVATING:
-			/* Wi-Fi power on triggered */
-			netconfig_wifi_enable_technology();
-
-			netconfig_wifi_device_picker_service_start();
-
-			netconfig_wifi_check_local_bssid();
-
-			break;
-
-		case WIFI_DEACTIVATING:
-			/* Wi-Fi power off triggered */
-			netconfig_wifi_remove_driver();
-
-			break;
-
-		default:
-			DBG("Wi-Fi tethering or direct enabled");
-		}
-	} else if (g_str_equal(property, "enabled") == TRUE) {
-		if (netconfig_wifi_get_power_triggering_state() == WIFI_ACTIVATING) {
-			netconfig_wifi_set_power_triggering_state(WIFI_NON_OF_TRIGGERING);
-
-			if (wifi_state == VCONFKEY_WIFI_OFF) {
-				vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
-
-				vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_ON);
-
-				vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED);
-			}
-
-			netconfig_wifi_bgscan_start();
-		}
-	}
+		if (wifi_tech_state == NULL)
+			netconfig_wifi_update_power_state(FALSE);
+		else
+			g_free(wifi_tech_state);
+	} else if (g_str_equal(property, "enabled") == TRUE)
+		netconfig_wifi_update_power_state(TRUE);
 }
 
 static void netconfig_wifi_set_essid(const char *active_profile)
@@ -180,7 +141,7 @@ static void netconfig_wifi_set_essid(const char *active_profile)
 	int err;
 	int state = -1;
 	char *essid_name = NULL;
-	DBusConnection *conn = NULL;
+	DBusConnection *connection = NULL;
 	DBusMessage *message = NULL;
 	int MessageType = 0;
 
@@ -189,18 +150,18 @@ static void netconfig_wifi_set_essid(const char *active_profile)
 		return;
 	}
 
-	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (conn == NULL) {
-		ERR("Error!!! Can't get on system bus");
+	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
+	if (connection == NULL) {
+		ERR("Failed to get system bus");
 		return;
 	}
 
-	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, conn, active_profile,
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, connection, active_profile,
 			CONNMAN_SERVICE_INTERFACE, "GetProperties");
 
 	if (message == NULL) {
-		ERR("Error!!! Failed to get service properties");
-		dbus_connection_unref(conn);
+		ERR("Failed to get service properties");
+		dbus_connection_unref(connection);
 		return;
 	}
 
@@ -230,7 +191,7 @@ done:
 
 	dbus_message_unref(message);
 
-	dbus_connection_unref(conn);
+	dbus_connection_unref(connection);
 }
 
 static void netconfig_wifi_unset_essid(void)

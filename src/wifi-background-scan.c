@@ -94,12 +94,8 @@ static gboolean __netconfig_wifi_bgscan_request_connman_scan(void)
 		NULL
 	};
 
-	int snr_level = 0;
-
-	vconf_get_int(VCONFKEY_WIFI_STRENGTH, &snr_level);
 	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTED)
 		if (__netconfig_wifi_bgscan_get_mode() == WIFI_BGSCAN_MODE_EXPONENTIAL)
-			if (snr_level > 2)
 				return FALSE;
 
 	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTING)
@@ -130,40 +126,35 @@ static void __netconfig_wifi_bgscan_start_timer(struct bgscan_timer_data *data)
 	if (data == NULL)
 		return;
 
-	DBG("[%s]", __FUNCTION__);
 	netconfig_stop_timer(&(data->timer_id));
 
 	data->mode = __netconfig_wifi_bgscan_get_mode();
 
 	switch (data->mode) {
-		case WIFI_BGSCAN_MODE_EXPONENTIAL:
-			if (data->time == 0)
-				data->time = SCAN_EXPONENTIAL_MIN;
-			else if ((data->time >= SCAN_EXPONENTIAL_MAX) || (data->time > SCAN_EXPONENTIAL_MAX / 2))
-				data->time = SCAN_EXPONENTIAL_MAX;
-			else
-				data->time = data->time * 2;
-			break;
-		case WIFI_BGSCAN_MODE_PERIODIC:
-			data->time = SCAN_PERIODIC_DELAY;
-			break;
-		default:
-			data->time = SCAN_INITIAL_DELAY;
-			break;
-	}
-	switch (data->mode) {
-		case WIFI_BGSCAN_MODE_PERIODIC:
-			DBG("[%s]BG scan mode is periodic", __FUNCTION__);
-			break;
-		case WIFI_BGSCAN_MODE_EXPONENTIAL:
-			DBG("[%s]BG scan mode is exponential", __FUNCTION__);
-			break;
-		default:
-			DBG("[%s]strange value [%d]", __FUNCTION__, data->mode);
-			break;
+	case WIFI_BGSCAN_MODE_EXPONENTIAL:
+		if (data->time == 0)
+			data->time = SCAN_EXPONENTIAL_MIN;
+		else if ((data->time >= SCAN_EXPONENTIAL_MAX) || (data->time > SCAN_EXPONENTIAL_MAX / 2))
+			data->time = SCAN_EXPONENTIAL_MAX;
+		else
+			data->time = data->time * 2;
+
+		DBG("Wi-Fi background scan with exponentially increasing period");
+		break;
+
+	case WIFI_BGSCAN_MODE_PERIODIC:
+		data->time = SCAN_PERIODIC_DELAY;
+
+		DBG("Wi-Fi background scan periodically");
+		break;
+
+	default:
+		data->time = SCAN_INITIAL_DELAY;
+		DBG("Wi-Fi background scan with initial delay");
 	}
 
 	DBG("Register background scan timer with %d seconds", data->time);
+
 	netconfig_start_timer_seconds(data->time, __netconfig_wifi_bgscan_request_scan, data, &(data->timer_id));
 }
 
@@ -172,7 +163,8 @@ static void __netconfig_wifi_bgscan_stop_timer(struct bgscan_timer_data *data)
 	if (data == NULL)
 		return;
 
-	DBG("[%s]", __FUNCTION__);
+	DBG("Stop Wi-Fi background scan timer");
+
 	netconfig_stop_timer(&(data->timer_id));
 }
 
@@ -183,7 +175,7 @@ static gboolean __netconfig_wifi_bgscan_request_scan(gpointer data)
 	if (timer == NULL)
 		return FALSE;
 
-	DBG("[%s] Try to send a scan request to ConnMan", __FUNCTION__);
+	DBG("Request Wi-Fi scan to ConnMan");
 
 	__netconfig_wifi_bgscan_stop_timer(timer);
 

@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __NETCONFIG_UTIL_H_
-#define __NETCONFIG_UTIL_H_
+#ifndef __NETCONFIG_UTIL_H__
+#define __NETCONFIG_UTIL_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +42,6 @@ void netconfig_wifi_device_picker_service_stop(void);
 gboolean netconfig_is_wifi_direct_on(void);
 gboolean netconfig_is_wifi_tethering_on(void);
 
-void netconfig_wifi_check_local_bssid(void);
 gboolean netconfig_execute_file(const char *file_path,
 		char *const args[], char *const env[]);
 
@@ -52,4 +51,4 @@ gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error)
 }
 #endif
 
-#endif /* __NETCONFIG_UTIL_H_ */
+#endif /* __NETCONFIG_UTIL_H__ */

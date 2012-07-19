@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
@@ -31,7 +32,11 @@
 #include "neterror.h"
 #include "netconfig.h"
 #include "emulator.h"
+#include "wifi-state.h"
 #include "wifi-background-scan.h"
+
+gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error);
+gboolean netconfig_iface_wifi_remove_driver(NetconfigWifi *wifi, GError **error);
 
 #include "netconfig-iface-wifi-glue.h"
 
@@ -152,37 +157,7 @@ static void netconfig_wifi_class_init(NetconfigWifiClass *klass)
 }
 
 
-static enum netconfig_wifi_power_triggering_state
-__netconfig_wifi_triggering_state(gboolean is_set_method,
-		enum netconfig_wifi_power_triggering_state state)
-{
-	static enum netconfig_wifi_power_triggering_state wifi_state =
-			WIFI_NON_OF_TRIGGERING;
-
-	if (is_set_method != TRUE)
-		return wifi_state;
-
-	if (wifi_state != state)
-		wifi_state = state;
-
-	DBG("Wi-Fi power triggering state set %d", wifi_state);
-
-	return wifi_state;
-}
-
-void netconfig_wifi_set_power_triggering_state(
-		enum netconfig_wifi_power_triggering_state state)
-{
-	__netconfig_wifi_triggering_state(TRUE, state);
-}
-
-enum netconfig_wifi_power_triggering_state
-		netconfig_wifi_get_power_triggering_state(void)
-{
-	return __netconfig_wifi_triggering_state(FALSE, -1);
-}
-
-gboolean netconfig_wifi_enable_technology(void)
+static gboolean __netconfig_wifi_enable_technology(void)
 {
 	DBusMessage *reply = NULL;
 	char path[DBUS_PATH_MAX_BUFLEN] = "/";
@@ -211,7 +186,7 @@ gboolean netconfig_wifi_enable_technology(void)
 	return TRUE;
 }
 
-gboolean netconfig_wifi_disable_technology(void)
+static gboolean __netconfig_wifi_disable_technology(void)
 {
 	DBusMessage *reply = NULL;
 	char path[DBUS_PATH_MAX_BUFLEN] = "/";
@@ -280,49 +255,8 @@ static gboolean __netconfig_wifi_remove_driver(void)
 	return TRUE;
 }
 
-gboolean netconfig_wifi_remove_driver(void)
-{
-	return __netconfig_wifi_remove_driver();
-}
-
-
-static gboolean __netconfig_wifi_try_to_load_driver(void)
-{
-	gboolean ret = FALSE;
-
-	netconfig_wifi_set_power_triggering_state(WIFI_ACTIVATING);
-
-	ret = __netconfig_wifi_load_driver();
-
-	if (ret == FALSE) {
-		DBG("Fail to load Wi-Fi driver");
-
-		__netconfig_wifi_remove_driver();
-
-		netconfig_wifi_set_power_triggering_state(WIFI_NON_OF_TRIGGERING);
-	}
-
-	return ret;
-}
-
-static gboolean __netconfig_wifi_try_to_remove_driver(void)
-{
-	gboolean ret = FALSE;
-
-	netconfig_wifi_set_power_triggering_state(WIFI_DEACTIVATING);
-
-	netconfig_wifi_device_picker_service_stop();
-
-	ret = netconfig_wifi_disable_technology();
-
-	if (ret == FALSE) {
-		DBG("Fail to disable Wi-Fi technology");
-
-		netconfig_wifi_set_power_triggering_state(WIFI_NON_OF_TRIGGERING);
-	}
-
-	return ret;
-}
+static gboolean __netconfig_wifi_try_to_load_driver(void);
+static gboolean __netconfig_wifi_try_to_remove_driver(void);
 
 static void __netconfig_wifi_direct_state_cb(int error_code,
 		wifi_direct_device_state_e device_state, void *user_data)
@@ -356,6 +290,84 @@ static gboolean __netconfig_wifi_direct_power_off(void)
 	return TRUE;
 }
 
+static gboolean __netconfig_wifi_try_to_load_driver(void)
+{
+	int count = 0;
+	gchar *wifi_tech_state = NULL;
+
+	if (netconfig_is_wifi_tethering_on() == TRUE) {
+		/* TODO: Wi-Fi tethering turns off here */
+		/* return TRUE; */
+		return FALSE;
+	}
+
+	if (netconfig_is_wifi_direct_on() == TRUE) {
+		if (__netconfig_wifi_direct_power_off() == TRUE)
+			return TRUE;
+		else
+			return FALSE;
+	}
+
+	if (__netconfig_wifi_load_driver() != TRUE) {
+		__netconfig_wifi_remove_driver();
+
+		return FALSE;
+	}
+
+	/* TODO: Do I need some time to activate new link for ConnMan? I don't think so */
+	/* sleep(1); */
+
+	for (count = 0; count < 3; count++) {
+		__netconfig_wifi_enable_technology();
+
+		wifi_tech_state = netconfig_wifi_get_technology_state();
+		INFO("Wi-Fi technology state: %s", wifi_tech_state);
+
+		if (g_str_equal(wifi_tech_state, "EnabledTechnologies") == TRUE) {
+			netconfig_wifi_update_power_state(TRUE);
+
+			netconfig_wifi_device_picker_service_start();
+
+			return TRUE;
+		}
+
+		g_free(wifi_tech_state);
+
+		wifi_tech_state = NULL;
+	}
+
+	__netconfig_wifi_try_to_remove_driver();
+
+	return FALSE;
+}
+
+static gboolean __netconfig_wifi_try_to_remove_driver(void)
+{
+	int count = 0;
+	gchar *wifi_tech_state = NULL;
+
+	netconfig_wifi_device_picker_service_stop();
+
+	for (count = 0; count < 3; count++) {
+		__netconfig_wifi_disable_technology();
+
+		wifi_tech_state = netconfig_wifi_get_technology_state();
+		INFO("Wi-Fi technology state: %s", wifi_tech_state);
+
+		if (g_str_equal(wifi_tech_state, "EnabledTechnologies") != TRUE) {
+			netconfig_wifi_update_power_state(FALSE);
+
+			return __netconfig_wifi_remove_driver();
+		}
+
+		g_free(wifi_tech_state);
+
+		wifi_tech_state = NULL;
+	}
+
+	return __netconfig_wifi_remove_driver();
+}
+
 static void __netconfig_wifi_airplane_mode(keynode_t* node,
 		void* user_data)
 {
@@ -376,6 +388,7 @@ static void __netconfig_wifi_airplane_mode(keynode_t* node,
 			return;
 
 		DBG("Turning Wi-Fi off");
+
 		__netconfig_wifi_try_to_remove_driver();
 
 		powered_off_by_flightmode = TRUE;
@@ -386,20 +399,6 @@ static void __netconfig_wifi_airplane_mode(keynode_t* node,
 
 		if (powered_off_by_flightmode != TRUE)
 			return;
-
-		DBG("Turning Wi-Fi on");
-
-		if (netconfig_is_wifi_tethering_on() == TRUE) {
-			/* TODO: Wi-Fi tethering turns off here */
-
-			return;
-		}
-
-		if (netconfig_is_wifi_direct_on() == TRUE) {
-			__netconfig_wifi_direct_power_off();
-
-			return;
-		}
 
 		__netconfig_wifi_try_to_load_driver();
 
@@ -458,12 +457,9 @@ static void __netconfig_wifi_power_configuration(void)
 	vconf_get_int(VCONF_WIFI_LAST_POWER_ON_STATE, &wifi_last_state);
 
 	if (wifi_last_state == WIFI_POWER_ON) {
-		if (netconfig_is_wifi_tethering_on() != TRUE &&
-				netconfig_is_wifi_direct_on() != TRUE) {
-			DBG("Turn Wi-Fi on automatically");
+		DBG("Turn Wi-Fi on automatically");
 
-			__netconfig_wifi_try_to_load_driver();
-		}
+		__netconfig_wifi_try_to_load_driver();
 	}
 }
 
@@ -489,30 +485,13 @@ gpointer netconfig_wifi_create_and_init(DBusGConnection *conn)
 
 gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error)
 {
-	DBG("Check pre-condition to load Wi-Fi driver");
+	DBG("Wi-Fi turned on");
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
-	if (netconfig_is_wifi_tethering_on() == TRUE) {
-		/* TODO: Wi-Fi tethering turns off here */
-
-		/* return TRUE; */
-		return FALSE;
-	}
-
-	if (netconfig_is_wifi_direct_on() == TRUE) {
-		if (__netconfig_wifi_direct_power_off() == TRUE)
-			return TRUE;
-		else {
-			netconfig_error_wifi_direct_failed(error);
-			return FALSE;
-		}
-	}
-
-	DBG("Loading Wi-Fi driver");
-
 	if (__netconfig_wifi_try_to_load_driver() != TRUE) {
 		netconfig_error_wifi_driver_failed(error);
+
 		return FALSE;
 	}
 
@@ -521,16 +500,15 @@ gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error)
 
 gboolean netconfig_iface_wifi_remove_driver(NetconfigWifi *wifi, GError **error)
 {
-	DBG("Removing Wi-Fi driver");
+	DBG("Wi-Fi turned off");
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
-	if (__netconfig_wifi_try_to_remove_driver() != TRUE)
-	{
+	if (__netconfig_wifi_try_to_remove_driver() != TRUE) {
 		netconfig_error_wifi_driver_failed(error);
+
 		return FALSE;
 	}
 
 	return TRUE;
 }
-

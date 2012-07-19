@@ -33,7 +33,7 @@
 #include "util.h"
 #include "wifi-indicator.h"
 
-#define NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL		1
+#define NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL	3
 
 #define VCONFKEY_WIFI_SNR_MIN				-85
 #define VCONFKEY_WIFI_SNR_MAX				-55
@@ -142,50 +142,6 @@ err:
 		dbus_connection_unref(conn);
 
 	return -1;
-}
-
-static void __netconfig_wifi_service_disconnect(void)
-{
-	int MessageType = 0;
-	DBusConnection *conn = NULL;
-	DBusMessage *message = NULL;
-	char *path_ptr = NULL;
-	char path[DBUS_PATH_MAX_BUFLEN] = { 0 };
-
-	path_ptr = &path[0];
-
-	if (__netconfig_wifi_get_interface((const char **)(&path_ptr)) < 0) {
-		ERR("ERR fail to get interface");
-		return;
-	}
-
-	INFO("interface name is [%s]", path_ptr);
-
-	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (conn == NULL) {
-		ERR("Error!!! Can't get on system bus");
-		return;
-	}
-
-	message = netconfig_invoke_dbus_method(SUPPLICANT_SERVICE, conn, (char *)path,
-			SUPPLICANT_INTERFACE ".Interface", "Disconnect");
-
-	if (message == NULL) {
-		ERR("Error!!! Failed to get service properties");
-		dbus_connection_unref(conn);
-		return;
-	}
-
-	MessageType = dbus_message_get_type(message);
-
-	if (MessageType == DBUS_MESSAGE_TYPE_ERROR) {
-		const char *ptr = dbus_message_get_error_name(message);
-		ERR("Error!!! Error message received [%s]", ptr);
-	}
-
-	dbus_message_unref(message);
-
-	dbus_connection_unref(conn);
 }
 
 #ifdef NL80211
@@ -323,13 +279,6 @@ static int __netconfig_wifi_set_rssi_level(gboolean is_start, const char *ifname
 		INFO("rssi (%d)", rssi_dbm);
 		vconf_set_int(VCONFKEY_WIFI_STRENGTH, snr_level);
 		last_snr = snr_level;
-	}
-
-	if (rssi_dbm < NETCONFIG_WIFI_WEAK_SIGNAL) {
-		INFO("rssi (%d) is under (%d)", rssi_dbm,
-				VCONFKEY_WIFI_SNR_MIN);
-
-		__netconfig_wifi_service_disconnect();
 	}
 
 	return 0;

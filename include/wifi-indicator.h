@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __NETCONFIG_WIFIINDICATOR_H_
-#define __NETCONFIG_WIFIINDICATOR_H_
+#ifndef __NETCONFIG_WIFI_INDICATOR_H__
+#define __NETCONFIG_WIFI_INDICATOR_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,4 +33,4 @@ void netconfig_wifi_indicator_stop(void);
 }
 #endif
 
-#endif /* __NETCONFIG_WIFIINDICATOR_H_ */
+#endif /* __NETCONFIG_WIFI_INDICATOR_H__ */

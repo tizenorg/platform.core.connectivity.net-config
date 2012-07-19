@@ -281,10 +281,6 @@ gboolean netconfig_is_wifi_tethering_on(void)
 	return FALSE;
 }
 
-void netconfig_wifi_check_local_bssid(void)
-{
-}
-
 gboolean netconfig_execute_file(const char *file_path,
 		char *const args[], char *const env[])
 {
@@ -294,8 +290,8 @@ gboolean netconfig_execute_file(const char *file_path,
 
 	if (!(pid = fork())) {
 		register unsigned int index = 0;
-		DBG("pid(%d), ppid (%d)", getpid(), getppid());
-		DBG("Inside child, exec (%s) command", file_path);
+		INFO("pid(%d), ppid (%d)", getpid(), getppid());
+		INFO("Inside child, exec (%s) command", file_path);
 
 		index = 0;
 		while (args[index] != NULL) {

@@ -27,24 +27,27 @@ extern "C" {
 #endif
 
 #include <dlog.h>
+#include <stdio.h>
+#include <string.h>
 
-#define _SLOG(level, format, arg...) \
+#define __LOG(level, format, arg...) \
 	do { \
-		SLOG(level, "net-config", "(%s:%d)"format"\n", __FILE__, __LINE__, ##arg); \
+		char *ch = strrchr(__FILE__, '/'); \
+		ch = ch ? ch + 1 : __FILE__; \
+		SLOG(level, PACKAGE, "%s:%s() "format"\n", ch, __FUNCTION__, ## arg); \
 	} while(0)
 
-#define _PRT(level, format, arg...) \
+#define __PRT(level, format, arg...) \
 	do { \
-		fprintf(stderr, "["PACKAGE"](%s:%d)"format"\n", __FILE__, __LINE__, ##arg); \
+		char *ch = strrchr(__FILE__, '/'); \
+		ch = ch ? ch + 1 : __FILE__; \
+		fprintf(stderr, PACKAGE": %s:%s() "format"\n", ch, __FUNCTION__, ## arg); \
 	} while(0)
 
-#define _NO_LOG(level, format, arg...) do {} while (0)
-#define _LOG	_SLOG
-
-#define DBG(format, arg...)		_LOG(LOG_DEBUG, format, ##arg)
-#define WARN(format, arg...)	_LOG(LOG_WARN, format, ##arg)
-#define INFO(format, arg...)	_LOG(LOG_INFO, format, ##arg)
-#define ERR(format, arg...)		_LOG(LOG_ERROR, format, ##arg)
+#define DBG(format, arg...)		__LOG(LOG_DEBUG, format, ## arg)
+#define INFO(format, arg...)	__LOG(LOG_INFO, format, ## arg)
+#define WARN(format, arg...)	__LOG(LOG_WARN, format, ## arg)
+#define ERR(format, arg...)		__LOG(LOG_ERROR, format, ## arg)
 
 #ifdef __cplusplus
 }

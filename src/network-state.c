@@ -19,13 +19,13 @@
  *
  */
 
-#include "log.h"
-#include "neterror.h"
-#include "network-state.h"
-
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <syspopup_caller.h>
+
+#include "log.h"
+#include "neterror.h"
+#include "network-state.h"
 
 #define NETCONFIG_NETWORK_STATE_PATH	"/net/netconfig/network"
 
@@ -135,7 +135,7 @@ static void __netconfig_pop_3g_alert_syspoppup(void)
 	bundle *b = NULL;
 	int wifi_ug_state = 0;
 
-	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE,&wifi_ug_state);
+	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 

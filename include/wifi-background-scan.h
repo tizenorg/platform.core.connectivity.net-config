@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __NETCONFIG_WIFIBACKGROUNDSCAN_H_
-#define __NETCONFIG_WIFIBACKGROUNDSCAN_H_
+#ifndef __NETCONFIG_WIFIBACKGROUND_SCAN_H__
+#define __NETCONFIG_WIFIBACKGROUND_SCAN_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ gboolean netconfig_iface_wifi_set_bgscan(NetconfigWifi *wifi, guint scan_mode, G
 }
 #endif
 
-#endif /* __NETCONFIG_WIFIBACKGROUNDSCAN_H_ */
+#endif /* __NETCONFIG_WIFIBACKGROUND_SCAN_H__ */

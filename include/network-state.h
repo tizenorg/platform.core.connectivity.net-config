@@ -44,7 +44,6 @@ typedef struct NetconfigNetworkStateClass	NetconfigNetworkStateClass;
 
 GType netconfig_network_state_get_type(void);
 
-
 gpointer netconfig_network_state_create_and_init(DBusGConnection *conn);
 
 G_END_DECLS

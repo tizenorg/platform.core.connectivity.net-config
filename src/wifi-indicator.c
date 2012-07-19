@@ -37,7 +37,6 @@
 
 #define VCONFKEY_WIFI_SNR_MIN				-85
 #define VCONFKEY_WIFI_SNR_MAX				-55
-#define NETCONFIG_WIFI_WEAK_SIGNAL			-85
 
 static guint netconfig_wifi_indicator_timer = 0;
 

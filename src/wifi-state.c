@@ -308,7 +308,7 @@ void netconfig_wifi_update_power_state(gboolean powered)
 
 			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
 
-			vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_ON);
+			vconf_set_int(VCONF_WIFI_LAST_POWER_STATE, WIFI_POWER_ON);
 
 			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED);
 
@@ -322,7 +322,7 @@ void netconfig_wifi_update_power_state(gboolean powered)
 
 			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
 
-			vconf_set_int(VCONF_WIFI_LAST_POWER_ON_STATE, WIFI_POWER_OFF);
+			vconf_set_int(VCONF_WIFI_LAST_POWER_STATE, WIFI_POWER_OFF);
 
 			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
 		}

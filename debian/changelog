@@ -1,3 +1,11 @@
+net-config (0.1.81) unstable; urgency=low
+
+  * Revise private vconf key name
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.81
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Tue, 15 May 2012 13:54:28 +0900
+
 net-config (0.1.80) unstable; urgency=low
 
   * Revise unnecessary funtions

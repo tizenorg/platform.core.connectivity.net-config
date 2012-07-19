@@ -2,7 +2,7 @@
 
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.80
+Version:    0.1.81
 Release:    1
 Group:      System/Network
 License:    Apache License Version 2.0
@@ -85,7 +85,8 @@ vconftool set -t int db/dnet/statistics/wifi/totalsnt "0"
 vconftool set -t int db/dnet/statistics/wifi/totalrcv "0"
 vconftool set -t int db/dnet/statistics/wifi/lastsnt "0"
 vconftool set -t int db/dnet/statistics/wifi/lastrcv "0"
-vconftool set -t int db/wifi/LastPowerOnState "0"
+
+vconftool set -t int file/private/wifi/last_power_state "0"
 
 #Change File Permission
 #Resource

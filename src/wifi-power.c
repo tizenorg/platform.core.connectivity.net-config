@@ -443,7 +443,7 @@ static void __netconfig_wifi_pm_state_mode(keynode_t* node,
 
 static void __netconfig_wifi_power_configuration(void)
 {
-	int wifi_last_state = 0;
+	int wifi_last_power_state = 0;
 
 	vconf_notify_key_changed(VCONFKEY_SETAPPL_FLIGHT_MODE_BOOL,
 			__netconfig_wifi_airplane_mode, NULL);
@@ -451,9 +451,9 @@ static void __netconfig_wifi_power_configuration(void)
 	vconf_notify_key_changed(VCONFKEY_PM_STATE,
 			__netconfig_wifi_pm_state_mode, NULL);
 
-	vconf_get_int(VCONF_WIFI_LAST_POWER_ON_STATE, &wifi_last_state);
+	vconf_get_int(VCONF_WIFI_LAST_POWER_STATE, &wifi_last_power_state);
 
-	if (wifi_last_state == WIFI_POWER_ON) {
+	if (wifi_last_power_state == WIFI_POWER_ON) {
 		DBG("Turn Wi-Fi on automatically");
 
 		__netconfig_wifi_try_to_load_driver();

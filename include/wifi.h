@@ -42,7 +42,7 @@ typedef struct NetconfigWifiClass NetconfigWifiClass;
 #define NETCONFIG_IS_WIFI_CLASS(klass)	(G_TYPE_CHECK_CLASS_TYPE((klass), NETCONFIG_TYPE_WIFI))
 #define NETCONFIG_WIFI_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), NETCONFIG_TYPE_WIFI, NetconfigWifiClass))
 
-#define VCONF_WIFI_LAST_POWER_ON_STATE "db/wifi/LastPowerOnState"
+#define VCONF_WIFI_LAST_POWER_STATE "file/private/wifi/last_power_state"
 
 enum netconfig_wifi_power_state {
 	WIFI_POWER_OFF = 0x00,

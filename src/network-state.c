@@ -203,10 +203,12 @@ gboolean netconfig_iface_network_state_update_default_connection_info(
 				__netconfig_pop_3g_alert_syspoppup();
 		}
 
-		if (g_str_equal(ip, ip_addr) != TRUE)
+		if (ip != NULL && ip_addr != NULL &&
+				g_str_equal(ip, ip_addr) != TRUE)
 			vconf_set_str(VCONFKEY_NETWORK_IP, ip_addr);
 
-		if (g_str_equal(proxy, proxy_addr) != TRUE)
+		if (proxy != NULL && proxy_addr != NULL &&
+				g_str_equal(proxy, proxy_addr) != TRUE)
 			vconf_set_str(VCONFKEY_NETWORK_PROXY, proxy_addr);
 
 		vconf_set_int(VCONFKEY_NETWORK_CONFIGURATION_CHANGE_IND, 1);

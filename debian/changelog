@@ -1,3 +1,11 @@
+net-config (0.1.82) unstable; urgency=low
+
+  * Check NULL: Wi-Fi technology state
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.82
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Thu, 17 May 2012 16:20:17 +0900
+
 net-config (0.1.81) unstable; urgency=low
 
   * Revise private vconf key name

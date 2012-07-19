@@ -320,6 +320,11 @@ static gboolean __netconfig_wifi_try_to_load_driver(void)
 		wifi_tech_state = netconfig_wifi_get_technology_state();
 		INFO("Wi-Fi technology state: %s", wifi_tech_state);
 
+		if (wifi_tech_state == NULL) {
+			DBG("Failed to get Wi-Fi technology state");
+			continue;
+		}
+
 		if (g_str_equal(wifi_tech_state, "EnabledTechnologies") == TRUE) {
 			netconfig_wifi_update_power_state(TRUE);
 
@@ -350,6 +355,11 @@ static gboolean __netconfig_wifi_try_to_remove_driver(void)
 
 		wifi_tech_state = netconfig_wifi_get_technology_state();
 		INFO("Wi-Fi technology state: %s", wifi_tech_state);
+
+		if (wifi_tech_state == NULL) {
+			DBG("Failed to get Wi-Fi technology state");
+			continue;
+		}
 
 		if (g_str_equal(wifi_tech_state, "EnabledTechnologies") != TRUE) {
 			netconfig_wifi_update_power_state(FALSE);

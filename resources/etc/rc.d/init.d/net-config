@@ -4,3 +4,10 @@ dlogutil -v threadtime -f /var/log/libnetwork.log -r 1000 -n 10 network &
 dlogutil -v threadtime -f /var/log/net-config.log -r 1000 -n 10 net-config &
 
 /usr/sbin/net-config &
+
+bssid="$(vconftool -t string get db/wifi/bssid_address | sed -n "/\([0-9A-F][0-9A-F]:\)\{5\}[0-9A-F][0-9A-F]/p")"
+if [ "$bssid" = "" ]; then
+	if [ -f /opt/etc/.mac.info ]; then
+		cat /opt/etc/.mac.info | sed -n "/^\([0-9A-F][0-9A-F]:\)\{5\}[0-9A-F][0-9A-F]$/p" | xargs vconftool set -t string db/wifi/bssid_address
+	fi
+fi

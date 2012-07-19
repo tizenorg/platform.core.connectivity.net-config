@@ -13,6 +13,8 @@ vconftool set -t string memory/dnet/proxy "" -i
 
 vconftool set -t string memory/wifi/connected_ap_name "" -i
 
+vconftool set -t string db/wifi/bssid_address ""
+
 #Default Call Statistics
 vconftool set -t int db/dnet/statistics/cellular/totalsnt "0"
 vconftool set -t int db/dnet/statistics/cellular/totalrcv "0"

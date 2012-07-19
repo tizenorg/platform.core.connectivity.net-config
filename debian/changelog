@@ -1,3 +1,11 @@
+net-config (0.1.76) unstable; urgency=low
+
+  * Add a vconf key for local MAC address of Wi-Fi device
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.76
+
+ -- JaeHyun Kim <jeik01.kim@samsung.com>  Tue, 17 Apr 2012 10:28:08 +0900
+
 net-config (0.1.75) unstable; urgency=low
 
   * Modify background scan policy

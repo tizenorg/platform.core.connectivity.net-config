@@ -20,11 +20,14 @@
  */
 
 #include <glib.h>
+#include <vconf.h>
+#include <vconf-keys.h>
 
 #include "log.h"
 #include "dbus.h"
 #include "util.h"
 #include "wifi.h"
+#include "wifi-state.h"
 #include "wifi-background-scan.h"
 
 #define SCAN_INITIAL_DELAY		10
@@ -90,6 +93,17 @@ static gboolean __netconfig_wifi_bgscan_request_connman_scan(void)
 		NULL,
 		NULL
 	};
+
+	int snr_level = 0;
+
+	vconf_get_int(VCONFKEY_WIFI_STRENGTH, &snr_level);
+	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTED)
+		if (__netconfig_wifi_bgscan_get_mode() == WIFI_BGSCAN_MODE_EXPONENTIAL)
+			if (snr_level > 2)
+				return FALSE;
+
+	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTING)
+		return FALSE;
 
 	param_array[0] = path;
 	param_array[1] = request;

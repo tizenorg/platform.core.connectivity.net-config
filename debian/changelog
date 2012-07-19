@@ -1,3 +1,12 @@
+net-config (0.1.75) unstable; urgency=low
+
+  * Modify background scan policy
+  * disallow to request bg scan in case the state is connected and rssi is below level 2
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.75
+
+ -- Sanghoon Cho <sanghoon80.cho@samsung.com>  Fri, 13 Apr 2012 16:37:55 +0900
+
 net-config (0.1.74) unstable; urgency=low
 
   * Fix Wi-Fi power bug when Wi-Fi direct is on

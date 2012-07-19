@@ -19,13 +19,12 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <sys/utsname.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 
@@ -36,39 +35,18 @@ static gboolean netconfig_is_emulated = FALSE;
 
 static gboolean __netconfig_emulator_test_emulation_env(void)
 {
-	/* TODO: this module contains exact keyword of Emulator virtual CPU.
-	 *       It will be revised with emulator "uname" system information.
-	 */
-	const char CPUINFO[] = "/proc/cpuinfo";
-	const char EMUL_VIRTUAL_CPU[] = "QEMU Virtual CPU";
-	const int BUF_LEN_MAX = 255;
-	char buf[BUF_LEN_MAX];
-	char *model_name = NULL;
-	gboolean ret = FALSE;
-	FILE* fp = NULL;
+	struct utsname buf;
+	const char *EMUL_UTSNAME_MACHINE_SUFFIX = "emulated";
 
 	DBG("Test emulation environment");
 
-	if ((fp = fopen(CPUINFO, "r")) == NULL) {
-		ERR("Failed to open %s", CPUINFO);
-		return FALSE;
-	}
+	uname(&buf);
 
-	while (fgets(buf, BUF_LEN_MAX, fp)) {
-		if (g_ascii_strncasecmp(buf, "model name", 10) != 0)
-			continue;
+	if (buf.machine != NULL &&
+			g_str_has_suffix(buf.machine, EMUL_UTSNAME_MACHINE_SUFFIX) == TRUE)
+		return TRUE;
 
-		model_name = g_strstr_len(buf, BUF_LEN_MAX-1, EMUL_VIRTUAL_CPU);
-
-		if (model_name != NULL)
-			ret = TRUE;
-
-		break;
-	}
-
-	fclose(fp);
-
-	return ret;
+	return FALSE;
 }
 
 static void __netconfig_emulator_set_ip(void)

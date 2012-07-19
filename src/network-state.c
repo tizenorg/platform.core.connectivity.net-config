@@ -25,6 +25,7 @@
 
 #include "log.h"
 #include "neterror.h"
+#include "emulator.h"
 #include "network-state.h"
 
 #define NETCONFIG_NETWORK_STATE_PATH	"/net/netconfig/network"
@@ -163,6 +164,9 @@ gboolean netconfig_iface_network_state_update_default_connection_info(
 	DBG("connection type (%s), connection state(%s), ip_addr(%s), proxy_addr(%s)",
 			connection_type, connection_state, ip_addr, proxy_addr);
 
+	if (netconfig_emulator_is_emulated() == TRUE)
+		return FALSE;
+
 	vconf_get_int(VCONFKEY_NETWORK_WIFI_STATE, &wifi_state);
 	vconf_get_int(VCONFKEY_NETWORK_STATUS, &previous_network_status);
 
@@ -179,6 +183,8 @@ gboolean netconfig_iface_network_state_update_default_connection_info(
 		vconf_set_str(VCONFKEY_NETWORK_PROXY, "");
 
 		vconf_set_int(VCONFKEY_NETWORK_CONFIGURATION_CHANGE_IND, 0);
+
+		DBG("Successfully clear IP and PROXY up");
 	} else if (g_str_equal(connection_state, "ready") == TRUE ||
 			g_str_equal(connection_state, "online") == TRUE) {
 		ip = vconf_get_str(VCONFKEY_NETWORK_IP);
@@ -212,6 +218,8 @@ gboolean netconfig_iface_network_state_update_default_connection_info(
 			vconf_set_str(VCONFKEY_NETWORK_PROXY, proxy_addr);
 
 		vconf_set_int(VCONFKEY_NETWORK_CONFIGURATION_CHANGE_IND, 1);
+
+		DBG("Successfully update default network configuration");
 	}
 
 	return TRUE;

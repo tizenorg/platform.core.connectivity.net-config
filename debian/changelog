@@ -1,3 +1,11 @@
+net-config (0.1.78) unstable; urgency=low
+
+  * Revise ConnMan profile prefix to fit ConnMan 0.78
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.78
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Tue, 08 May 2012 15:55:04 +0900
+
 net-config (0.1.77) unstable; urgency=low
 
   * Revise net-config to fit Android supplicant

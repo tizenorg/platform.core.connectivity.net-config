@@ -40,6 +40,7 @@ void netconfig_wifi_state_set_service_state(
 
 static GSList *__netconfig_wifi_state_get_service_profiles(DBusMessage *message)
 {
+	char *wifi_service_prefix = CONNMAN_PATH "/service/wifi_";
 	GSList *service_profiles = NULL;
 	DBusMessageIter iter, dict;
 
@@ -71,7 +72,7 @@ static GSList *__netconfig_wifi_state_get_service_profiles(DBusMessage *message)
 		while (dbus_message_iter_get_arg_type(&value) == DBUS_TYPE_OBJECT_PATH) {
 			dbus_message_iter_get_basic(&value, &object_path);
 
-			if (g_str_has_prefix(object_path, "/profile/default/wifi_") ==TRUE)
+			if (g_str_has_prefix(object_path, wifi_service_prefix) == TRUE)
 				service_profiles = g_slist_append(service_profiles, g_strdup(object_path));
 
 			dbus_message_iter_next(&value);

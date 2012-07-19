@@ -130,8 +130,12 @@ static void __netconfig_wifi_technology_state_signal_handler(
 
 		if (wifi_tech_state == NULL)
 			netconfig_wifi_update_power_state(FALSE);
-		else
+		else {
+			if (g_str_equal(wifi_tech_state, "EnabledTechnologies") != TRUE)
+				netconfig_wifi_update_power_state(FALSE);
+
 			g_free(wifi_tech_state);
+		}
 	} else if (g_str_equal(property, "enabled") == TRUE)
 		netconfig_wifi_update_power_state(TRUE);
 }

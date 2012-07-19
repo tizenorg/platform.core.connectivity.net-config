@@ -40,7 +40,6 @@ void netconfig_wifi_state_set_service_state(
 
 static GSList *__netconfig_wifi_state_get_service_profiles(DBusMessage *message)
 {
-	char *wifi_service_prefix = CONNMAN_PATH "/service/wifi_";
 	GSList *service_profiles = NULL;
 	DBusMessageIter iter, dict;
 
@@ -72,7 +71,7 @@ static GSList *__netconfig_wifi_state_get_service_profiles(DBusMessage *message)
 		while (dbus_message_iter_get_arg_type(&value) == DBUS_TYPE_OBJECT_PATH) {
 			dbus_message_iter_get_basic(&value, &object_path);
 
-			if (g_str_has_prefix(object_path, wifi_service_prefix) == TRUE)
+			if (g_str_has_prefix(object_path, CONNMAN_WIFI_SERVICE_PROFILE_PREFIX) == TRUE)
 				service_profiles = g_slist_append(service_profiles, g_strdup(object_path));
 
 			dbus_message_iter_next(&value);
@@ -256,8 +255,8 @@ gchar *netconfig_wifi_get_technology_state(void)
 		dbus_message_iter_recurse(&dict, &key_iter);
 		dbus_message_iter_get_basic(&key_iter, &key);
 
-		if (strcmp(key, "AvailableTechnologies") == 0 ||
-				strcmp(key, "EnabledTechnologies") == 0) {
+		if (g_str_equal(key, "AvailableTechnologies") == TRUE ||
+				g_str_equal(key, "EnabledTechnologies") == TRUE) {
 			dbus_message_iter_next(&key_iter);
 			dbus_message_iter_recurse(&key_iter, &sub_iter1);
 
@@ -269,10 +268,10 @@ gchar *netconfig_wifi_get_technology_state(void)
 			while (dbus_message_iter_get_arg_type(&sub_iter2) == DBUS_TYPE_STRING) {
 				dbus_message_iter_get_basic(&sub_iter2, &tech_name);
 
-				if (tech_name != NULL && strcmp(tech_name, "wifi") == 0) {
-					if (strcmp(key, "AvailableTechnologies") == 0)
+				if (tech_name != NULL && g_str_equal(tech_name, "wifi") == TRUE) {
+					if (g_str_equal(key, "AvailableTechnologies") == TRUE)
 						wifi_tech_available = TRUE;
-					else if (strcmp(key, "EnabledTechnologies") == 0)
+					else if (g_str_equal(key, "EnabledTechnologies") == TRUE)
 						wifi_tech_enabled = TRUE;
 				}
 

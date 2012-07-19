@@ -57,7 +57,7 @@ static int __netconfig_get_state(DBusMessage *msg, char *state)
 		goto done;
 
 	dbus_message_iter_get_basic(&iter, &key_name);
-	if (strcmp(key_name, "State") != 0)
+	if (g_str_equal(key_name, "State") != TRUE)
 		goto done;
 
 	dbus_message_iter_next(&iter);
@@ -143,7 +143,6 @@ static void __netconfig_wifi_technology_state_signal_handler(
 static void netconfig_wifi_set_essid(const char *active_profile)
 {
 	int err;
-	int state = -1;
 	char *essid_name = NULL;
 	DBusConnection *connection = NULL;
 	DBusMessage *message = NULL;
@@ -177,10 +176,10 @@ static void netconfig_wifi_set_essid(const char *active_profile)
 		goto done;
 	}
 
-	state = netconfig_extract_service_state(message, &essid_name);
+	essid_name = netconfig_wifi_get_connected_service_name(message);
 
-	if (state < 0) {
-		ERR("state is not ready");
+	if (essid_name == NULL) {
+		ERR("Wi-Fi is not connected");
 		goto done;
 	}
 
@@ -189,10 +188,10 @@ static void netconfig_wifi_set_essid(const char *active_profile)
 		ERR("Can't set essid [%d]", err);
 	}
 
-done:
 	g_free(essid_name);
 	essid_name = NULL;
 
+done:
 	dbus_message_unref(message);
 
 	dbus_connection_unref(connection);
@@ -212,14 +211,15 @@ static void __netconfig_wifi_service_state_signal_handler(DBusMessage *msg, cons
 		return;
 
 	if (__netconfig_get_state(msg, state) == NETCONFIG_NO_ERROR) {
-		int value = 0;
+		int wifi_state = 0;
 
 		DBG("Signaled profile [%s] ==> state %s", profile, state);
 
-		vconf_get_int(VCONFKEY_WIFI_STATE, &value);
+		vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+		DBG("Current Wi-Fi state: %d", wifi_state);
 
-		if (strcmp(state, "ready") == 0 || strcmp(state, "online") == 0) {
-			if (value > VCONFKEY_WIFI_OFF && value != VCONFKEY_WIFI_CONNECTED) {
+		if (g_str_equal(state, "ready") == TRUE || g_str_equal(state, "online") == TRUE) {
+			if (wifi_state > VCONFKEY_WIFI_OFF && wifi_state != VCONFKEY_WIFI_CONNECTED) {
 
 				INFO("Wifi connected");
 
@@ -234,26 +234,25 @@ static void __netconfig_wifi_service_state_signal_handler(DBusMessage *msg, cons
 
 				g_strlcpy(current_profile, profile, sizeof(current_profile));
 			}
-		} else if (strcmp(state, "failure") == 0 || strcmp(state, "disconnect") == 0 || strcmp(state, "idle") == 0) {
-			if (value > VCONFKEY_WIFI_UNCONNECTED) {
+		} else if (g_str_equal(state, "failure") == TRUE || g_str_equal(state, "disconnect") == TRUE || g_str_equal(state, "idle") == TRUE) {
+			if (wifi_state > VCONFKEY_WIFI_UNCONNECTED) {
 
 				INFO("Wifi [%s] Disconnected", profile);
 				DBG("Current profile is %s", current_profile);
 
-				if ((strcmp(profile, current_profile)) == 0) {
+				if ((g_str_equal(profile, current_profile)) == TRUE)
 					if ((vconf_set_int (VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED)) < 0)
 						ERR("Error!!! vconf_set_int failed");
-
-					netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
-
-					netconfig_wifi_unset_essid();
-
-					netconfig_wifi_indicator_stop();
-
-					memset(current_profile, 0, sizeof(current_profile));
-				}
 			}
-		} else if (strcmp(state, "association") == 0 || strcmp(state, "configuration") == 0) {
+
+			netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
+
+			netconfig_wifi_unset_essid();
+
+			netconfig_wifi_indicator_stop();
+
+			memset(current_profile, 0, sizeof(current_profile));
+		} else if (g_str_equal(state, "association") == TRUE || g_str_equal(state, "configuration") == TRUE) {
 			netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_CONNECTING);
 		}
 	} else
@@ -279,15 +278,16 @@ static DBusHandlerResult __netconfig_signal_filter_handler(
 	} else if (dbus_message_is_signal(msg, CONNMAN_TECHNOLOGY_INTERFACE,
 			CONNMAN_SIGNAL_PROPERTY_CHANGED)) {
 		char *property = NULL;
-		char *tech_path = NULL;
+		char *technology_path = NULL;
 
 		sigvalue = __netconfig_get_property(msg, &property);
 		if (sigvalue == NULL)
 			return DBUS_HANDLER_RESULT_HANDLED;
 
-		tech_path = (char *)dbus_message_get_path(msg);
+		technology_path = (char *)dbus_message_get_path(msg);
+		INFO("technology object path: %s", technology_path);
 
-		if (strstr(tech_path, "/wifi") != NULL) {
+		if (g_str_has_prefix(technology_path, CONNMAN_WIFI_TECHNOLOGY_PREFIX) == TRUE) {
 			__netconfig_wifi_technology_state_signal_handler((const char *)sigvalue, (const char *)property);
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
@@ -300,13 +300,14 @@ static DBusHandlerResult __netconfig_signal_filter_handler(
 		if (sigvalue == NULL)
 			return DBUS_HANDLER_RESULT_HANDLED;
 
-		if (strcmp(sigvalue, "State") == 0) {
-			char *profile = NULL;
+		if (g_str_equal(sigvalue, "State") == TRUE) {
+			char *service_profile = NULL;
 
-			profile = (char *)dbus_message_get_path(msg);
+			service_profile = (char *)dbus_message_get_path(msg);
+			INFO("service profile: %s", service_profile);
 
-			if (strstr(profile, "wifi_") != NULL) {
-				__netconfig_wifi_service_state_signal_handler(msg, profile);
+			if (g_str_has_prefix(service_profile, CONNMAN_WIFI_SERVICE_PROFILE_PREFIX) == TRUE) {
+				__netconfig_wifi_service_state_signal_handler(msg, service_profile);
 				return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 			}
 		}

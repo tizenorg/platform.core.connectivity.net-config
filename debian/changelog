@@ -1,3 +1,12 @@
+net-config (0.1.79) unstable; urgency=low
+
+  * Revise net-config signal filter handler
+  * Revise Wi-Fi state management
+  * Git: slp/pkgs/n/net-config
+  * Tag: net-config_0.1.79
+
+ -- Danny Jeongseok Seo <s.seo@samsung.com>  Wed, 09 May 2012 11:41:09 +0900
+
 net-config (0.1.78) unstable; urgency=low
 
   * Revise ConnMan profile prefix to fit ConnMan 0.78

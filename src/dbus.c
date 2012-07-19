@@ -543,9 +543,10 @@ DBusMessage *netconfig_supplicant_invoke_dbus_method(const char *dest,
 	return reply;
 }
 
-int netconfig_extract_service_state(DBusMessage *message, char **essid)
+char *netconfig_wifi_get_connected_service_name(DBusMessage *message)
 {
-	int state = -1;
+	int is_connected = 0;
+	char *essid_name = NULL;
 	DBusMessageIter iter, array;
 
 	dbus_message_iter_init(message, &iter);
@@ -558,41 +559,37 @@ int netconfig_extract_service_state(DBusMessage *message, char **essid)
 		dbus_message_iter_recurse(&array, &entry);
 		dbus_message_iter_get_basic(&entry, &key);
 
-		if (strcmp(key, "State") == 0 && state - 1) {
+		if (g_str_equal(key, "State") == TRUE && is_connected == 0) {
 			dbus_message_iter_next(&entry);
 			dbus_message_iter_recurse(&entry, &string);
 
 			if (dbus_message_iter_get_arg_type(&string) == DBUS_TYPE_STRING) {
 				dbus_message_iter_get_basic(&string, &key);
 
-				if (strcmp(key, "ready") == 0 || strcmp(key, "online") == 0) {
-					state = 1;
-					continue;
-				}
-
-				return -1;
+				if (g_str_equal(key, "ready") == TRUE || g_str_equal(key, "online") == TRUE)
+					is_connected = 1;
 			}
-		} else if (strcmp(key, "Name") == 0 && state == 1) {
+		} else if (g_str_equal(key, "Name") == TRUE) {
 			dbus_message_iter_next(&entry);
 			dbus_message_iter_recurse(&entry, &string);
 
 			if (dbus_message_iter_get_arg_type(&string) == DBUS_TYPE_STRING) {
 				dbus_message_iter_get_basic(&string, &key);
 
-				if (*essid != NULL)
-					return -1;
-
-				*essid = malloc(sizeof(char)*128);
-				strcpy(*essid, key);
-
-				return 0;
+				essid_name = (char *)g_strdup(key);
 			}
 		}
 
 		dbus_message_iter_next(&array);
 	}
 
-	return -1;
+	if (is_connected == 1 && essid_name != NULL)
+		return essid_name;
+
+	if (essid_name != NULL)
+		g_free(essid_name);
+
+	return NULL;
 }
 
 int netconfig_extract_services_profile(DBusMessage *message, char **profile)

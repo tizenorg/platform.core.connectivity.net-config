@@ -30,18 +30,21 @@ extern "C" {
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
 
-#define CONNMAN_SERVICE			"net.connman"
-#define CONNMAN_PATH			"/net/connman"
+#define CONNMAN_SERVICE					"net.connman"
+#define CONNMAN_PATH					"/net/connman"
 
-#define SUPPLICANT_SERVICE		"fi.w1.wpa_supplicant1"
-#define SUPPLICANT_INTERFACE	"fi.w1.wpa_supplicant1"
-#define SUPPLICANT_PATH			"/fi/w1/wpa_supplicant1"
+#define SUPPLICANT_SERVICE				"fi.w1.wpa_supplicant1"
+#define SUPPLICANT_INTERFACE			"fi.w1.wpa_supplicant1"
+#define SUPPLICANT_PATH					"/fi/w1/wpa_supplicant1"
 #define SUPPLICANT_GLOBAL_INTERFACE		"org.freedesktop.DBus.Properties"
 
 #define CONNMAN_MANAGER_INTERFACE		CONNMAN_SERVICE ".Manager"
 #define CONNMAN_SERVICE_INTERFACE		CONNMAN_SERVICE ".Service"
 #define CONNMAN_TECHNOLOGY_INTERFACE	CONNMAN_SERVICE ".Technology"
 #define CONNMAN_MANAGER_PATH			"/"
+
+#define CONNMAN_WIFI_SERVICE_PROFILE_PREFIX		CONNMAN_PATH "/service/wifi_"
+#define CONNMAN_WIFI_TECHNOLOGY_PREFIX			CONNMAN_PATH "/technology/wifi"
 
 #define DBUS_PATH_MAX_BUFLEN		512
 #define DBUS_STATE_MAX_BUFLEN		64
@@ -56,7 +59,7 @@ struct dbus_input_arguments {
 	void *data;
 };
 
-int netconfig_extract_service_state(DBusMessage *message, char **essid);
+char *netconfig_wifi_get_connected_service_name(DBusMessage *message);
 int netconfig_extract_services_profile(DBusMessage *message, char **essid);
 DBusMessage *netconfig_invoke_dbus_method(const char *dest, DBusConnection *connection,
 		const char *path, const char *interface_name, const char *method);

@@ -227,7 +227,7 @@ static gboolean __netconfig_wifi_load_driver(void)
 
 	rv = netconfig_execute_file(path, args, envs);
 	if (rv != TRUE) {
-		DBG("failed to load wireless device driver");
+		DBG("Failed to load wireless device driver");
 		return FALSE;
 	}
 
@@ -247,7 +247,7 @@ static gboolean __netconfig_wifi_remove_driver(void)
 
 	rv = netconfig_execute_file(path, args, env);
 	if (rv != TRUE) {
-		DBG("failed to remove(unload) driver for wireless device");
+		DBG("Failed to remove(unload) driver for wireless device");
 		return FALSE;
 	}
 
@@ -362,17 +362,19 @@ static gboolean __netconfig_wifi_try_to_remove_driver(void)
 		}
 
 		if (g_str_equal(wifi_tech_state, "EnabledTechnologies") != TRUE) {
-			netconfig_wifi_update_power_state(FALSE);
-
-			return __netconfig_wifi_remove_driver();
+			g_free(wifi_tech_state);
+			break;
 		}
 
 		g_free(wifi_tech_state);
-
-		wifi_tech_state = NULL;
 	}
 
-	return __netconfig_wifi_remove_driver();
+	if (__netconfig_wifi_remove_driver() == TRUE) {
+		netconfig_wifi_update_power_state(FALSE);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void __netconfig_wifi_airplane_mode(keynode_t* node,

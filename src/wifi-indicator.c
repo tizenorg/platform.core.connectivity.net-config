@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -29,72 +27,45 @@
 #include <vconf-keys.h>
 
 #include "log.h"
-#include "dbus.h"
 #include "util.h"
+#include "netdbus.h"
+#include "netsupplicant.h"
 #include "wifi-indicator.h"
 
-#define NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL	3
+#define VCONFKEY_WIFI_SNR_MIN	-89
 
-#define VCONFKEY_WIFI_SNR_MIN				-85
-#define VCONFKEY_WIFI_SNR_MAX				-55
+#define NETCONFIG_WIFI_INDICATOR_INTERVAL	3
 
 static guint netconfig_wifi_indicator_timer = 0;
 
-static GList *__netconfig_wifi_supplicant_setup(GList * list,
-		struct dbus_input_arguments *items)
+#if defined NL80211
+static int __netconfig_wifi_get_signal(const char *object_path)
 {
-	struct dbus_input_arguments *iter = items;
-
-	if (iter == NULL)
-		return NULL;
-
-	while (iter->data) {
-		list = g_list_append(list, iter);
-		iter++;
-	}
-
-	return list;
-}
-
-static int __netconfig_wifi_get_interface(const char **path)
-{
-	char *ptr = (char *)*path;
-	DBusConnection *conn = NULL;
+	DBusConnection *connection = NULL;
 	DBusMessage *message = NULL;
 	DBusMessageIter iter;
+	int rssi_dbm = 0;
 	int MessageType = 0;
-	const char *temp = NULL;
 
-	GList *input_args = NULL;
-	struct dbus_input_arguments inserted_items[] = {
-		{DBUS_TYPE_STRING, SUPPLICANT_INTERFACE},
-		{DBUS_TYPE_STRING, "Interfaces"},
-		{0, NULL}
-	};
-
-	if (ptr == NULL) {
+	if (object_path == NULL) {
 		ERR("Error!!! path is NULL");
-		return -1;
+		goto error;
 	}
 
-	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (conn == NULL) {
-		ERR("Error!!! Can't get on system bus");
-		return -1;
+	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
+	if (connection == NULL) {
+		ERR("Error!!! Failed to get system DBus");
+		goto error;
 	}
 
-	input_args = __netconfig_wifi_supplicant_setup(input_args, inserted_items);
-
-	message = netconfig_supplicant_invoke_dbus_method(SUPPLICANT_SERVICE, conn,
-				SUPPLICANT_PATH,
-				SUPPLICANT_GLOBAL_INTERFACE, "Get",
-				input_args);
-
-	g_list_free(input_args);
+	message = netconfig_supplicant_invoke_dbus_method(
+			SUPPLICANT_SERVICE, connection, object_path,
+			SUPPLICANT_INTERFACE ".Interface", "GetLinkSignal",
+			NULL);
 
 	if (message == NULL) {
 		ERR("Error!!! Failed to get service properties");
-		goto err;
+		goto error;
 	}
 
 	MessageType = dbus_message_get_type(message);
@@ -102,126 +73,65 @@ static int __netconfig_wifi_get_interface(const char **path)
 	if (MessageType == DBUS_MESSAGE_TYPE_ERROR) {
 		const char *err_msg = dbus_message_get_error_name(message);
 		ERR("Error!!! Error message received [%s]", err_msg);
-		goto err;
+		goto error;
 	}
 
 	dbus_message_iter_init(message, &iter);
-	if ((MessageType = dbus_message_iter_get_arg_type(&iter)) == DBUS_TYPE_VARIANT) {
-		DBusMessageIter array;
-		dbus_message_iter_recurse(&iter, &array);
 
-		if ((MessageType = dbus_message_iter_get_arg_type(&array)) == DBUS_TYPE_ARRAY) {
-			DBusMessageIter object_path;
-			dbus_message_iter_recurse(&array, &object_path);
-
-			if ((MessageType = dbus_message_iter_get_arg_type(&object_path)) == DBUS_TYPE_OBJECT_PATH)
-				dbus_message_iter_get_basic(&object_path, &temp);
-			else
-				goto err;
-
-		} else
-			goto err;
-
-	} else
-		goto err;
-
-	INFO("interface %s, path pointer %p", temp, *path);
-	g_strlcpy(ptr, temp, DBUS_PATH_MAX_BUFLEN);
+	if ((MessageType = dbus_message_iter_get_arg_type(&iter)) == DBUS_TYPE_INT32)
+		dbus_message_iter_get_basic(&iter, &rssi_dbm);
+	else
+		goto error;
 
 	dbus_message_unref(message);
-	dbus_connection_unref(conn);
+	dbus_connection_unref(connection);
 
-	return 0;
+	return rssi_dbm;
 
-err:
+error:
 	if (message != NULL)
 		dbus_message_unref(message);
 
-	if (conn != NULL)
-		dbus_connection_unref(conn);
+	if (connection != NULL)
+		dbus_connection_unref(connection);
 
-	return -1;
+	return VCONFKEY_WIFI_SNR_MIN;
 }
 
-#ifdef NL80211
-static int __netconfig_wifi_get_signal(const char *path, int *sig)
+static int __netconfig_wifi_get_rssi_from_supplicant(void)
 {
-	DBusConnection *conn = NULL;
-	DBusMessage *message = NULL;
-	DBusMessageIter iter;
-	int MessageType = 0;
+	int rssi_dbm =0;
 
-	if (path == NULL || sig == NULL) {
-		ERR("Error!!! path is NULL");
-		return -1;
+	char object_path[DBUS_PATH_MAX_BUFLEN] = { 0, };
+	char *path_ptr = &object_path[0];
+
+	if (netconfig_wifi_get_supplicant_interface(&path_ptr) != TRUE) {
+		DBG("Fail to get wpa_supplicant DBus path");
+		return VCONFKEY_WIFI_SNR_MIN;
 	}
 
-	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (conn == NULL) {
-		ERR("Error!!! Can't get on system bus");
-		return -1;
-	}
+	rssi_dbm = __netconfig_wifi_get_signal((const char *)path_ptr);
 
-	INFO("supplicant path is [%s]", path);
-
-	message = netconfig_supplicant_invoke_dbus_method(SUPPLICANT_SERVICE, conn,
-				path,
-				SUPPLICANT_INTERFACE".Interface", "GetLinkSignal",
-				NULL);
-
-	if (message == NULL) {
-		ERR("Error!!! Failed to get service properties");
-		goto err;
-	}
-
-	MessageType = dbus_message_get_type(message);
-
-	if (MessageType == DBUS_MESSAGE_TYPE_ERROR) {
-		const char *err_msg = dbus_message_get_error_name(message);
-		ERR("Error!!! Error message received [%s]", err_msg);
-		goto err;
-	}
-
-	dbus_message_iter_init(message, &iter);
-
-	if ((MessageType = dbus_message_iter_get_arg_type(&iter)) == DBUS_TYPE_INT32) {
-		dbus_message_iter_get_basic(&iter, sig);
-		INFO("signal value is [%d]", *sig);
-	} else {
-		ERR("message type is %d", MessageType);
-		goto err;
-	}
-
-	dbus_message_unref(message);
-
-	dbus_connection_unref(conn);
-
-	return 0;
-
-err:
-	if (message != NULL)
-		dbus_message_unref(message);
-
-	if (conn != NULL)
-		dbus_connection_unref(conn);
-
-	return -1;
+	return rssi_dbm;
 }
-#endif
+#endif /* #if defined NL80211 */
 
-static int __netconfig_wifi_set_rssi_level(gboolean is_start, const char *ifname)
+#if !defined NL80211
+static int __netconfig_wifi_get_rssi_from_system(void)
 {
 	int rssi_dbm = 0;
-	static int last_snr = 0;
-	int snr_level_interval = 0;
-	int snr_level = 0;
+	char ifname[16] = { 0, };
+	char *ifname_ptr = &ifname[0];
 
-#ifndef NL80211
 	int fd = -1;
 	struct iwreq wifi_req;
 	struct iw_statistics stats;
-
 	unsigned int iw_stats_len = sizeof(struct iw_statistics);
+
+	if (netconfig_wifi_get_ifname(&ifname_ptr) != TRUE) {
+		DBG("Fail to get Wi-Fi ifname from wpa_supplicant: %s", ifname_ptr);
+		return VCONFKEY_WIFI_SNR_MIN;
+	}
 
 	/* Set device name */
 	memset(wifi_req.ifr_name, 0, sizeof(wifi_req.ifr_name));
@@ -232,15 +142,9 @@ static int __netconfig_wifi_set_rssi_level(gboolean is_start, const char *ifname
 	wifi_req.u.data.length = iw_stats_len;
 	wifi_req.u.data.flags = 1;	/* Clear updated flag */
 
-	if (is_start == TRUE) {
-		last_snr = VCONFKEY_WIFI_STRENGTH_MAX;
-		vconf_set_int(VCONFKEY_WIFI_STRENGTH, last_snr);
-		return 0;
-	}
-
 	if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
 		DBG("Fail to open socket to get rssi");
-		return -1;
+		return VCONFKEY_WIFI_SNR_MIN;
 	}
 
 	memset(&stats, 0, iw_stats_len);
@@ -248,200 +152,96 @@ static int __netconfig_wifi_set_rssi_level(gboolean is_start, const char *ifname
 	if (ioctl(fd, SIOCGIWSTATS, &wifi_req) < 0) {
 		DBG("Fail to execute ioctl for SIOCGIWSTATS");
 		close(fd);
-		return -1;
+
+		return VCONFKEY_WIFI_SNR_MIN;
 	}
 	close(fd);
 
 	rssi_dbm = stats.qual.level - 255; /** signed integer, so 255 */
+
+	return rssi_dbm;
+}
+#endif /* #if !defined NL80211 */
+
+int netconfig_wifi_get_rssi(void)
+{
+	int rssi_dbm = 0;
+
+	/* There are two ways to get Wi-Fi RSSI:
+	 *  - WEXT interface, get DBus path of wpa_supplicant,
+	 *  and get Wi-Fi interface name e.g. wlan0 from wpa_supplicant.
+	 *  IOCTL with ifname will return RSSI dB.
+	 *  - NL80211 interface, get DBus path of wpa_supplicant,
+	 *  and get RSSI from wpa_supplicant directly.
+	 *  However, in this case wpa_supplicant needs some modification
+	 *  to get RSSI from DBus interface. */
+
+#if defined NL80211
+	rssi_dbm = __netconfig_wifi_get_rssi_from_supplicant();
 #else
-	if (is_start == TRUE) {
-		last_snr = VCONFKEY_WIFI_STRENGTH_MAX;
-		vconf_set_int(VCONFKEY_WIFI_STRENGTH, last_snr);
-		return 0;
-	}
-	__netconfig_wifi_get_signal(ifname, &rssi_dbm);
+	rssi_dbm = __netconfig_wifi_get_rssi_from_system();
 #endif
 
-	snr_level_interval =
-		(VCONFKEY_WIFI_SNR_MAX -
-		 VCONFKEY_WIFI_SNR_MIN) / (VCONFKEY_WIFI_STRENGTH_MAX - 2);
+	return rssi_dbm;
+}
 
-	snr_level =
-		((rssi_dbm - VCONFKEY_WIFI_SNR_MIN) / snr_level_interval) + 2;
+static void __netconfig_wifi_set_rssi_level(int rssi_dbm)
+{
+	int snr_level = 0;
+	static int last_snr_level = 0;
 
-	if (rssi_dbm <= VCONFKEY_WIFI_SNR_MIN)
-		snr_level = VCONFKEY_WIFI_STRENGTH_MIN + 1;
-	else if (rssi_dbm >= VCONFKEY_WIFI_SNR_MAX)
-		snr_level = VCONFKEY_WIFI_STRENGTH_MAX;
+	/* Wi-Fi Signal Strength Display
+	 *
+	 * Excellent :	-63 ~
+	 * Good:		-74 ~ -64
+	 * Weak:		-82 ~ -75
+	 * Very weak:		~ -83
+	 */
+	if (rssi_dbm >= -63)
+		snr_level = 4;
+	else if (rssi_dbm >= -74)
+		snr_level = 3;
+	else if (rssi_dbm >= -82)
+		snr_level = 2;
+	else
+		snr_level = 1;
 
-	if (snr_level != last_snr) {
-		INFO("rssi (%d)", rssi_dbm);
+	if (snr_level != last_snr_level) {
+		INFO("Wi-Fi RSSI: %d dB, %d level", rssi_dbm, snr_level);
+
 		vconf_set_int(VCONFKEY_WIFI_STRENGTH, snr_level);
-		last_snr = snr_level;
-	}
 
-	return 0;
+		last_snr_level = snr_level;
+	}
 }
 
-#ifndef NL80211
-static int __netconfig_wifi_get_ifname(const char *supp_inf, const char **ifname)
+static gboolean __netconfig_wifi_indicator_monitor(gpointer data)
 {
-	char *ptr = (char *)*ifname;
-	DBusConnection *conn = NULL;
-	DBusMessage *message = NULL;
-	DBusMessageIter iter;
-	int MessageType = 0;
-	const char *temp = NULL;
+	int rssi_dbm = 0;
+	int pm_state = VCONFKEY_PM_STATE_NORMAL;
 
-	GList *input_args = NULL;
+	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
+	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
+		return TRUE;
 
-	struct dbus_input_arguments inserted_items[] = {
-			{ DBUS_TYPE_STRING, SUPPLICANT_INTERFACE ".Interface" },
-			{ DBUS_TYPE_STRING, "Ifname" },
-			{ 0, NULL }
-	};
+	rssi_dbm = netconfig_wifi_get_rssi();
 
-	if (ptr == NULL) {
-		ERR("Error!!! Path is NULL");
-		return -1;
-	}
-
-	if (supp_inf == NULL) {
-		ERR("Error!!! Supplicant DBus interface is NULL");
-		return -1;
-	}
-
-	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-
-	if (conn == NULL) {
-		ERR("Fail to get DBus *p", conn);
-		return -1;
-	}
-
-	input_args = __netconfig_wifi_supplicant_setup(input_args, inserted_items);
-
-	message = netconfig_supplicant_invoke_dbus_method(SUPPLICANT_SERVICE, conn, (char *)supp_inf,
-				SUPPLICANT_GLOBAL_INTERFACE, "Get",
-				input_args);
-
-	g_list_free(input_args);
-
-	if (message == NULL) {
-		ERR("Error!!! Failed to get service properties");
-		goto err;
-	}
-
-	if (message == NULL) {
-		ERR("Error!!! Failed to get service properties");
-		goto err;
-	}
-
-	MessageType = dbus_message_get_type(message);
-
-	if (MessageType == DBUS_MESSAGE_TYPE_ERROR) {
-		const char *err_ptr = dbus_message_get_error_name(message);
-		ERR("Error!!! Error message received [%s]", err_ptr);
-		goto err;
-	}
-
-	dbus_message_iter_init(message, &iter);
-
-	if ((MessageType = dbus_message_iter_get_arg_type(&iter)) == DBUS_TYPE_VARIANT) {
-		DBusMessageIter string_type;
-		dbus_message_iter_recurse(&iter, &string_type);
-
-		if ((MessageType = dbus_message_iter_get_arg_type(&string_type)) ==
-				DBUS_TYPE_STRING) {
-			dbus_message_iter_get_basic(&string_type, &temp);
-		} else
-			goto err;
-
-	} else
-		goto err;
-
-	INFO("interface %s, ifname pointer %p", temp, *ifname);
-
-	g_strlcpy(ptr, temp, IFNAMSIZ);
-
-	dbus_message_unref(message);
-	dbus_connection_unref(conn);
-
-	return 0;
-
-err:
-	if (message != NULL)
-		dbus_message_unref(message);
-
-	if (conn != NULL)
-		dbus_connection_unref(conn);
-
-	return -1;
-}
-#endif
-
-static gboolean __netconfig_wifi_monitor_rssi(gpointer data)
-{
-	int rssi_result = 0;
-
-	if (data == NULL)
-		return FALSE;
-
-	rssi_result = __netconfig_wifi_set_rssi_level(FALSE, (char *)data);
-
-	if (rssi_result == -1)
-		vconf_set_int(VCONFKEY_WIFI_STRENGTH, VCONFKEY_WIFI_STRENGTH_MIN);
+	__netconfig_wifi_set_rssi_level(rssi_dbm);
 
 	return TRUE;
 }
 
 void netconfig_wifi_indicator_start(void)
 {
-	char *path_ptr = NULL;
-	static char path[DBUS_PATH_MAX_BUFLEN] = { 0 };
-#ifndef NL80211
-	char *ifname_ptr = NULL;
-	static char ifname[IFNAMSIZ] = { 0 };
-#endif
-
 	INFO("Start Wi-Fi indicator");
 
-	netconfig_stop_timer(&netconfig_wifi_indicator_timer);
+	vconf_set_int(VCONFKEY_WIFI_STRENGTH, VCONFKEY_WIFI_STRENGTH_MAX);
 
-#ifndef NL80211
-	memset(ifname, 0, sizeof(ifname));
-	ifname_ptr = &ifname[0];
-#endif
-	path_ptr = &path[0];
-
-	if (__netconfig_wifi_get_interface((const char **)(&path_ptr)) == 0) {
-#ifndef NL80211
-		INFO("Success to get DBus interface %s", path_ptr);
-
-		if (__netconfig_wifi_get_ifname(path_ptr, (const char **)(&ifname_ptr)) == 0) {
-			INFO("Success to get wifi ifname %s", ifname_ptr);
-
-			__netconfig_wifi_set_rssi_level(TRUE, (const char *)ifname);
-
-			DBG("Register Wi-Fi indicator timer with %d seconds",
-					NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL);
-			netconfig_start_timer_seconds(NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL,
-					__netconfig_wifi_monitor_rssi, ifname, &netconfig_wifi_indicator_timer);
-		}
-
-		return;
-#else
-		INFO("interface is [%s]", path_ptr);
-
-		__netconfig_wifi_set_rssi_level(TRUE, (const char *)path_ptr);
-
-		DBG("Register Wi-Fi indicator timer with %d seconds",
-				NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL);
-		netconfig_start_timer_seconds(NETCONFIG_WIFI_INDICATOR_UPDATE_INTERVAL,
-				__netconfig_wifi_monitor_rssi, path_ptr, &netconfig_wifi_indicator_timer);
-
-		return;
-#endif
-	}
+	netconfig_start_timer_seconds(
+			NETCONFIG_WIFI_INDICATOR_INTERVAL,
+			__netconfig_wifi_indicator_monitor,
+			NULL,
+			&netconfig_wifi_indicator_timer);
 }
 
 void netconfig_wifi_indicator_stop(void)

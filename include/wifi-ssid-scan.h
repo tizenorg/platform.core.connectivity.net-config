@@ -17,18 +17,33 @@
  *
  */
 
-#ifndef __NETCONFIG_SIGNAL_HANDLER_H__
-#define __NETCONFIG_SIGNAL_HANDLER_H__
+#ifndef __NETCONFIG_WIFI_SSID_SCAN_H__
+#define __NETCONFIG_WIFI_SSID_SCAN_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void netconfig_register_signal(void);
-void netconfig_deregister_signal(void);
+#include "wifi.h"
+
+enum netconfig_wifi_security {
+	WIFI_SECURITY_UNKNOWN = 0x00,
+	WIFI_SECURITY_NONE = 0x01,
+	WIFI_SECURITY_WEP = 0x02,
+	WIFI_SECURITY_PSK = 0x03,
+	WIFI_SECURITY_IEEE8021X = 0x04,
+};
+
+gboolean netconfig_wifi_get_ssid_scan_state(void);
+
+void netconfig_wifi_notify_ssid_scan_done(DBusMessage *message);
+void netconfig_wifi_bss_added(DBusMessage *message);
+
+gboolean netconfig_iface_wifi_request_specific_scan(NetconfigWifi *wifi,
+			gchar *ssid, GError **error);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __NETCONFIG_SIGNAL_HANDLER_H__ */
+#endif /* __NETCONFIG_WIFI_SSID_SCAN_H__ */

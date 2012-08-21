@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,20 +25,21 @@
 
 #include "log.h"
 #include "wifi.h"
-#include "dbus.h"
 #include "util.h"
+#include "netdbus.h"
 #include "neterror.h"
 #include "netconfig.h"
 #include "emulator.h"
+#include "network-statistics.h"
 #include "wifi-state.h"
+#include "wifi-ssid-scan.h"
 #include "wifi-background-scan.h"
+#include "mdm-private.h"
 
 gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error);
 gboolean netconfig_iface_wifi_remove_driver(NetconfigWifi *wifi, GError **error);
 
 #include "netconfig-iface-wifi-glue.h"
-
-#define NETCONFIG_WIFI_PATH	"/net/netconfig/wifi"
 
 #define WLAN_DRIVER_SCRIPT "/usr/bin/wlan.sh"
 
@@ -161,23 +160,16 @@ static gboolean __netconfig_wifi_enable_technology(void)
 {
 	DBusMessage *reply = NULL;
 	char path[DBUS_PATH_MAX_BUFLEN] = "/";
-	char request[] = CONNMAN_MANAGER_INTERFACE ".EnableTechnology";
 	char param1[] = "string:wifi";
-	char *param_array[] = {
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	};
+	char *param_array[] = {NULL, NULL};
 
-	param_array[0] = path;
-	param_array[1] = request;
-	param_array[2] = param1;
+	param_array[0] = param1;
 
-	reply = netconfig_dbus_send_request(CONNMAN_SERVICE, param_array);
+	reply = netconfig_invoke_dbus_method(CONNMAN_SERVICE, path,
+			CONNMAN_MANAGER_INTERFACE, "EnableTechnology", param_array);
+
 	if (reply == NULL) {
 		ERR("Error! Request failed");
-
 		return FALSE;
 	}
 
@@ -190,23 +182,16 @@ static gboolean __netconfig_wifi_disable_technology(void)
 {
 	DBusMessage *reply = NULL;
 	char path[DBUS_PATH_MAX_BUFLEN] = "/";
-	char request[] = CONNMAN_MANAGER_INTERFACE ".DisableTechnology";
 	char param1[] = "string:wifi";
-	char *param_array[] = {
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	};
+	char *param_array[] = {NULL, NULL};
 
-	param_array[0] = path;
-	param_array[1] = request;
-	param_array[2] = param1;
+	param_array[0] = param1;
 
-	reply = netconfig_dbus_send_request(CONNMAN_SERVICE, param_array);
+	reply = netconfig_invoke_dbus_method(CONNMAN_SERVICE, path,
+			CONNMAN_MANAGER_INTERFACE, "DisableTechnology", param_array);
+
 	if (reply == NULL) {
 		ERR("Error! Request failed");
-
 		return FALSE;
 	}
 
@@ -295,6 +280,9 @@ static gboolean __netconfig_wifi_try_to_load_driver(void)
 	int count = 0;
 	gchar *wifi_tech_state = NULL;
 
+	if (netconfig_is_wifi_allowed() != TRUE)
+		return FALSE;
+
 	if (netconfig_is_wifi_tethering_on() == TRUE) {
 		/* TODO: Wi-Fi tethering turns off here */
 		/* return TRUE; */
@@ -318,7 +306,6 @@ static gboolean __netconfig_wifi_try_to_load_driver(void)
 		__netconfig_wifi_enable_technology();
 
 		wifi_tech_state = netconfig_wifi_get_technology_state();
-		INFO("Wi-Fi technology state: %s", wifi_tech_state);
 
 		if (wifi_tech_state == NULL) {
 			DBG("Failed to get Wi-Fi technology state");
@@ -330,11 +317,13 @@ static gboolean __netconfig_wifi_try_to_load_driver(void)
 
 			netconfig_wifi_device_picker_service_start();
 
+			g_free(wifi_tech_state);
+			wifi_tech_state = NULL;
+
 			return TRUE;
 		}
 
 		g_free(wifi_tech_state);
-
 		wifi_tech_state = NULL;
 	}
 
@@ -350,11 +339,12 @@ static gboolean __netconfig_wifi_try_to_remove_driver(void)
 
 	netconfig_wifi_device_picker_service_stop();
 
+	netconfig_wifi_statistics_update_powered_off();
+
 	for (count = 0; count < 3; count++) {
 		__netconfig_wifi_disable_technology();
 
 		wifi_tech_state = netconfig_wifi_get_technology_state();
-		INFO("Wi-Fi technology state: %s", wifi_tech_state);
 
 		if (wifi_tech_state == NULL) {
 			DBG("Failed to get Wi-Fi technology state");
@@ -363,10 +353,13 @@ static gboolean __netconfig_wifi_try_to_remove_driver(void)
 
 		if (g_str_equal(wifi_tech_state, "EnabledTechnologies") != TRUE) {
 			g_free(wifi_tech_state);
+			wifi_tech_state = NULL;
+
 			break;
 		}
 
 		g_free(wifi_tech_state);
+		wifi_tech_state = NULL;
 	}
 
 	if (__netconfig_wifi_remove_driver() == TRUE) {
@@ -472,6 +465,40 @@ static void __netconfig_wifi_power_configuration(void)
 	}
 }
 
+static void __netconfig_wifi_notify_power_completed(gboolean power_on)
+{
+	DBusMessage *signal;
+	DBusConnection *connection = NULL;
+	DBusError error;
+	char *sig_name =  NULL;
+
+	if (power_on)
+		sig_name = "PowerOnCompleted";
+	else
+		sig_name = "PowerOffCompleted";
+
+	dbus_error_init(&error);
+
+	connection = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
+	if (connection == NULL) {
+		ERR("Error!!! Failed to get system DBus, error [%s]", error.message);
+		dbus_error_free(&error);
+		return;
+	}
+
+	signal = dbus_message_new_signal(NETCONFIG_WIFI_PATH,
+							NETCONFIG_WIFI_INTERFACE, sig_name);
+	if (signal == NULL)
+		return;
+
+	dbus_connection_send(connection, signal, NULL);
+
+	dbus_message_unref(signal);
+	dbus_connection_unref(connection);
+
+	INFO("(%s)", sig_name);
+}
+
 gpointer netconfig_wifi_create_and_init(DBusGConnection *conn)
 {
 	GObject *object;
@@ -498,12 +525,19 @@ gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error)
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
+	if (netconfig_is_wifi_allowed() != TRUE) {
+		netconfig_error_security_restricted(error);
+
+		return FALSE;
+	}
+
 	if (__netconfig_wifi_try_to_load_driver() != TRUE) {
 		netconfig_error_wifi_driver_failed(error);
 
 		return FALSE;
 	}
 
+	__netconfig_wifi_notify_power_completed(TRUE);
 	return TRUE;
 }
 
@@ -519,5 +553,6 @@ gboolean netconfig_iface_wifi_remove_driver(NetconfigWifi *wifi, GError **error)
 		return FALSE;
 	}
 
+	__netconfig_wifi_notify_power_completed(FALSE);
 	return TRUE;
 }

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,9 +22,9 @@
 #include <vconf-keys.h>
 
 #include "log.h"
-#include "dbus.h"
 #include "util.h"
 #include "wifi.h"
+#include "netdbus.h"
 #include "wifi-state.h"
 #include "wifi-background-scan.h"
 
@@ -81,34 +79,23 @@ static guint __netconfig_wifi_bgscan_get_mode(void)
 static gboolean __netconfig_wifi_bgscan_request_connman_scan(void)
 {
 	DBusMessage *reply = NULL;
-	/** dbus-send --system --print-reply --dest=net.connman / net.connman.Manager.SetProperty string:ScanMode variant:uint16:0/1/2/3 */
-	char request[] = CONNMAN_MANAGER_INTERFACE ".RequestScan";
 	char param1[] = "string:wifi";
-	char path[] = CONNMAN_MANAGER_PATH;
-	char *param_array[] = {
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	};
+	char *param_array[] = {NULL, NULL};
 
 	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTED)
 		if (__netconfig_wifi_bgscan_get_mode() == WIFI_BGSCAN_MODE_EXPONENTIAL)
-				return FALSE;
+			return FALSE;
 
 	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTING)
 		return FALSE;
 
-	param_array[0] = path;
-	param_array[1] = request;
-	param_array[2] = param1;
+	param_array[0] = param1;
 
-	DBG("Requesting [%s %s %s]", param_array[0], param_array[1], param_array[2]);
+	reply = netconfig_invoke_dbus_method(CONNMAN_SERVICE, CONNMAN_MANAGER_PATH,
+			CONNMAN_MANAGER_INTERFACE, "RequestScan", param_array);
 
-	reply = netconfig_dbus_send_request(CONNMAN_SERVICE, param_array);
 	if (reply == NULL) {
 		ERR("Error! Request failed");
-
 		return FALSE;
 	}
 

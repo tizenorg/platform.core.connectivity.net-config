@@ -17,36 +17,36 @@
  *
  */
 
-#ifndef __NETCONFIG_UTIL_H__
-#define __NETCONFIG_UTIL_H__
+#ifndef __NETCONFIG_NETSUPPLICANT_H__
+#define __NETCONFIG_NETSUPPLICANT_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <glib.h>
+#include <dbus/dbus.h>
+#include <dbus/dbus-glib.h>
 
-#include "wifi.h"
+#define SUPPLICANT_SERVICE				"fi.w1.wpa_supplicant1"
+#define SUPPLICANT_INTERFACE			"fi.w1.wpa_supplicant1"
+#define SUPPLICANT_PATH					"/fi/w1/wpa_supplicant1"
+#define SUPPLICANT_GLOBAL_INTERFACE		"org.freedesktop.DBus.Properties"
 
-void netconfig_start_timer_seconds(int secs,
-		gboolean(*callback) (gpointer), void *user_data, guint *timer_id);
-void netconfig_start_timer(int msecs,
-		gboolean(*callback) (gpointer), void *user_data, guint *timer_id);
-void netconfig_stop_timer(guint *timer_id);
+struct dbus_input_arguments {
+	int type;
+	void *data;
+};
 
-void netconfig_wifi_device_picker_service_start(void);
-void netconfig_wifi_device_picker_service_stop(void);
-
-gboolean netconfig_is_wifi_direct_on(void);
-gboolean netconfig_is_wifi_tethering_on(void);
-
-gboolean netconfig_execute_file(const char *file_path,
-		char *const args[], char *const env[]);
-
-gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error);
+gboolean netconfig_wifi_get_ifname(char **ifname);
+gboolean netconfig_wifi_get_supplicant_interface(char **path);
+DBusMessage *netconfig_supplicant_invoke_dbus_method(const char *dest,
+		DBusConnection *connection,
+		const char *path, const char *interface_name,
+		const char *method, GList *args);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __NETCONFIG_UTIL_H__ */
+#endif /* __NETCONFIG_NETSUPPLICANT_H__ */

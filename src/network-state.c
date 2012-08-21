@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -143,6 +141,7 @@ static void __netconfig_pop_3g_alert_syspoppup(void)
 	b = bundle_create();
 
 	bundle_add(b, "_SYSPOPUP_TITLE_", "Cellular connection popup");
+	bundle_add(b, "_SYSPOPUP_TYPE_", "notification");
 	bundle_add(b, "_SYSPOPUP_CONTENT_", "connected");
 
 	DBG("Launch 3G alert network popup");

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,21 +19,65 @@
 
 #include <vconf.h>
 #include <vconf-keys.h>
+#include <syspopup_caller.h>
 
 #include "log.h"
-#include "dbus.h"
 #include "util.h"
+#include "netdbus.h"
+#include "network-statistics.h"
 #include "wifi-state.h"
 #include "wifi-background-scan.h"
+
+static int profiles_count = 0;
 
 static enum netconfig_wifi_service_state
 	wifi_service_state = NETCONFIG_WIFI_UNKNOWN;
 
-void netconfig_wifi_state_set_service_state(
-		enum netconfig_wifi_service_state state)
+static GSList *notifier_list = NULL;
+
+
+static gboolean __netconfig_wifi_add_network_notification(void)
 {
-	if (wifi_service_state != state)
-		wifi_service_state = state;
+	int rv = 0;
+	bundle *b = NULL;
+
+	b = bundle_create();
+	bundle_add(b, "_SYSPOPUP_TYPE_", "wifi_notification");
+	bundle_add(b, "_SYSPOPUP_CONTENT_", "add");
+
+	DBG("Register Wi-Fi network notification");
+	rv = syspopup_launch("net-popup", b);
+
+	bundle_free(b);
+
+	return TRUE;
+}
+
+static gboolean __netconfig_wifi_del_network_notification(void)
+{
+	int rv = 0;
+	bundle *b = NULL;
+
+	b = bundle_create();
+	bundle_add(b, "_SYSPOPUP_TYPE_", "wifi_notification");
+	bundle_add(b, "_SYSPOPUP_CONTENT_", "delete");
+
+	DBG("Delete Wi-Fi network notification");
+	rv = syspopup_launch("net-popup", b);
+
+	bundle_free(b);
+
+	return TRUE;
+}
+
+static void __netconfig_wifi_set_profiles_count(const int count)
+{
+	profiles_count = count;
+}
+
+static int __netconfig_wifi_get_profiles_count(void)
+{
+	return profiles_count;
 }
 
 static GSList *__netconfig_wifi_state_get_service_profiles(DBusMessage *message)
@@ -83,104 +125,19 @@ static GSList *__netconfig_wifi_state_get_service_profiles(DBusMessage *message)
 	return service_profiles;
 }
 
-static enum netconfig_wifi_service_state
-__netconfig_wifi_state_get_state_from_service(DBusMessage *message)
+static char *__netconfig_wifi_get_connman_favorite_service(void)
 {
-	enum netconfig_wifi_service_state wifi_state = NETCONFIG_WIFI_UNKNOWN;
-	DBusMessageIter iter, array;
-
-	dbus_message_iter_init(message, &iter);
-	dbus_message_iter_recurse(&iter, &array);
-
-	while (dbus_message_iter_get_arg_type(&array) == DBUS_TYPE_DICT_ENTRY) {
-		DBusMessageIter entry, dict;
-		const char *key = NULL;
-		const char *temp = NULL;
-
-		dbus_message_iter_recurse(&array, &entry);
-		dbus_message_iter_get_basic(&entry, &key);
-
-		if (g_str_equal(key, "Type") == TRUE) {
-			dbus_message_iter_next(&entry);
-			dbus_message_iter_recurse(&entry, &dict);
-			dbus_message_iter_get_basic(&dict, &temp);
-
-			if (g_str_equal(temp, "wifi") == TRUE)
-				break;
-			else
-				return wifi_state;
-		}
-
-		dbus_message_iter_next(&array);
-	}
-
-	dbus_message_iter_init(message, &iter);
-	dbus_message_iter_recurse(&iter, &array);
-
-	while (dbus_message_iter_get_arg_type(&array) == DBUS_TYPE_DICT_ENTRY) {
-		DBusMessageIter entry, variant;
-		const char *key = NULL;
-		const char *value = NULL;
-
-		dbus_message_iter_recurse(&array, &entry);
-		dbus_message_iter_get_basic(&entry, &key);
-
-		dbus_message_iter_next(&entry);
-		dbus_message_iter_recurse(&entry, &variant);
-
-		if (g_str_equal(key, "State") != TRUE) {
-			dbus_message_iter_next(&array);
-			continue;
-		}
-
-		dbus_message_iter_get_basic(&variant, &value);
-
-		if (g_str_equal(value, "idle") == TRUE)
-			wifi_state = NETCONFIG_WIFI_IDLE;
-		else if (g_str_equal(value, "failure") == TRUE)
-			wifi_state = NETCONFIG_WIFI_IDLE;
-		else if (g_str_equal(value, "association") == TRUE)
-			wifi_state = NETCONFIG_WIFI_CONNECTING;
-		else if (g_str_equal(value, "configuration") == TRUE)
-			wifi_state = NETCONFIG_WIFI_CONNECTING;
-		else if (g_str_equal(value, "ready") == TRUE)
-			wifi_state = NETCONFIG_WIFI_CONNECTED;
-		else if (g_str_equal(value, "disconnect") == TRUE)
-			wifi_state = NETCONFIG_WIFI_IDLE;
-		else if (g_str_equal(value, "online") == TRUE)
-			wifi_state = NETCONFIG_WIFI_CONNECTED;
-		else
-			wifi_state = NETCONFIG_WIFI_UNKNOWN;
-
-		break;
-	}
-
-	return wifi_state;
-}
-
-static enum netconfig_wifi_service_state
-__netconfig_wifi_state_get_connman_service_state(void)
-{
-	enum netconfig_wifi_service_state wifi_state = NETCONFIG_WIFI_UNKNOWN;
-	DBusConnection *connection = NULL;
+	char *favorite_service = NULL;
 	DBusMessage *message = NULL;
 	GSList *service_profiles = NULL;
 	GSList *list = NULL;
 
-	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (connection == NULL) {
-		ERR("Failed to get system bus");
-
-		return wifi_state;
-	}
-
-	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, connection,
-			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE, "GetProperties");
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE, "GetProperties", NULL);
 	if (message == NULL) {
 		ERR("Failed to get service list");
-		dbus_connection_unref(connection);
 
-		return wifi_state;
+		return NULL;
 	}
 
 	/* Get service profiles from ConnMan Manager */
@@ -189,58 +146,99 @@ __netconfig_wifi_state_get_connman_service_state(void)
 
 	for (list = service_profiles; list != NULL; list = list->next) {
 		char *profile_path = list->data;
-		enum netconfig_wifi_service_state wifi_service_state = wifi_state;
+		DBusMessageIter iter, array;
 
-		message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, connection,
-				profile_path, CONNMAN_SERVICE_INTERFACE, "GetProperties");
+		if (favorite_service != NULL)
+			break;
+
+		message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+				profile_path, CONNMAN_SERVICE_INTERFACE, "GetProperties", NULL);
 
 		if (message == NULL) {
 			ERR("Failed to get service information of %s", profile_path);
 			continue;
 		}
 
-		/* Get service information from ConnMan Service */
-		wifi_service_state = __netconfig_wifi_state_get_state_from_service(message);
-		if (wifi_state < wifi_service_state)
-			wifi_state = wifi_service_state;
+		dbus_message_iter_init(message, &iter);
+		dbus_message_iter_recurse(&iter, &array);
+
+		while (dbus_message_iter_get_arg_type(&array) == DBUS_TYPE_DICT_ENTRY) {
+			DBusMessageIter entry, variant;
+			const char *key = NULL;
+			dbus_bool_t value;
+
+			dbus_message_iter_recurse(&array, &entry);
+			dbus_message_iter_get_basic(&entry, &key);
+
+			dbus_message_iter_next(&entry);
+			dbus_message_iter_recurse(&entry, &variant);
+
+			if (g_str_equal(key, "Favorite") != TRUE) {
+				dbus_message_iter_next(&array);
+				continue;
+			}
+
+			dbus_message_iter_get_basic(&variant, &value);
+
+			if (value)
+				favorite_service = g_strdup(profile_path);
+
+			break;
+		}
 
 		dbus_message_unref(message);
 	}
 
 	g_slist_free(service_profiles);
-	dbus_connection_unref(connection);
 
-	return wifi_state;
+	return favorite_service;
+}
+
+static void __netconfig_wifi_state_changed(
+		enum netconfig_wifi_service_state state)
+{
+	GSList *list;
+
+	for (list = notifier_list; list; list = list->next) {
+		struct netconfig_wifi_state_notifier *notifier = list->data;
+
+		if (notifier->netconfig_wifi_state_changed != NULL)
+			notifier->netconfig_wifi_state_changed(state, notifier->user_data);
+	}
+}
+
+void netconfig_wifi_state_set_service_state(
+		enum netconfig_wifi_service_state state)
+{
+	if (wifi_service_state == state)
+		return;
+
+	wifi_service_state = state;
+	DBG("Wi-Fi state %d", state);
+
+	if (wifi_service_state == NETCONFIG_WIFI_CONNECTED)
+		__netconfig_wifi_del_network_notification();
+
+	__netconfig_wifi_state_changed(state);
 }
 
 enum netconfig_wifi_service_state
 netconfig_wifi_state_get_service_state(void)
 {
-	if (wifi_service_state == NETCONFIG_WIFI_CONNECTED)
-		return NETCONFIG_WIFI_CONNECTED;
-
-	return __netconfig_wifi_state_get_connman_service_state();
+	return wifi_service_state;
 }
 
 gchar *netconfig_wifi_get_technology_state(void)
 {
-	DBusConnection *connection = NULL;
 	DBusMessage *message = NULL;
 	DBusMessageIter args, dict;
 	gboolean wifi_tech_available = FALSE;
 	gboolean wifi_tech_enabled = FALSE;
 
-	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (connection == NULL) {
-		ERR("Failed to get system bus");
-		return NULL;
-	}
-
-	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, connection,
-			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE, "GetProperties");
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE, "GetProperties", NULL);
 	if (message == NULL) {
 		ERR("Failed to get Wi-Fi technology state");
-		dbus_connection_unref(connection);
 		return NULL;
 	}
 
@@ -284,7 +282,6 @@ next_dict:
 	}
 
 	dbus_message_unref(message);
-	dbus_connection_unref(connection);
 
 	if (wifi_tech_enabled)
 		return g_strdup("EnabledTechnologies");
@@ -315,10 +312,14 @@ void netconfig_wifi_update_power_state(gboolean powered)
 			netconfig_wifi_bgscan_start();
 		}
 	} else {
-		netconfig_wifi_bgscan_stop();
-
 		if (wifi_state != VCONFKEY_WIFI_OFF) {
 			DBG("Wi-Fi successfully turned off");
+
+			__netconfig_wifi_del_network_notification();
+
+			netconfig_wifi_bgscan_stop();
+
+			__netconfig_wifi_set_profiles_count(0);
 
 			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
 
@@ -327,4 +328,89 @@ void netconfig_wifi_update_power_state(gboolean powered)
 			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
 		}
 	}
+}
+
+char *netconfig_wifi_get_favorite_service(void)
+{
+	return __netconfig_wifi_get_connman_favorite_service();
+}
+
+void netconfig_wifi_check_network_notification(void)
+{
+	DBusMessage *message = NULL;
+	DBusMessageIter iter, dict;
+	int profiles_count = 0;
+
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE, "GetProperties", NULL);
+	if (message == NULL) {
+		ERR("Failed to get service list");
+		return;
+	}
+
+	dbus_message_iter_init(message, &iter);
+	dbus_message_iter_recurse(&iter, &dict);
+
+	while (dbus_message_iter_get_arg_type(&dict) == DBUS_TYPE_DICT_ENTRY) {
+		DBusMessageIter keyValue, array, value;
+		const char *key = NULL;
+		const char *object_path = NULL;
+
+		dbus_message_iter_recurse(&dict, &keyValue);
+		dbus_message_iter_get_basic(&keyValue, &key);
+
+		if (g_str_equal(key, "Services") != TRUE) {
+			dbus_message_iter_next(&dict);
+			continue;
+		}
+
+		dbus_message_iter_next(&keyValue);
+		dbus_message_iter_recurse(&keyValue, &array);
+		if (dbus_message_iter_get_arg_type(&array) != DBUS_TYPE_ARRAY)
+			continue;
+
+		dbus_message_iter_recurse(&array, &value);
+		while (dbus_message_iter_get_arg_type(&value) == DBUS_TYPE_OBJECT_PATH) {
+			dbus_message_iter_get_basic(&value, &object_path);
+
+			if (g_str_has_prefix(object_path, CONNMAN_WIFI_SERVICE_PROFILE_PREFIX) == TRUE)
+				profiles_count++;
+
+			dbus_message_iter_next(&value);
+		}
+
+		dbus_message_iter_next(&dict);
+	}
+
+	dbus_message_unref(message);
+
+	if (__netconfig_wifi_get_profiles_count() < profiles_count) {
+		DBG("profiles prev_count (%d) - profiles count (%d)",
+				__netconfig_wifi_get_profiles_count(), profiles_count);
+
+		__netconfig_wifi_add_network_notification();
+	}
+
+	__netconfig_wifi_set_profiles_count(profiles_count);
+}
+
+void netconfig_wifi_state_notifier_cleanup(void)
+{
+	g_slist_free_full(notifier_list, NULL);
+}
+
+void netconfig_wifi_state_notifier_register(
+		struct netconfig_wifi_state_notifier *notifier)
+{
+	DBG("register notifier");
+
+	notifier_list = g_slist_append(notifier_list, notifier);
+}
+
+void netconfig_wifi_state_notifier_unregister(
+		struct netconfig_wifi_state_notifier *notifier)
+{
+	DBG("un-register notifier");
+
+	notifier_list = g_slist_remove_all(notifier_list, notifier);
 }

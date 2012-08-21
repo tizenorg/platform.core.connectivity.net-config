@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,6 +23,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+int netconfig_wifi_get_rssi(void);
 
 void netconfig_wifi_indicator_start(void);
 void netconfig_wifi_indicator_stop(void);

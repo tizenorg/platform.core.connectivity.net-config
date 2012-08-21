@@ -10,6 +10,9 @@
 		<method name="SetBgscan">
 			<arg type="u" name="ScanMode" direction="in"/>
 		</method>
+		<method name="RequestSpecificScan">
+			<arg type="s" name="SSID" direction="in"/>
+		</method>
 		<signal name="DriverLoaded">
 			<arg name="mac" type="s"/>
 		</signal>

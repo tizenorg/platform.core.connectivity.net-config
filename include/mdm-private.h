@@ -17,18 +17,19 @@
  *
  */
 
-#ifndef __NETCONFIG_SIGNAL_HANDLER_H__
-#define __NETCONFIG_SIGNAL_HANDLER_H__
+#ifndef MDM_PRIVATE_H_
+#define MDM_PRIVATE_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void netconfig_register_signal(void);
-void netconfig_deregister_signal(void);
+#include <glib.h>
+
+gboolean netconfig_is_wifi_allowed(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __NETCONFIG_SIGNAL_HANDLER_H__ */
+#endif /* MDM_PRIVATE_H_ */

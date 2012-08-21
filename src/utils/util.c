@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
- * Contact: Danny JS Seo <S.Seo@samsung.com>
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -101,73 +99,28 @@ void netconfig_stop_timer(guint *timer_id)
 	}
 }
 
-static gboolean __netconfig_wifi_state_device_picker_trials(gboolean is_clear_mode)
+static gboolean __netconfig_test_device_picker()
 {
-	static int netconfig_device_picker_trials = 0;
-	const int MAX_DEVICE_PICKER_TRIALS = 20;
+	char *favorite_wifi_service = NULL;
 
-	if (is_clear_mode != TRUE) {
-		netconfig_device_picker_trials++;
-
-		if (netconfig_device_picker_trials > MAX_DEVICE_PICKER_TRIALS)
-			return TRUE;
-		else
-			return FALSE;
-	}
-
-	netconfig_device_picker_trials = 0;
-
-	return FALSE;
-}
-
-static gboolean __netconfig_wifi_state_inc_and_test_trials(void)
-{
-	return __netconfig_wifi_state_device_picker_trials(FALSE);
-}
-
-static void __netconfig_wifi_state_clear_trials(void)
-{
-	__netconfig_wifi_state_device_picker_trials(TRUE);
-}
-
-static gboolean __netconfig_test_device_picker(enum netconfig_wifi_service_state *wifi_state)
-{
-	*wifi_state = netconfig_wifi_state_get_service_state();
-
-	DBG("Current Wi-Fi state: %d", *wifi_state);
-
-	if (*wifi_state == NETCONFIG_WIFI_CONNECTING ||
-			*wifi_state == NETCONFIG_WIFI_UNKNOWN) {
-		if (__netconfig_wifi_state_inc_and_test_trials() == FALSE)
-			return FALSE;
-	}
-
-	if (*wifi_state == NETCONFIG_WIFI_CONNECTED)
+	favorite_wifi_service = netconfig_wifi_get_favorite_service();
+	if (favorite_wifi_service != NULL) {
+		g_free(favorite_wifi_service);
 		return FALSE;
+	}
 
 	return TRUE;
 }
 
-static gboolean __netconfig_pop_device_picker(void)
+static void __netconfig_pop_device_picker(void)
 {
 	int rv = 0;
 	bundle *b = NULL;
 	int wifi_ug_state = 0;
-	enum netconfig_wifi_service_state wifi_state;
-
-	/* It's double checked,
-	 * because ConnMan state stops by IDLE in a short time.
-	 */
-	if (__netconfig_test_device_picker(&wifi_state) != TRUE) {
-		if (wifi_state == NETCONFIG_WIFI_CONNECTED)
-			return TRUE;
-
-		return FALSE;
-	}
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
-		return TRUE;
+		return;
 
 	b = bundle_create();
 
@@ -175,25 +128,12 @@ static gboolean __netconfig_pop_device_picker(void)
 	rv = syspopup_launch("wifi-qs", b);
 
 	bundle_free(b);
-
-	return TRUE;
 }
 
 static gboolean __netconfig_wifi_try_device_picker(gpointer data)
 {
-	enum netconfig_wifi_service_state wifi_state;
-
-	if (__netconfig_test_device_picker(&wifi_state) != TRUE) {
-		if (wifi_state == NETCONFIG_WIFI_CONNECTED)
-			return FALSE;
-
-		return TRUE;
-	}
-
-	if (__netconfig_pop_device_picker() != TRUE)
-		return TRUE;
-
-	__netconfig_wifi_state_clear_trials();
+	if (__netconfig_test_device_picker() == TRUE)
+		__netconfig_pop_device_picker();
 
 	return FALSE;
 }
@@ -238,7 +178,6 @@ void netconfig_wifi_device_picker_service_start(void)
 	netconfig_start_timer(NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL,
 			__netconfig_wifi_try_device_picker, NULL, &timer_id);
 
-	__netconfig_wifi_state_clear_trials();
 	__netconfig_wifi_device_picker_set_timer_id(timer_id);
 }
 
@@ -255,7 +194,6 @@ void netconfig_wifi_device_picker_service_stop(void)
 	netconfig_stop_timer(&timer_id);
 
 	__netconfig_wifi_device_picker_set_timer_id(timer_id);
-	__netconfig_wifi_state_clear_trials();
 }
 
 gboolean netconfig_is_wifi_direct_on(void)

@@ -1,28 +1,20 @@
-#sbs-git:pkgs/n/net-config
+#sbs-git:magnolia/framework/connectivity/net-config
 
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.85_2
+Version:    0.1.88_5
 Release:    1
 Group:      System/Network
 License:    Apache License Version 2.0
 Source0:    %{name}-%{version}.tar.gz
-Source1:    net-config.service
-Source1001: packaging/net-config.manifest 
 
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
-BuildRequires:  pkgconfig(tapi)
-BuildRequires:  pkgconfig(db-util)
 BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(syspopup-caller)
-Requires:   systemd
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
 
 %description
 TIZEN Network Configuration Module
@@ -32,7 +24,6 @@ TIZEN Network Configuration Module
 %setup -q
 
 %build
-cp %{SOURCE1001} .
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
 make %{?jobs:-j%jobs}
 
@@ -42,8 +33,8 @@ rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/usr/share/dbus-1/services
 cp resources/usr/share/dbus-1/services/net.netconfig.service %{buildroot}/usr/share/dbus-1/services/net.netconfig.service
-mkdir -p %{buildroot}/%{_sysconfdir}/dbus-1/system.d
-cp resources/usr/etc/dbus-1/system.d/net-config.conf %{buildroot}/%{_sysconfdir}/dbus-1/system.d/net-config.conf
+mkdir -p %{buildroot}/usr/etc/dbus-1/system.d
+cp resources/usr/etc/dbus-1/system.d/net-config.conf %{buildroot}/usr/etc/dbus-1/system.d/net-config.conf
 mkdir -p %{buildroot}/opt/etc
 cp resources/opt/etc/resolv.conf %{buildroot}/opt/etc/resolv.conf
 mkdir -p %{buildroot}/etc/rc.d/init.d
@@ -53,11 +44,6 @@ ln -s ../init.d/net-config %{buildroot}/etc/rc.d/rc3.d/S60net-config
 mkdir -p %{buildroot}/etc/rc.d/rc5.d
 ln -s ../init.d/net-config %{buildroot}/etc/rc.d/rc5.d/S60net-config
 
-# Systemd service file
-install -d %{buildroot}%{_libdir}/systemd/system/
-install -m 644 %{S:1} %{buildroot}%{_libdir}/systemd/system/net-config.service
-install -d %{buildroot}%{_libdir}/systemd/system/network.target.wants/
-ln -s ../net-config.service %{buildroot}%{_libdir}/systemd/system/network.target.wants/net-config.service
 
 %post
 
@@ -92,25 +78,15 @@ vconftool set -t int file/private/wifi/last_power_state "0"
 #Resource
 chmod 644 /opt/etc/resolv.conf
 
-systemctl daemon-reload
-systemctl restart net-config.service
-
-%preun
-systemctl stop net-config.service
-
 %postun
-systemctl daemon-reload
 
 
 %files
-%manifest net-config.manifest
 %defattr(-,root,root,-)
 %{_sbindir}/*
 %{_datadir}/dbus-1/services/*
 /opt/etc/resolv.conf
-%{_sysconfdir}/dbus-1/system.d/*
+%{_prefix}/etc/dbus-1/system.d/*
 %{_sysconfdir}/rc.d/init.d/net-config
 %{_sysconfdir}/rc.d/rc3.d/S60net-config
 %{_sysconfdir}/rc.d/rc5.d/S60net-config
-%{_libdir}/systemd/system/net-config.service
-%{_libdir}/systemd/system/network.target.wants/net-config.service

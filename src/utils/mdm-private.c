@@ -17,18 +17,9 @@
  *
  */
 
-#ifndef __NETCONFIG_SIGNAL_HANDLER_H__
-#define __NETCONFIG_SIGNAL_HANDLER_H__
+#include "mdm-private.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void netconfig_register_signal(void);
-void netconfig_deregister_signal(void);
-
-#ifdef __cplusplus
+gboolean netconfig_is_wifi_allowed(void)
+{
+	return TRUE;
 }
-#endif
-
-#endif /* __NETCONFIG_SIGNAL_HANDLER_H__ */

@@ -8,16 +8,20 @@ SET(LIBDIR "${PREFIX}/lib")
 
 SET(SRCS
 	src/main.c
-	src/dbus.c
-	src/util.c
 	src/neterror.c
-	src/emulator.c
 	src/wifi-power.c
 	src/wifi-state.c
 	src/network-state.c
+	src/network-statistics.c
 	src/wifi-indicator.c
 	src/signal-handler.c
+	src/wifi-ssid-scan.c
 	src/wifi-background-scan.c
+	src/dbus/netdbus.c
+	src/dbus/netsupplicant.c
+	src/utils/util.c
+	src/utils/emulator.c
+	src/utils/mdm-private.c
 	)
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -27,11 +31,10 @@ MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
 
 INCLUDE(FindPkgConfig)
 PKG_CHECK_MODULES(pkgs REQUIRED
-	dbus-1
 	glib-2.0
 	dbus-glib-1
-	vconf
 	dlog
+	vconf
 	wifi-direct
 	syspopup-caller)
 
@@ -66,6 +69,12 @@ ADD_CUSTOM_TARGET(netconfig-iface-network-state-glue.h
 	${CMAKE_SOURCE_DIR}/interfaces/netconfig-iface-network-state.xml
 	DEPENDS ${CMAKE_SOURCE_DIR}/interfaces/netconfig-iface-network-state.xml
 )
+ADD_CUSTOM_TARGET(netconfig-iface-network-statistics-glue.h
+	COMMAND dbus-binding-tool --mode=glib-server --prefix=netconfig_iface_network_statistics
+	--output=${CMAKE_SOURCE_DIR}/include/netconfig-iface-network-statistics-glue.h
+	${CMAKE_SOURCE_DIR}/interfaces/netconfig-iface-network-statistics.xml
+	DEPENDS ${CMAKE_SOURCE_DIR}/interfaces/netconfig-iface-network-statistics.xml
+)
 ADD_CUSTOM_TARGET(netconfig-iface-wifi-glue.h
 	COMMAND dbus-binding-tool --mode=glib-server --prefix=netconfig_iface_wifi
 	--output=${CMAKE_SOURCE_DIR}/include/netconfig-iface-wifi-glue.h
@@ -74,6 +83,7 @@ ADD_CUSTOM_TARGET(netconfig-iface-wifi-glue.h
 )
 
 ADD_DEPENDENCIES(${PROJECT_NAME} netconfig-iface-network-state-glue.h)
+ADD_DEPENDENCIES(${PROJECT_NAME} netconfig-iface-network-statistics-glue.h)
 ADD_DEPENDENCIES(${PROJECT_NAME} netconfig-iface-wifi-glue.h)
 
 INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})

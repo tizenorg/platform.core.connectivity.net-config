@@ -172,6 +172,36 @@ static gboolean __netconfig_wifi_bgscan_request_scan(gpointer data)
 	return FALSE;
 }
 
+static void __netconfig_wifi_bgscan_mode_cb(keynode_t* node, void* user_data)
+{
+	int value;
+	int wifi_state;
+
+	if (vconf_get_int(VCONFKEY_WIFI_BGSCAN_MODE, &value) < 0) {
+		ERR("VCONFKEY_WIFI_BGSCAN_MODE get failed");
+		return;
+	}
+
+	DBG("Background scanning mode is changed : %d", value);
+
+	__netconfig_wifi_bgscan_set_mode((guint)value);
+
+	if (vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
+		ERR("VCONFKEY_WIFI_STATE get failed");
+		return;
+	}
+
+	if (wifi_state == VCONFKEY_WIFI_OFF)
+		return;
+
+	struct bgscan_timer_data *timer_data = __netconfig_wifi_bgscan_get_bgscan_data();
+
+	if (timer_data->timer_id != 0)
+		netconfig_wifi_bgscan_stop();
+
+	netconfig_wifi_bgscan_start();
+}
+
 void netconfig_wifi_bgscan_start(void)
 {
 	struct bgscan_timer_data *timer_data =
@@ -232,3 +262,25 @@ gboolean netconfig_iface_wifi_set_bgscan(NetconfigWifi *wifi, guint scan_mode, G
 
 	return TRUE;
 }
+
+void netconfig_wifi_init_bgscan()
+{
+	guint scan_mode = __netconfig_wifi_bgscan_get_mode();
+
+	if (scan_mode == WIFI_BGSCAN_MODE_PERIODIC)
+		vconf_set_int(VCONFKEY_WIFI_BGSCAN_MODE, VCONFKEY_WIFI_BGSCAN_MODE_PERIODIC);
+	else
+		vconf_set_int(VCONFKEY_WIFI_BGSCAN_MODE, VCONFKEY_WIFI_BGSCAN_MODE_EXPONENTIAL);
+
+	if (vconf_notify_key_changed(VCONFKEY_WIFI_BGSCAN_MODE,
+			__netconfig_wifi_bgscan_mode_cb, NULL))
+		DBG("Failed to set notify callback");
+}
+
+void netconfig_wifi_deinit_bgscan()
+{
+	if (vconf_ignore_key_changed(VCONFKEY_WIFI_BGSCAN_MODE,
+			__netconfig_wifi_bgscan_mode_cb))
+		DBG("Failed to unset notify callback");
+}
+

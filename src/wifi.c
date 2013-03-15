@@ -167,6 +167,7 @@ gpointer netconfig_wifi_create_and_init(DBusGConnection *conn)
 	INFO("wifi(%p) register DBus path(%s)", object, NETCONFIG_WIFI_PATH);
 
 	netconfig_wifi_power_configuration();
+	netconfig_wifi_init_bgscan();
 
 	return object;
 }

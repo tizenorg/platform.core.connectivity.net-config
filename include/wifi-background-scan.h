@@ -34,6 +34,8 @@ gboolean netconfig_wifi_get_scanning(void);
 void netconfig_wifi_set_scanning(gboolean scanning);
 
 gboolean netconfig_iface_wifi_set_bgscan(NetconfigWifi *wifi, guint scan_mode, GError **error);
+void netconfig_wifi_init_bgscan();
+void netconfig_wifi_deinit_bgscan();
 
 #ifdef __cplusplus
 }

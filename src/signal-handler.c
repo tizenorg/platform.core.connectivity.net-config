@@ -391,4 +391,6 @@ void netconfig_deregister_signal(void)
 
 	dbus_connection_unref(signal_connection);
 	signal_connection = NULL;
+
+	netconfig_wifi_deinit_bgscan();
 }

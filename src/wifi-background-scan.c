@@ -153,9 +153,17 @@ static gboolean __netconfig_wifi_bgscan_request_scan(gpointer data)
 {
 	struct bgscan_timer_data *timer = (struct bgscan_timer_data *)data;
 	int pm_state = VCONFKEY_PM_STATE_NORMAL;
+	int hotspot_wifi_state = VCONFKEY_MOBILE_HOTSPOT_WIFI_OFF;
 
 	if (timer == NULL)
 		return FALSE;
+
+	/* If Wi-Fi tethering is pending on, don't trigger scan event*/
+	vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_WIFI_STATE, &hotspot_wifi_state);
+	if (hotspot_wifi_state == VCONFKEY_MOBILE_HOTSPOT_WIFI_PENDING_ON) {
+		DBG("hotspot_wifi_state %d", hotspot_wifi_state);
+		return TRUE;
+	}
 
 	/* In case of LCD off, we don't need Wi-Fi scan */
 	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);

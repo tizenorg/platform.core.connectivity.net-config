@@ -232,6 +232,7 @@ enum netconfig_wifi_tech_state netconfig_wifi_get_technology_state(void)
 	enum netconfig_wifi_tech_state ret = NETCONFIG_WIFI_TECH_OFF;
 	gboolean wifi_tech_powered = FALSE;
 	gboolean wifi_tech_connected = FALSE;
+	gboolean wifi_tethering = FALSE;
 
 	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
 			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE,
@@ -281,7 +282,7 @@ enum netconfig_wifi_tech_state netconfig_wifi_get_technology_state(void)
 				} else if (strcmp(key, "Connected") == 0 && data) {
 					wifi_tech_connected = TRUE;
 				} else if (strcmp(key, "Tethering") == 0 && data) {
-					/* For further use */
+					wifi_tethering = TRUE;
 				}
 			} else if (dbus_message_iter_get_arg_type(&value1) ==
 					DBUS_TYPE_STRING) {
@@ -301,6 +302,9 @@ enum netconfig_wifi_tech_state netconfig_wifi_get_technology_state(void)
 
 	if (wifi_tech_connected)
 		ret = NETCONFIG_WIFI_TECH_CONNECTED;
+
+	if (wifi_tethering)
+		ret = NETCONFIG_WIFI_TECH_TETHERING_ON;
 
 	return ret;
 }
@@ -332,7 +336,8 @@ void netconfig_wifi_update_power_state(gboolean powered)
 			netconfig_wifi_bgscan_start();
 		}
 	} else {
-		if (wifi_state != VCONFKEY_WIFI_OFF) {
+		if (wifi_state != VCONFKEY_WIFI_OFF ||
+			netconfig_is_wifi_tethering_on() == TRUE) {
 			DBG("Wi-Fi successfully turned off or in power-save mode");
 
 			netconfig_wifi_device_picker_service_stop();

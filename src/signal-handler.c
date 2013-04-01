@@ -110,6 +110,10 @@ static void __netconfig_technology_signal_handler(DBusMessage *msg)
 			/* Connection state */
 		} else if (g_strcmp0(key, "Tethering") == 0) {
 			/* Tethering state */
+			if (value == TRUE)
+				netconfig_wifi_update_power_state(FALSE);
+			else
+				netconfig_wifi_update_power_state(TRUE);
 		}
 	} else if (g_str_has_prefix(tech,
 			CONNMAN_CELLULAR_TECHNOLOGY_PREFIX) == TRUE) {

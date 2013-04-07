@@ -227,11 +227,19 @@ void netconfig_wifi_device_picker_service_start(void)
 {
 	int wifi_ug_state;
 	const int NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL = 700;
+	int hotspot_wifi_state = VCONFKEY_MOBILE_HOTSPOT_WIFI_OFF;
 	guint timer_id = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
+
+	/* If Wi-Fi tethering is pending on, don't show device picker UI*/
+	vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_WIFI_STATE, &hotspot_wifi_state);
+	if (hotspot_wifi_state == VCONFKEY_MOBILE_HOTSPOT_WIFI_PENDING_ON) {
+		DBG("hotspot_wifi_state %d", hotspot_wifi_state);
+		return;
+	}
 
 	DBG("Register device picker timer with %d milliseconds",
 			NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL);

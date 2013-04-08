@@ -38,7 +38,8 @@ static gboolean __netconfig_emulator_test_emulation_env(void)
 
 	DBG("Test emulation environment");
 
-	uname(&buf);
+	if (uname(&buf) != 0)
+		return FALSE;
 
 	if (g_str_has_suffix(buf.machine, EMUL_UTSNAME_MACHINE_SUFFIX) == TRUE)
 		return TRUE;

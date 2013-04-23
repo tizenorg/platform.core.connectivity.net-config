@@ -83,46 +83,37 @@ static char *__netconfig_get_property(DBusMessage *msg, int *prop_value)
 	return property;
 }
 
-static void __netconfig_wifi_technology_state_signal_handler(
-		const char *property, int prop_value)
+static void __netconfig_technology_signal_handler(DBusMessage *msg)
 {
-	static int previous_technology_state = FALSE;
-	GError **error = NULL;
+	char *key = NULL;
+	const char *tech = NULL;
+	dbus_bool_t value = FALSE;
 
-	if (property == NULL || g_str_equal(property, "Powered") != TRUE)
+	if (netconfig_dbus_get_basic_params_string(msg,
+			&key, DBUS_TYPE_BOOLEAN, &value) != TRUE)
 		return;
 
-	if (previous_technology_state == prop_value) {
-		INFO("Same as previous state");
+	tech = dbus_message_get_path(msg);
+	if (key == NULL || tech == NULL)
 		return;
-	}
 
-	previous_technology_state = prop_value;
+	if (g_str_has_prefix(tech, CONNMAN_WIFI_TECHNOLOGY_PREFIX) == TRUE) {
+		INFO("Wi-Fi Technology %s, property %d", key, value);
 
-	INFO("Technology property - [%s], prop_value - [%d]",
-			property, prop_value);
-
-	if (prop_value == FALSE) {
-		enum netconfig_wifi_tech_state state = NETCONFIG_WIFI_TECH_OFF;
-
-		state = netconfig_wifi_get_technology_state();
-		INFO("Wi-Fi technology state: %d", state);
-
-		if (NETCONFIG_WIFI_TECH_OFF == state ||
-				NETCONFIG_WIFI_TECH_UNKNOWN == state) {
-			if (netconfig_wifi_remove_driver() == TRUE) {
+		if (g_strcmp0(key, "Powered") == 0) {
+			/* Power state */
+			if (value == TRUE)
+				netconfig_wifi_update_power_state(TRUE);
+			else
 				netconfig_wifi_update_power_state(FALSE);
-
-				netconfig_wifi_notify_power_completed(FALSE);
-			} else {
-				netconfig_error_wifi_driver_failed(error);
-			}
+		} else if (g_strcmp0(key, "Connected") == 0) {
+			/* Connection state */
+		} else if (g_strcmp0(key, "Tethering") == 0) {
+			/* Tethering state */
 		}
-	} else {
-		netconfig_wifi_update_power_state(TRUE);
-		netconfig_wifi_device_picker_service_start();
-
-		netconfig_wifi_notify_power_completed(TRUE);
+	} else if (g_str_has_prefix(tech,
+			CONNMAN_CELLULAR_TECHNOLOGY_PREFIX) == TRUE) {
+		/* Cellular technology state */
 	}
 }
 
@@ -244,26 +235,8 @@ static DBusHandlerResult __netconfig_signal_filter_handler(
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_signal(msg, CONNMAN_TECHNOLOGY_INTERFACE,
 			CONNMAN_SIGNAL_PROPERTY_CHANGED)) {
-		int prop_value = FALSE;
-		char *technology_path = NULL;
+		__netconfig_technology_signal_handler(msg);
 
-		technology_path = (char *)dbus_message_get_path(msg);
-		INFO("Technology object path: %s", technology_path);
-
-		if (g_str_has_prefix(technology_path,
-				CONNMAN_WIFI_TECHNOLOGY_PREFIX) == FALSE) {
-			return DBUS_HANDLER_RESULT_HANDLED;
-		}
-
-		sigvalue = __netconfig_get_property(msg, &prop_value);
-		if (sigvalue == NULL)
-			return DBUS_HANDLER_RESULT_HANDLED;
-
-		INFO("Technology Property - [%s], Value - [%d]", sigvalue, prop_value);
-		__netconfig_wifi_technology_state_signal_handler(
-				(const char *)sigvalue, prop_value);
-
-		/* We have handled this message, don't pass it on */
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_signal(msg, CONNMAN_SERVICE_INTERFACE,
 			CONNMAN_SIGNAL_PROPERTY_CHANGED)) {

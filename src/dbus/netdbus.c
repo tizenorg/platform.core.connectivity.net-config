@@ -185,49 +185,32 @@ static gboolean __netconfig_dbus_append_param(
 }
 
 gboolean netconfig_dbus_get_basic_params_string(DBusMessage *message,
-		char **key, void **value)
+		char **key, int type, void *value)
 {
-	DBusMessageIter args, variant;
-	int type = 0;
+	DBusMessageIter iter, iter_variant;
 
-	if (key == NULL)
-		return FALSE;
-
-	/* read parameters */
-	if (dbus_message_iter_init(message, &args) == FALSE) {
-		DBG("Message does not have parameters");
+	dbus_message_iter_init(message, &iter);
+	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
+		DBG("Argument type %d", dbus_message_iter_get_arg_type(&iter));
 		return FALSE;
 	}
 
-	if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_STRING) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&args));
-		return FALSE;
-	}
-
-	dbus_message_iter_get_basic(&args, key);
+	dbus_message_iter_get_basic(&iter, key);
 
 	if (value == NULL)
 		return TRUE;
 
-	dbus_message_iter_next(&args);
-
-	if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_VARIANT) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&args));
+	dbus_message_iter_next(&iter);
+	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_VARIANT) {
+		DBG("Argument type %d", dbus_message_iter_get_arg_type(&iter));
 		return TRUE;
 	}
 
-	dbus_message_iter_recurse(&args, &variant);
+	dbus_message_iter_recurse(&iter, &iter_variant);
+	if (dbus_message_iter_get_arg_type(&iter_variant) != type)
+		return FALSE;
 
-	type = dbus_message_iter_get_arg_type(&variant);
-	if (type == DBUS_TYPE_STRING)
-		dbus_message_iter_get_basic(&variant, value);
-	else if (type == DBUS_TYPE_BYTE || type == DBUS_TYPE_BOOLEAN ||
-			type == DBUS_TYPE_INT16 || type == DBUS_TYPE_UINT16 ||
-			type == DBUS_TYPE_INT32 || type == DBUS_TYPE_UINT32 ||
-			type == DBUS_TYPE_DOUBLE)
-		dbus_message_iter_get_basic(&variant, *value);
-	else
-		DBG("Argument type %d", type);
+	dbus_message_iter_get_basic(&iter_variant, value);
 
 	return TRUE;
 }

@@ -41,6 +41,7 @@ extern "C" {
 #define CONNMAN_WIFI_SERVICE_PROFILE_PREFIX		CONNMAN_PATH "/service/wifi_"
 #define CONNMAN_ETHERNET_SERVICE_PROFILE_PREFIX		CONNMAN_PATH "/service/ethernet_"
 #define CONNMAN_BLUETOOTH_SERVICE_PROFILE_PREFIX	CONNMAN_PATH "/service/bluetooth_"
+#define CONNMAN_CELLULAR_TECHNOLOGY_PREFIX		CONNMAN_PATH "/technology/cellular"
 #define CONNMAN_WIFI_TECHNOLOGY_PREFIX			CONNMAN_PATH "/technology/wifi"
 
 #define NETCONFIG_WIFI_INTERFACE			"net.netconfig.wifi"
@@ -63,7 +64,7 @@ char *netconfig_wifi_get_connected_service_name(DBusMessage *message);
 DBusMessage *netconfig_invoke_dbus_method(const char *dest, const char *path,
 		const char *interface_name, const char *method, char *param_array[]);
 gboolean netconfig_dbus_get_basic_params_string(DBusMessage *message,
-		char **key, void **value);
+		char **key, int type, void *value);
 gboolean netconfig_dbus_get_basic_params_array(DBusMessage *message,
 		char **key, void **value);
 

@@ -309,13 +309,21 @@ void netconfig_wifi_update_power_state(gboolean powered)
 {
 	int wifi_state = 0;
 
+	/* It's automatically updated by signal-handler
+	 * DO NOT update manually
+	 * It includes Wi-Fi state configuration
+	 */
 	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
 
 	if (powered == TRUE) {
 		if (wifi_state == VCONFKEY_WIFI_OFF &&
 				netconfig_is_wifi_direct_on() != TRUE &&
 				netconfig_is_wifi_tethering_on() != TRUE) {
-			DBG("Wi-Fi successfully turned on");
+			DBG("Wi-Fi successfully turned on or waken up from power-save mode");
+
+			netconfig_wifi_notify_power_completed(TRUE);
+
+			netconfig_wifi_device_picker_service_start();
 
 			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
 
@@ -327,7 +335,13 @@ void netconfig_wifi_update_power_state(gboolean powered)
 		}
 	} else {
 		if (wifi_state != VCONFKEY_WIFI_OFF) {
-			DBG("Wi-Fi successfully turned off");
+			DBG("Wi-Fi successfully turned off or in power-save mode");
+
+			netconfig_wifi_device_picker_service_stop();
+
+			netconfig_wifi_remove_driver();
+
+			netconfig_wifi_notify_power_completed(FALSE);
 
 			netconfig_del_wifi_found_notification();
 

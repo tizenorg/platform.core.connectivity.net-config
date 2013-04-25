@@ -321,15 +321,13 @@ void netconfig_wifi_update_power_state(gboolean powered)
 				netconfig_is_wifi_tethering_on() != TRUE) {
 			DBG("Wi-Fi successfully turned on or waken up from power-save mode");
 
+			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
+			vconf_set_int(VCONF_WIFI_LAST_POWER_STATE, WIFI_POWER_ON);
+			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED);
+
 			netconfig_wifi_notify_power_completed(TRUE);
 
 			netconfig_wifi_device_picker_service_start();
-
-			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_NOT_CONNECTED);
-
-			vconf_set_int(VCONF_WIFI_LAST_POWER_STATE, WIFI_POWER_ON);
-
-			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_UNCONNECTED);
 
 			netconfig_wifi_bgscan_start();
 		}
@@ -341,6 +339,10 @@ void netconfig_wifi_update_power_state(gboolean powered)
 
 			netconfig_wifi_remove_driver();
 
+			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
+			vconf_set_int(VCONF_WIFI_LAST_POWER_STATE, WIFI_POWER_OFF);
+			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
+
 			netconfig_wifi_notify_power_completed(FALSE);
 
 			netconfig_del_wifi_found_notification();
@@ -348,12 +350,6 @@ void netconfig_wifi_update_power_state(gboolean powered)
 			netconfig_wifi_bgscan_stop();
 
 			__netconfig_wifi_set_profiles_count(0);
-
-			vconf_set_int(VCONFKEY_NETWORK_WIFI_STATE, VCONFKEY_NETWORK_WIFI_OFF);
-
-			vconf_set_int(VCONF_WIFI_LAST_POWER_STATE, WIFI_POWER_OFF);
-
-			vconf_set_int(VCONFKEY_WIFI_STATE, VCONFKEY_WIFI_OFF);
 		}
 	}
 }

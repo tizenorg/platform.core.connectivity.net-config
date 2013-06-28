@@ -5,6 +5,7 @@ Release:    1
 Group:      System/Network
 License:    Apache License Version 2.0
 Source0:    %{name}-%{version}.tar.gz
+Source1001: 	net-config.manifest
 
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
@@ -25,6 +26,7 @@ TIZEN Network Configuration Module
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 
 %build
@@ -106,7 +108,7 @@ if [ "$1" == "1" ]; then
 fi
 
 %files
-%manifest net-config.manifest
+%manifest %{name}.manifest
 %{_sbindir}/*
 %attr(644,root,root) /opt/etc/resolv.conf
 %{_datadir}/dbus-1/services/*

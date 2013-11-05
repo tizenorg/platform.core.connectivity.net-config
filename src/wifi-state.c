@@ -440,7 +440,13 @@ void netconfig_wifi_check_network_notification(DBusMessage *message)
 
 void netconfig_wifi_state_notifier_cleanup(void)
 {
-	g_slist_free_full(notifier_list, NULL);
+	/*
+	 * Now, all the user_data of notifier_list's element
+	 * is NULL, so we don't free that, only use g_slist_free.
+	 * If user_data is not NULL, using g_slist_free_full with
+	 * destory_notify function to free user_data
+	 */
+	g_slist_free(notifier_list);
 }
 
 void netconfig_wifi_state_notifier_register(

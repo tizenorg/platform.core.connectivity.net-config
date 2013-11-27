@@ -3,7 +3,7 @@ Summary:    TIZEN Network Configuration Module
 Version:    0.1.90_21
 Release:    1
 Group:      System/Network
-License:    Apache License Version 2.0
+License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1001: 	net-config.manifest
 
@@ -30,7 +30,7 @@ cp %{SOURCE1001} .
 
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
+%cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
 
 make %{?_smp_mflags}
 
@@ -53,9 +53,9 @@ ln -s ../init.d/net-config %{buildroot}%{_sysconfdir}/rc.d/rc5.d/S60net-config
 
 # Systemd service file
 mkdir -p %{buildroot}%{_libdir}/systemd/system/
-cp resources/usr/lib/systemd/system/net-config.service %{buildroot}%{_libdir}/systemd/system/net-config.service
-mkdir -p %{buildroot}%{_libdir}/systemd/system/network.target.wants/
-ln -s ../net-config.service %{buildroot}%{_libdir}/systemd/system/network.target.wants/net-config.service
+cp resources/usr/lib/systemd/system/net-config.service %{buildroot}%{_unitdir}/net-config.service
+mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
+ln -s ../net-config.service %{buildroot}%{_unitdir}/multi-user.target.wants/net-config.service
 
 #License
 mkdir -p %{buildroot}%{_datadir}/license
@@ -116,6 +116,6 @@ fi
 %{_sysconfdir}/rc.d/init.d/net-config
 %{_sysconfdir}/rc.d/rc3.d/S60net-config
 %{_sysconfdir}/rc.d/rc5.d/S60net-config
-%{_libdir}/systemd/system/net-config.service
-%{_libdir}/systemd/system/network.target.wants/net-config.service
+%{_unitdir}/net-config.service
+%{_unitdir}/multi-user.target.wants/net-config.service
 %{_datadir}/license/net-config

@@ -17,7 +17,11 @@
  *
  */
 
+#include <systemd/sd-daemon.h>
+#include <getopt.h>
 #include <unistd.h>
+#include <signal.h>
+#include <errno.h>
 
 #include "log.h"
 #include "wifi.h"
@@ -32,14 +36,40 @@
 
 static GMainLoop *main_loop = NULL;
 
+static int no_fork = FALSE;
+
+int netconfig_test_input_parameters(int argc, char* argv[])
+{
+        struct option tab[] = {
+                { "nofork", no_argument, 0, 0 },
+                { NULL, 0, NULL, 0 }
+        };
+        int idx = 0;
+
+        while (getopt_long(argc, argv, "", tab, &idx) >= 0) {
+
+		if (idx == 0)
+			no_fork = TRUE;
+		idx = 0;
+	}
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	DBusGConnection *connection;
 
 	DBG("Network Configuration Module");
 
-	if (daemon(0, 0) != 0)
-		DBG("Cannot start daemon");
+	/*
+	 * Call parameters veryfication
+	 */
+	netconfig_test_input_parameters(argc, argv);
+
+	if (!no_fork) {
+		if (daemon(0, 0) != 0)
+			DBG("Cannot start daemon");
+	}
 
 	netconfig_set_wifi_mac_address();
 
@@ -67,6 +97,9 @@ int main(int argc, char* argv[])
 
 	/* If its environment uses Emulator, network configuration is set by emulator default */
 	netconfig_emulator_test_and_start();
+
+	// Notyfication to systemd
+	sd_notify(0, "READY=1");
 
 	g_main_loop_run(main_loop);
 

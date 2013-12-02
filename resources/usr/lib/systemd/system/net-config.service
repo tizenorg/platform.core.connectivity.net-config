@@ -3,8 +3,8 @@ Description=net config service
 After=syslog.target
 
 [Service]
-Type=forking
-ExecStart=/usr/sbin/net-config
+Type=notify
+ExecStart=/usr/sbin/net-config --nofork
 
 [Install]
 WantedBy=multi-user.target

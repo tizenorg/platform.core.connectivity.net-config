@@ -1,6 +1,6 @@
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.90_26
+Version:    0.1.90_27
 Release:    1
 Group:      System/Network
 License:    Apache License Version 2.0
@@ -16,10 +16,8 @@ BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(tapi)
 BuildRequires:  pkgconfig(syspopup-caller)
 Requires(post): /usr/bin/vconftool
-Requires:         systemd
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
+BuildRequires:    pkgconfig(libsystemd-daemon)
+%{?systemd_requires}
 
 %description
 TIZEN Network Configuration Module
@@ -61,11 +59,15 @@ ln -s ../net-config.service %{buildroot}%{_libdir}/systemd/system/network.target
 mkdir -p %{buildroot}%{_datadir}/license
 cp LICENSE.APLv2 %{buildroot}%{_datadir}/license/net-config
 
+#Rule file
+mkdir -p %{buildroot}/opt/etc/smack/accesses.d
+cp net-config.rule %{buildroot}/opt/etc/smack/accesses.d
+
 %post
 
 vconftool set -t int memory/dnet/state 0 -i
 vconftool set -t int memory/wifi/state 0 -i
-vconftool set -t int memory/transfer_state 0 -i
+vconftool set -t int memory/wifi/transfer_state 0 -i
 vconftool set -t int memory/wifi/strength 0 -i
 vconftool set -t int memory/wifi/bgscan_mode 0 -i
 
@@ -108,7 +110,8 @@ if [ "$1" == "1" ]; then
 fi
 
 %files
-%manifest %{name}.manifest
+%manifest net-config.manifest
+/opt/etc/smack/accesses.d/net-config.rule
 %{_sbindir}/*
 %attr(644,root,root) /opt/etc/resolv.conf
 %{_datadir}/dbus-1/system-services/*

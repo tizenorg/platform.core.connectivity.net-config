@@ -38,6 +38,29 @@ static GMainLoop *main_loop = NULL;
 
 static int no_fork = FALSE;
 
+void netconfig_signal_handler_SIGTERM(int signum)
+{
+	g_main_loop_quit(main_loop);
+}
+
+int netconfig_register_signal_handler_SIGTERM(void)
+{
+	struct sigaction sigset;
+
+	sigemptyset(&sigset.sa_mask);
+	sigaddset( &sigset.sa_mask, SIGTERM );
+	sigset.sa_flags = 0;
+	sigset.sa_handler = netconfig_signal_handler_SIGTERM;
+
+	if (sigaction( SIGTERM, &sigset, NULL) < 0) {
+		ERR("Sigaction for SIGTERM failed [%s]", strerror( errno ));
+		return -1;
+	}
+
+	INFO( "Handler for SIGTERM ok" );
+	return 0;
+}
+
 int netconfig_test_input_parameters(int argc, char* argv[])
 {
         struct option tab[] = {
@@ -93,6 +116,10 @@ int main(int argc, char* argv[])
 		return -1;
 
 	if (netconfig_network_statistics_create_and_init(connection) == NULL)
+		return -1;
+
+	/* Register SIGCHLD signal handler function */
+	if (netconfig_register_signal_handler_SIGTERM() != 0)
 		return -1;
 
 	/* If its environment uses Emulator, network configuration is set by emulator default */

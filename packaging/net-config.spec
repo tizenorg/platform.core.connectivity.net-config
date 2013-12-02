@@ -42,12 +42,6 @@ mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
 cp resources/etc/dbus-1/system.d/net-config.conf %{buildroot}%{_sysconfdir}/dbus-1/system.d/net-config.conf
 mkdir -p %{buildroot}/opt/etc
 cp resources/opt/etc/resolv.conf %{buildroot}/opt/etc/resolv.conf
-mkdir -p %{buildroot}%{_sysconfdir}/rc.d/init.d
-cp resources/etc/rc.d/init.d/net-config %{buildroot}%{_sysconfdir}/rc.d/init.d/net-config
-mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc3.d
-ln -s ../init.d/net-config %{buildroot}%{_sysconfdir}/rc.d/rc3.d/S60net-config
-mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc5.d
-ln -s ../init.d/net-config %{buildroot}%{_sysconfdir}/rc.d/rc5.d/S60net-config
 
 # Systemd service file
 mkdir -p %{buildroot}%{_libdir}/systemd/system/
@@ -116,9 +110,6 @@ fi
 %attr(644,root,root) /opt/etc/resolv.conf
 %{_datadir}/dbus-1/system-services/*
 %{_sysconfdir}/dbus-1/system.d/*
-%{_sysconfdir}/rc.d/init.d/net-config
-%{_sysconfdir}/rc.d/rc3.d/S60net-config
-%{_sysconfdir}/rc.d/rc5.d/S60net-config
 %{_libdir}/systemd/system/net-config.service
 %{_libdir}/systemd/system/network.target.wants/net-config.service
 %{_datadir}/license/net-config

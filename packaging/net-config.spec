@@ -44,7 +44,7 @@ mkdir -p %{buildroot}/opt/etc
 cp resources/opt/etc/resolv.conf %{buildroot}/opt/etc/resolv.conf
 
 # Systemd service file
-mkdir -p %{buildroot}%{_libdir}/systemd/system/
+mkdir -p %{buildroot}%{_unitdir}
 cp resources/usr/lib/systemd/system/net-config.service %{buildroot}%{_unitdir}/net-config.service
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 ln -s ../net-config.service %{buildroot}%{_unitdir}/multi-user.target.wants/net-config.service

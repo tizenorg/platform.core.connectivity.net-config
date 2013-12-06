@@ -52,7 +52,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/rc.d/rc5.d
 ln -s ../init.d/net-config %{buildroot}%{_sysconfdir}/rc.d/rc5.d/S60net-config
 
 # Systemd service file
-mkdir -p %{buildroot}%{_libdir}/systemd/system/
+mkdir -p %{buildroot}%{_unitdir}
 cp resources/usr/lib/systemd/system/net-config.service %{buildroot}%{_unitdir}/net-config.service
 mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants/
 ln -s ../net-config.service %{buildroot}%{_unitdir}/multi-user.target.wants/net-config.service

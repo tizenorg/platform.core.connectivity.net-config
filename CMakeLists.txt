@@ -42,7 +42,8 @@ PKG_CHECK_MODULES(pkgs REQUIRED
 	vconf
 	wifi-direct
 	tapi
-	syspopup-caller)
+	syspopup-caller
+	libsystemd-daemon)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")

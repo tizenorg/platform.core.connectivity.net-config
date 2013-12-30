@@ -1,6 +1,6 @@
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.90_26
+Version:    0.1.90_27
 Release:    1
 Group:      System/Network
 License:    Apache-2.0
@@ -16,10 +16,8 @@ BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(tapi)
 BuildRequires:  pkgconfig(syspopup-caller)
 Requires(post): /usr/bin/vconftool
-Requires:         systemd
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
+BuildRequires:    pkgconfig(libsystemd-daemon)
+%{?systemd_requires}
 
 %description
 TIZEN Network Configuration Module

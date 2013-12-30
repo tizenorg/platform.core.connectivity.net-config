@@ -1,6 +1,6 @@
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.90_23
+Version:    0.1.90_24
 Release:    1
 Group:      System/Network
 License:    Apache-2.0
@@ -69,7 +69,6 @@ vconftool set -t int memory/wifi/transfer_state 0 -i
 vconftool set -t int memory/wifi/strength 0 -i
 vconftool set -t int memory/wifi/bgscan_mode 0 -i
 
-vconftool set -t int memory/dnet/cellular 0 -i
 vconftool set -t int memory/dnet/wifi 0 -i
 vconftool set -t int memory/dnet/network_config 0 -i
 vconftool set -t int memory/dnet/status 0 -i

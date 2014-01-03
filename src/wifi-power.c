@@ -121,11 +121,13 @@ static gboolean __netconfig_wifi_load_driver(void)
 	if (netconfig_emulator_is_emulated() == TRUE)
 		return rv;
 
+#if defined EMBEDDED_TARGET
 	rv = netconfig_execute_file(path, args, envs);
 	if (rv != TRUE) {
 		DBG("Failed to load wireless device driver");
 		return FALSE;
 	}
+#endif
 
 	DBG("Successfully loaded wireless device driver");
 	return TRUE;
@@ -141,11 +143,13 @@ gboolean netconfig_wifi_remove_driver(void)
 	if (netconfig_emulator_is_emulated() == TRUE)
 		return rv;
 
+#if defined EMBEDDED_TARGET
 	rv = netconfig_execute_file(path, args, env);
 	if (rv != TRUE) {
 		DBG("Failed to remove wireless device driver");
 		return FALSE;
 	}
+#endif
 
 	DBG("Successfully removed wireless device driver");
 	return TRUE;

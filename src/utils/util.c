@@ -21,6 +21,9 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
@@ -34,6 +37,7 @@
 
 #define WIFI_MAC_INFO_FILE	"/opt/etc/.mac.info"
 #define WIFI_MAC_INFO_LENGTH	17
+#define WIFI_DEV_NAME		"wlan0"
 
 GKeyFile *netconfig_keyfile_load(const char *pathname)
 {
@@ -392,40 +396,64 @@ void netconfig_del_wifi_found_notification(void)
 
 void netconfig_set_wifi_mac_address(void)
 {
-	FILE *fp;
+	FILE *fp = NULL;
+	struct ifreq ifr;
+	int ctl_sk = -1;
 	char buf[WIFI_MAC_INFO_LENGTH + 1];
 	char *mac_info;
 
 	mac_info = vconf_get_str(VCONFKEY_WIFI_BSSID_ADDRESS);
 	if (mac_info == NULL) {
 		ERR("Failed to open vconf key %s", VCONFKEY_WIFI_BSSID_ADDRESS);
-		return;
 	}
 
 	INFO("%s : %s", VCONFKEY_WIFI_BSSID_ADDRESS, mac_info);
 
 	fp = fopen(WIFI_MAC_INFO_FILE, "r");
-	if (fp == NULL) {
-		ERR("Failed to open file %s", WIFI_MAC_INFO_FILE);
-		g_free(mac_info);
-		return;
+	if (fp != NULL) {
+		if (fgets(buf, sizeof(buf), fp) == NULL) {
+			ERR("Failed to get MAC info from %s", WIFI_MAC_INFO_FILE);
+			goto done;
+		}
+
+		INFO("%s : %s", WIFI_MAC_INFO_FILE, buf);
+
+		if (strlen(buf) < WIFI_MAC_INFO_LENGTH) {
+			ERR("Failed to get MAC info from %s", WIFI_MAC_INFO_FILE);
+			goto done;
+		}
+
+		buf[WIFI_MAC_INFO_LENGTH] = '\0';
+	} else {
+		// not MAC into file use ioctl to get MAC
+		ctl_sk = socket(PF_INET,SOCK_DGRAM,0);
+		if (ctl_sk < 0 ) {
+			ERR("Failed to open socket");
+			goto done;
+		}
+
+		memset(&ifr, 0, sizeof(struct ifreq));
+		strncpy(ifr.ifr_name, WIFI_DEV_NAME, sizeof(ifr.ifr_name) - 1);
+		ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = 0;
+
+		if (ioctl(ctl_sk, SIOCGIFHWADDR, &ifr) != 0) {
+			ERR("Failed to SIOCGIFHWADDR ioctl");
+			goto done;
+		}
+
+		snprintf(buf, WIFI_MAC_INFO_LENGTH + 1,
+			 "%02x:%02x:%02x:%02x:%02x:%02x",
+			 (unsigned char)ifr.ifr_hwaddr.sa_data[0],
+			 (unsigned char)ifr.ifr_hwaddr.sa_data[1],
+			 (unsigned char)ifr.ifr_hwaddr.sa_data[2],
+			 (unsigned char)ifr.ifr_hwaddr.sa_data[3],
+			 (unsigned char)ifr.ifr_hwaddr.sa_data[4],
+			 (unsigned char)ifr.ifr_hwaddr.sa_data[5]);
+
+		INFO("%s MAC address: %s", WIFI_DEV_NAME, buf);
 	}
 
-	if (fgets(buf, sizeof(buf), fp) == NULL) {
-		ERR("Failed to get MAC info from %s", WIFI_MAC_INFO_FILE);
-		goto done;
-	}
-
-	INFO("%s : %s", WIFI_MAC_INFO_FILE, buf);
-
-	if (strlen(buf) < WIFI_MAC_INFO_LENGTH) {
-		ERR("Failed to get MAC info from %s", WIFI_MAC_INFO_FILE);
-		goto done;
-	}
-
-	buf[WIFI_MAC_INFO_LENGTH] = '\0';
-
-	if (g_str_equal(mac_info, buf) == TRUE)
+	if (mac_info && (g_str_equal(mac_info, buf) == TRUE))
 		goto done;
 
 	if (vconf_set_str(VCONFKEY_WIFI_BSSID_ADDRESS, buf) != 0)
@@ -433,5 +461,12 @@ void netconfig_set_wifi_mac_address(void)
 
 done:
 	g_free(mac_info);
-	fclose(fp);
+
+	if (fp != NULL) {
+		fclose(fp);
+	}
+
+	if (ctl_sk >= 0) {
+		close(ctl_sk);
+	}
 }

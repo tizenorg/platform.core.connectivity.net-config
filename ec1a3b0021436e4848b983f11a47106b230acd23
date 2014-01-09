@@ -1,0 +1,9 @@
+Code-Review+1: Casey Schaufler <casey.schaufler@intel.com>
+Code-Review+2: Jaehyun Kim <jeik01.kim@samsung.com>
+Code-Review+2: zhang zhengguang <zhengguang.zhang@intel.com>
+Verified+1: zhang zhengguang <zhengguang.zhang@intel.com>
+Submitted-by: zhang zhengguang <zhengguang.zhang@intel.com>
+Submitted-at: Wed, 08 Jan 2014 21:31:11 -0800
+Reviewed-on: https://review.tizen.org/gerrit/14549
+Project: platform/core/connectivity/net-config
+Branch: refs/heads/tizen

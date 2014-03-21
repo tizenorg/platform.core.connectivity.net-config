@@ -40,8 +40,6 @@ mkdir -p %{buildroot}%{_datadir}/dbus-1/system-services
 cp resources/usr/share/dbus-1/services/net.netconfig.service %{buildroot}%{_datadir}/dbus-1/system-services/net.netconfig.service
 mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
 cp resources/etc/dbus-1/system.d/net-config.conf %{buildroot}%{_sysconfdir}/dbus-1/system.d/net-config.conf
-mkdir -p %{buildroot}/opt/etc
-cp resources/opt/etc/resolv.conf %{buildroot}/opt/etc/resolv.conf
 
 # Systemd service file
 mkdir -p %{buildroot}%{_unitdir}
@@ -102,7 +100,6 @@ fi
 %files
 %manifest %{name}.manifest
 %{_sbindir}/*
-%attr(644,root,root) /opt/etc/resolv.conf
 %{_datadir}/dbus-1/system-services/*
 %{_sysconfdir}/dbus-1/system.d/*
 %{_unitdir}/net-config.service

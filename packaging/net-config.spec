@@ -1,6 +1,6 @@
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.90_29
+Version:    0.1.90_30
 Release:    1
 Group:      System/Network
 License:    Apache-2.0

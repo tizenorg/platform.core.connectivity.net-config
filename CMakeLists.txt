@@ -13,6 +13,7 @@ SET(SRCS
 	src/wifi-power.c
 	src/wifi-state.c
 	src/wifi-eap.c
+	src/wifi-passpoint.c
 	src/network-clock.c
 	src/network-state.c
 	src/network-statistics.c

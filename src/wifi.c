@@ -32,6 +32,7 @@
 #include "wifi-state.h"
 #include "wifi-ssid-scan.h"
 #include "wifi-eap.h"
+#include "wifi-passpoint.h"
 #include "wifi-eap-config.h"
 #include "wifi-background-scan.h"
 #include "wifi-agent.h"

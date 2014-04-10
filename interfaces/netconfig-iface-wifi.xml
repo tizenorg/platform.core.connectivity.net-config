@@ -13,6 +13,12 @@
 		<method name="RequestSpecificScan">
 			<arg type="s" name="SSID" direction="in"/>
 		</method>
+		<method name="GetPasspoint">
+			<arg type="i" name="enable" direction="out"/>
+		</method>
+		<method name="SetPasspoint">
+			<arg type="i" name="enable" direction="in"/>
+		</method>		
 		<method name="CreateConfig">
 			<arg type="a{ss}" name="Fields" direction="in"/>
 		</method>

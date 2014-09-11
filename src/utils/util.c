@@ -27,8 +27,9 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
-#include <syspopup_caller.h>
 #include <aul.h>
+
+#include <notification.h>
 
 #include "log.h"
 #include "util.h"
@@ -38,6 +39,8 @@
 #define WIFI_MAC_INFO_FILE	"/opt/etc/.mac.info"
 #define WIFI_MAC_INFO_LENGTH	17
 #define WIFI_DEV_NAME		"wlan0"
+
+#define NET_CONFIG_APP_NAME "net-config"
 
 GKeyFile *netconfig_keyfile_load(const char *pathname)
 {
@@ -190,7 +193,12 @@ static void __netconfig_pop_device_picker(void)
 	b = bundle_create();
 
 	DBG("Launch Wi-Fi device picker");
-	rv = syspopup_launch("wifi-qs", b);
+
+        notification_h noti = NULL;
+        noti = notification_create(NOTIFICATION_TYPE_NOTI);
+        notification_set_pkgname(noti, NET_CONFIG_APP_NAME);
+        notification_insert(noti, NULL);
+
 
 	bundle_free(b);
 }

@@ -8,15 +8,16 @@ Source0:    %{name}-%{version}.tar.gz
 Source1001: 	net-config.manifest
 
 BuildRequires:  cmake
+BuildRequires:  pkgconfig(aul)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
 BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(tapi)
-BuildRequires:  pkgconfig(syspopup-caller)
 Requires(post): /usr/bin/vconftool
 BuildRequires:    pkgconfig(libsystemd-daemon)
+BuildRequires:  pkgconfig(notification)
 %{?systemd_requires}
 
 %description

@@ -37,13 +37,14 @@ MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
 
 INCLUDE(FindPkgConfig)
 PKG_CHECK_MODULES(pkgs REQUIRED
+	aul
 	glib-2.0
 	dbus-glib-1
 	dlog
 	vconf
 	wifi-direct
 	tapi
-	syspopup-caller
+	notification
 	libsystemd-daemon)
 
 FOREACH(flag ${pkgs_CFLAGS})

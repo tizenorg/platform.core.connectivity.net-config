@@ -19,7 +19,6 @@
 
 #include <vconf.h>
 #include <vconf-keys.h>
-#include <aul.h>
 
 #include "wifi.h"
 #include "log.h"
@@ -151,23 +150,15 @@ static struct netconfig_default_connection
 static void __netconfig_pop_3g_alert_syspoppup(void)
 {
 	int rv = 0;
-	bundle *b = NULL;
 	int wifi_ug_state = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 
-	b = bundle_create();
-
-	bundle_add(b, "_SYSPOPUP_TITLE_", "Cellular connection popup");
-	bundle_add(b, "_SYSPOPUP_TYPE_", "notification");
-	bundle_add(b, "_SYSPOPUP_CONTENT_", "connected");
-
 	DBG("Launch 3G alert network popup");
-	rv = aul_launch_app("org.tizen.net-popup", b);
+	// TODO : display a popup
 
-	bundle_free(b);
 }
 
 static gboolean __netconfig_is_connected(const char *profile)

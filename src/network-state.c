@@ -19,7 +19,7 @@
 
 #include <vconf.h>
 #include <vconf-keys.h>
-#include <aul.h>
+#include <bundle.h>
 
 #include "wifi.h"
 #include "log.h"
@@ -165,7 +165,6 @@ static void __netconfig_pop_3g_alert_syspoppup(void)
 	bundle_add(b, "_SYSPOPUP_CONTENT_", "connected");
 
 	DBG("Launch 3G alert network popup");
-	rv = aul_launch_app("org.tizen.net-popup", b);
 
 	bundle_free(b);
 }

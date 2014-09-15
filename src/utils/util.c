@@ -27,8 +27,7 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
-#include <syspopup_caller.h>
-#include <aul.h>
+#include <bundle.h>
 
 #include "log.h"
 #include "util.h"
@@ -190,7 +189,6 @@ static void __netconfig_pop_device_picker(void)
 	b = bundle_create();
 
 	DBG("Launch Wi-Fi device picker");
-	rv = syspopup_launch("wifi-qs", b);
 
 	bundle_free(b);
 }
@@ -366,8 +364,6 @@ void netconfig_add_wifi_found_notification(void)
 
 	bundle_add(b, "_SYSPOPUP_TYPE_", "add_found_ap_noti");
 
-	ret = aul_launch_app("org.tizen.net-popup", b);
-
 	bundle_free(b);
 
 	if (ret >= 0)
@@ -382,8 +378,6 @@ void netconfig_del_wifi_found_notification(void)
 	bundle *b = bundle_create();
 
 	bundle_add(b, "_SYSPOPUP_TYPE_", "del_found_ap_noti");
-
-	ret = aul_launch_app("org.tizen.net-popup", b);
 
 	bundle_free(b);
 

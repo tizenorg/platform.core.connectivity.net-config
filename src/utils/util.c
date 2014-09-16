@@ -27,7 +27,6 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
-#include <bundle.h>
 
 #include "log.h"
 #include "util.h"
@@ -179,18 +178,15 @@ static gboolean __netconfig_test_device_picker()
 static void __netconfig_pop_device_picker(void)
 {
 	int rv = 0;
-	bundle *b = NULL;
 	int wifi_ug_state = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 
-	b = bundle_create();
-
 	DBG("Launch Wi-Fi device picker");
+	// TODO : display a popup
 
-	bundle_free(b);
 }
 
 static gboolean __netconfig_wifi_try_device_picker(gpointer data)
@@ -359,32 +355,12 @@ gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error)
 
 void netconfig_add_wifi_found_notification(void)
 {
-	int ret;
-	bundle *b = bundle_create();
-
-	bundle_add(b, "_SYSPOPUP_TYPE_", "add_found_ap_noti");
-
-	bundle_free(b);
-
-	if (ret >= 0)
-		DBG("Successfully added notification");
-	else
-		ERR("Unable to launch noti-popup. Err = %d", ret);
+	INFO("Unable to launch noti-popup");
 }
 
 void netconfig_del_wifi_found_notification(void)
 {
-	int ret;
-	bundle *b = bundle_create();
-
-	bundle_add(b, "_SYSPOPUP_TYPE_", "del_found_ap_noti");
-
-	bundle_free(b);
-
-	if (ret >= 0)
-		DBG("Successfully deleted notification");
-	else
-		ERR("Unable to launch noti-popup. Err = %d", ret);
+	INFO("Unable to launch noti-popup");
 }
 
 

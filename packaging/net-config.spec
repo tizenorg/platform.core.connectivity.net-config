@@ -14,7 +14,6 @@ BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
 BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(tapi)
-BuildRequires:  pkgconfig(bundle)
 Requires(post): /usr/bin/vconftool
 BuildRequires:    pkgconfig(libsystemd-daemon)
 %{?systemd_requires}

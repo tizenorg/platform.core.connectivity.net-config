@@ -16,6 +16,7 @@ BuildRequires:  pkgconfig(wifi-direct)
 BuildRequires:  pkgconfig(tapi)
 Requires(post): /usr/bin/vconftool
 BuildRequires:    pkgconfig(libsystemd-daemon)
+BuildRequires:  pkgconfig(notification)
 %{?systemd_requires}
 
 %description

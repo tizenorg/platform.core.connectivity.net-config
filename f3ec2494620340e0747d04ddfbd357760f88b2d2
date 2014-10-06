@@ -1,3 +1,13 @@
+Code-Review+2: Dominig ar Foll <dominig.arfoll@fridu.net>
+Code-Review+1: Corentin Lecouvey <corentin.lecouvey@open.eurogiciel.org>
+Code-Review+1: Manuel Bachmann <manuel.bachmann@open.eurogiciel.org>
+Verified+1: Manuel Bachmann <manuel.bachmann@open.eurogiciel.org>
+Submitted-by: Dominig ar Foll <dominig.arfoll@fridu.net>
+Submitted-at: Mon, 06 Oct 2014 06:30:23 -0700
+Reviewed-on: https://review.tizen.org/gerrit/27362
+Project: platform/core/connectivity/net-config
+Branch: refs/heads/tizen
+
 Reviewed-on: https://review.tizen.org/gerrit/27362
 Project: platform/core/connectivity/net-config
 Branch: refs/heads/tizen

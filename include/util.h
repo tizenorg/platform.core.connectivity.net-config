@@ -28,6 +28,8 @@ extern "C" {
 
 #include "wifi.h"
 
+#define NET_CONFIG_APP_NAME     "net-config"
+
 GKeyFile *netconfig_keyfile_load(const char *pathname);
 void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname);
 

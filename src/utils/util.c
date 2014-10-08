@@ -27,6 +27,7 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
+#include <notification.h>
 
 #include "log.h"
 #include "util.h"
@@ -179,6 +180,7 @@ static void __netconfig_pop_device_picker(void)
 {
 	int rv = 0;
 	int wifi_ug_state = 0;
+	notification_error_e err = NOTIFICATION_ERROR_NONE;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
@@ -186,6 +188,32 @@ static void __netconfig_pop_device_picker(void)
 
 	DBG("Launch Wi-Fi device picker");
 	// TODO : display a popup
+
+	notification_h noti = NULL;
+
+	noti = notification_create(NOTIFICATION_TYPE_NOTI);
+	if (noti == NULL) {
+		ERR("Failed to create notification \n");
+		return;
+	}
+
+	err = notification_set_pkgname(noti, NET_CONFIG_APP_NAME);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set pkgname \n");
+		return;
+	}
+
+	err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT, "wifi-qs : Launch Wi-Fi device picker" , NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set notification content \n");
+		return;
+	}
+
+	err = notification_insert(noti, NULL);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to insert notification \n");
+		return;
+	}
 
 }
 
@@ -355,12 +383,70 @@ gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error)
 
 void netconfig_add_wifi_found_notification(void)
 {
+	notification_error_e err = NOTIFICATION_ERROR_NONE;
+
 	INFO("Add wifi found notification");
+
+	notification_h noti = NULL;
+
+	noti = notification_create(NOTIFICATION_TYPE_NOTI);
+	if (noti == NULL) {
+		ERR("Failed to create notification \n");
+		return;
+	}
+
+	err = notification_set_pkgname(noti, NET_CONFIG_APP_NAME);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set pkgname \n");
+		return;
+	}
+
+	err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT, "Add wifi found notification" , NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set notification content \n");
+		return;
+	}
+
+	err = notification_insert(noti, NULL);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to insert notification \n");
+		return;
+	}
+
 }
 
 void netconfig_del_wifi_found_notification(void)
 {
+	notification_error_e err = NOTIFICATION_ERROR_NONE;
+
 	INFO("Delete wifi found notification");
+
+	notification_h noti = NULL;
+
+	noti = notification_create(NOTIFICATION_TYPE_NOTI);
+	if (noti == NULL) {
+		ERR("Failed to create notification \n");
+		return;
+	}
+
+	err = notification_set_pkgname(noti, NET_CONFIG_APP_NAME);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set pkgname \n");
+		return;
+	}
+
+	err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT, "Delete wifi found notification" , NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set notification content \n");
+		return;
+	}
+
+	err = notification_insert(noti, NULL);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to insert notification \n");
+		return;
+	}
+
 }
 
 

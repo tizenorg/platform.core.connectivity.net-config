@@ -43,6 +43,7 @@ PKG_CHECK_MODULES(pkgs REQUIRED
 	vconf
 	wifi-direct
 	tapi
+	notification
 	libsystemd-daemon)
 
 FOREACH(flag ${pkgs_CFLAGS})

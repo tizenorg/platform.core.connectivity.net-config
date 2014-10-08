@@ -19,6 +19,7 @@
 
 #include <vconf.h>
 #include <vconf-keys.h>
+#include <notification.h>
 
 #include "wifi.h"
 #include "log.h"
@@ -151,13 +152,45 @@ static void __netconfig_pop_3g_alert_syspoppup(void)
 {
 	int rv = 0;
 	int wifi_ug_state = 0;
+	notification_error_e err = NOTIFICATION_ERROR_NONE;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 
 	DBG("Launch 3G alert network popup");
-	// TODO : display a popup
+
+	notification_h noti = NULL;
+
+	noti = notification_create(NOTIFICATION_TYPE_NOTI);
+	if (noti == NULL) {
+		ERR("Failed to create notification \n");
+		return;
+	}
+
+	err = notification_set_pkgname(noti, NET_CONFIG_APP_NAME);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set pkgname \n");
+		return;
+	}
+
+	err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_TITLE, "Cellular connection popup", NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set notification title \n");
+		return;
+	}
+
+	err = notification_set_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT, "Connected" , NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to set notification content \n");
+		return;
+	}
+
+	err = notification_insert(noti, NULL);
+	if (err != NOTIFICATION_ERROR_NONE) {
+		ERR("Unable to insert notification \n");
+		return;
+	}
 
 }
 

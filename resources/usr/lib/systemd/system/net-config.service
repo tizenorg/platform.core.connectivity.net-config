@@ -1,6 +1,7 @@
 [Unit]
 Description=net config service
-After=syslog.target
+Requires=vconf-setup.service
+After=syslog.target vconf-setup.service
 
 [Service]
 Type=notify

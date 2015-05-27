@@ -47,6 +47,8 @@ extern "C" {
 
 #define NETCONFIG_WIFI_INTERFACE			"net.netconfig.wifi"
 #define NETCONFIG_WIFI_PATH				"/net/netconfig/wifi"
+#define NETCONFIG_NETWORK_PATH			"/net/netconfig/network"
+#define NETCONFIG_NETWORK_INTERFACE		"net.netconfig.network"
 
 #define DBUS_PATH_MAX_BUFLEN		512
 #define DBUS_STATE_MAX_BUFLEN		64

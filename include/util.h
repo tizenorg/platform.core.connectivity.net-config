@@ -28,6 +28,8 @@ extern "C" {
 
 #include "wifi.h"
 
+#define MAX_SIZE_ERROR_BUFFER 256
+
 GKeyFile *netconfig_keyfile_load(const char *pathname);
 void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname);
 

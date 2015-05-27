@@ -16,6 +16,7 @@ SET(SRCS
 	src/wifi-passpoint.c
 	src/network-clock.c
 	src/network-state.c
+	src/network-monitor.c
 	src/network-statistics.c
 	src/wifi-indicator.c
 	src/signal-handler.c

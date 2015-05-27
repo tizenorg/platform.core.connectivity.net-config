@@ -27,6 +27,7 @@
 #include "neterror.h"
 #include "emulator.h"
 #include "wifi-state.h"
+#include "network-monitor.h"
 #include "network-state.h"
 
 #define NETCONFIG_NETWORK_STATE_PATH	"/net/netconfig/network"
@@ -45,6 +46,9 @@ gboolean netconfig_iface_network_state_remove_route(
 		NetconfigNetworkState *master,
 		gchar *ip_addr, gchar *netmask,
 		gchar *interface, gboolean *result, GError **error);
+
+gboolean netconfig_iface_network_state_ethernet_cable_state(
+		NetconfigNetworkState *master, gint32 *state, GError **error);
 
 #include "netconfig-iface-network-state-glue.h"
 
@@ -488,6 +492,54 @@ static void __netconfig_update_default_connection_info(void)
 	}
 }
 
+static void __netconfig_network_notify_result(const char *sig_name, const char *key)
+{
+	DBusMessage *signals;
+	DBusConnection *connection = NULL;
+	DBusMessageIter iter, dict_iter, type, value;
+	DBusError error;
+	const char *prop_key = "key";
+
+	dbus_error_init(&error);
+
+	connection = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
+	if (connection == NULL) {
+		ERR("Error!!! Failed to get system DBus, error [%s]", error.message);
+		dbus_error_free(&error);
+
+		return;
+	}
+
+	signals = dbus_message_new_signal(NETCONFIG_NETWORK_PATH,
+			NETCONFIG_NETWORK_INTERFACE, sig_name);
+	if (signals == NULL) {
+		dbus_connection_unref(connection);
+		return;
+	}
+
+	dbus_message_iter_init_append(signals, &iter);
+	dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY, "{sv}",
+			&dict_iter);
+
+	/* Packing the key */
+	dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_DICT_ENTRY, 0, &type);
+	dbus_message_iter_append_basic(&type, DBUS_TYPE_STRING, &prop_key);
+	dbus_message_iter_open_container(&type, DBUS_TYPE_VARIANT, DBUS_TYPE_STRING_AS_STRING, &value);
+
+	dbus_message_iter_append_basic(&value, DBUS_TYPE_STRING, &key);
+	dbus_message_iter_close_container(&type, &value);
+	dbus_message_iter_close_container(&dict_iter, &type);
+
+	dbus_message_iter_close_container(&iter, &dict_iter);
+
+	dbus_connection_send(connection, signals, NULL);
+
+	dbus_message_unref(signals);
+	dbus_connection_unref(connection);
+	ERR("Sent signal (%s), key (%s)", sig_name, key);
+	return;
+}
+
 const char *netconfig_get_default_profile(void)
 {
 	return netconfig_default_connection_info.profile;
@@ -566,6 +618,12 @@ void netconfig_set_default_profile(const char *profile)
 	__netconfig_update_default_connection_info();
 }
 
+/* Check Ethernet Cable Plug-in /Plug-out Status */
+void netconfig_network_notify_ethernet_cable_state(const char *key)
+{
+	__netconfig_network_notify_result("EthernetCableState", key);
+}
+
 gboolean netconfig_iface_network_state_add_route(
 		NetconfigNetworkState *master,
 		gchar *ip_addr, gchar *netmask,
@@ -636,6 +694,21 @@ gboolean netconfig_iface_network_state_remove_route(
 done:
 	*result = ret;
 	return ret;
+}
+
+gboolean netconfig_iface_network_state_ethernet_cable_state(
+		NetconfigNetworkState *master, gint32 *state, GError **error)
+{
+	int ret = 0;
+
+	ret = netconfig_get_ethernet_cable_state(state);
+	if(ret != 0) {
+		DBG("Failed to get ethernet cable state");
+		return FALSE;
+	}
+
+	DBG("Successfully get ethernet cable state[%d]", state);
+	return TRUE;
 }
 
 gpointer netconfig_network_state_create_and_init(DBusGConnection *conn)

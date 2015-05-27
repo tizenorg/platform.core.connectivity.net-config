@@ -17,11 +17,13 @@
  *
  */
 
+#include <stdio.h>
 #include <systemd/sd-daemon.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
+//#include <system_info.h>
 
 #include "log.h"
 #include "wifi.h"
@@ -33,10 +35,22 @@
 #include "network-statistics.h"
 #include "signal-handler.h"
 #include "wifi-agent.h"
+#include "network-monitor.h"
 
 static GMainLoop *main_loop = NULL;
 
+//#define ETHERNET_FEATURE	"http://tizen.org/feature/network.ethernet"
 static int no_fork = FALSE;
+
+/*Poll the ethernet Cable Plug-in /Plug-out status at every 1000 ms*/
+#define ETH_POLLING_TIME	1000
+
+/* Callback to Poll the Ethernet Status*/
+gboolean __net_ethernet_cable_status_polling_callback(gpointer data)
+{
+	netconfig_ethernet_cable_plugin_status_check();
+	return TRUE;
+}
 
 void netconfig_signal_handler_SIGTERM(int signum)
 {
@@ -81,6 +95,8 @@ int netconfig_test_input_parameters(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	DBusGConnection *connection;
+	int check_ethernet_monitor_timer = 0;
+	//bool ethernet_feature_supported = FALSE;
 
 	DBG("Network Configuration Module");
 
@@ -124,6 +140,18 @@ int main(int argc, char* argv[])
 
 	/* If its environment uses Emulator, network configuration is set by emulator default */
 	netconfig_emulator_test_and_start();
+/*
+	if (!system_info_get_platform_bool(ETHERNET_FEATURE, &ethernet_feature_supported)) {
+		if (ethernet_feature_supported == TRUE) {
+			//Register the callback to check the ethernet Plug-in /Plug-out Status
+			check_ethernet_monitor_timer = g_timeout_add(ETH_POLLING_TIME,
+					__net_ethernet_cable_status_polling_callback,
+					&check_ethernet_monitor_timer);
+		}
+	} else {
+		ERR("Error - Feature getting from System Info");
+	}
+*/
 
 	// Notyfication to systemd
 	sd_notify(0, "READY=1");
@@ -132,6 +160,10 @@ int main(int argc, char* argv[])
 
 	netconfig_deregister_signal();
 	netconfig_wifi_state_notifier_cleanup();
+
+	/*remove the Timer*/
+	if(check_ethernet_monitor_timer >0)
+		g_source_remove(check_ethernet_monitor_timer);
 
 	/* Unregistering the agent */
 	netconfig_agent_unregister();

@@ -43,6 +43,7 @@ typedef struct NetconfigNetworkStateClass	NetconfigNetworkStateClass;
 GType netconfig_network_state_get_type(void);
 
 gpointer netconfig_network_state_create_and_init(DBusGConnection *conn);
+void netconfig_network_notify_ethernet_cable_state(const char *key);
 
 const char *netconfig_get_default_profile(void);
 const char *netconfig_get_default_ipaddress(void);

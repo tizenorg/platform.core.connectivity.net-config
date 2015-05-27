@@ -87,3 +87,15 @@ void netconfig_error_fail_get_sim_auth_delay(GError **error)
 	g_set_error(error, netconfig_error_quark(), NETCONFIG_ERROR_FAILED_GET_SIM_AUTH_DELAY,
 			NETCONFIG_ERROR_INTERFACE".FailGetSimAuthDelay");
 }
+
+void netconfig_error_invalid_parameter(GError **error)
+{
+	g_set_error(error, netconfig_error_quark(), NETCONFIG_ERROR_INVALID_PARAMETER,
+			NETCONFIG_ERROR_INTERFACE ".InvalidParameter");
+}
+
+void netconfig_error_permission_denied(GError **error)
+{
+	g_set_error(error, netconfig_error_quark(),	NETCONFIG_ERROR_PERMISSION_DENIED,
+			NETCONFIG_ERROR_INTERFACE ".PermissionDenied");
+}

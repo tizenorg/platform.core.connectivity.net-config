@@ -19,6 +19,9 @@
 
 #include <vconf.h>
 #include <vconf-keys.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "wifi.h"
 #include "log.h"
@@ -40,12 +43,12 @@
 gboolean netconfig_iface_network_state_add_route(
 		NetconfigNetworkState *master,
 		gchar *ip_addr, gchar *netmask,
-		gchar *interface, gboolean *result, GError **error);
+		gchar *interface, gchar *gateway, gint32 address_family, gboolean *result, GError **error);
 
 gboolean netconfig_iface_network_state_remove_route(
 		NetconfigNetworkState *master,
 		gchar *ip_addr, gchar *netmask,
-		gchar *interface, gboolean *result, GError **error);
+		gchar *interface, gchar *gateway, gint32 address_family, gboolean *result, GError **error);
 
 gboolean netconfig_iface_network_state_ethernet_cable_state(
 		NetconfigNetworkState *master, gint32 *state, GError **error);
@@ -627,73 +630,138 @@ void netconfig_network_notify_ethernet_cable_state(const char *key)
 gboolean netconfig_iface_network_state_add_route(
 		NetconfigNetworkState *master,
 		gchar *ip_addr, gchar *netmask,
-		gchar *interface, gboolean *result, GError **error)
+		gchar *interface, gchar *gateway, gint32 address_family, gboolean *result, GError **error)
 {
-	gboolean ret = FALSE;
-	gboolean rv = FALSE;
 	const char *path = ROUTE_EXEC_PATH;
-	char *const args[] = {"route", "add",
-				"-net", ip_addr,
-				"netmask", netmask,
-				"dev", interface,
-				0};
+	char *const args[] = { "/sbin/route", "add", "-net", ip_addr,
+		"netmask", netmask, "dev", interface, NULL };
 	char *const envs[] = { NULL };
+	const char* buf = NULL;
+	char* ch = NULL;
+	int prefix_len = 0;
+	int pos = 0;
 
-	DBG("ip_addr(%s), netmask(%s), interface(%s)", ip_addr, netmask, interface);
+	DBG("ip_addr(%s), netmask(%s), interface(%s), gateway(%s)", ip_addr, netmask, interface, gateway);
 
-	if (ip_addr == NULL || netmask == NULL || interface == NULL) {
-		DBG("Invalid parameter!");
-		goto done;
-	}
+	switch(address_family) {
+		case AF_INET:
+			if (ip_addr == NULL || netmask == NULL || interface == NULL) {
+				ERR("Invalid parameter");
+				netconfig_error_invalid_parameter(error);
+				*result = FALSE;
+				return FALSE;
+			}
+			if (netconfig_execute_file(path, args, envs) < 0) {
+				DBG("Failed to add a new route");
+				netconfig_error_permission_denied(error);
+				*result = FALSE;
+				return FALSE;
+			}
+			break;
+		case AF_INET6:
+			if (ip_addr == NULL || interface == NULL || gateway == NULL) {
+				ERR("Invalid parameter");
+				netconfig_error_invalid_parameter(error);
+				*result = FALSE;
+				return FALSE;
+			}
 
-	rv = netconfig_execute_file(path, args, envs);
-	if (rv != TRUE) {
-		DBG("Failed to add a new route");
-		goto done;
+			buf = ip_addr;
+			ch = strchr(buf, '/');
+			pos = ch - buf + 1;
+			if (ch) {
+				prefix_len = atoi(ch + 1);
+				ip_addr[pos-1] = '\0';
+			} else {
+				prefix_len = 128;
+			}
+
+			if (netconfig_add_route_ipv6(ip_addr, interface, gateway, prefix_len) < 0) {
+				DBG("Failed to add a new route");
+				netconfig_error_permission_denied(error);
+				*result = FALSE;
+				return FALSE;
+			}
+			break;
+		default:
+			DBG("Unknown Address Family");
+			netconfig_error_invalid_parameter(error);
+			*result = FALSE;
+			return FALSE;
 	}
 
 	DBG("Successfully added a new route");
-	ret = TRUE;
-
-done:
-	*result = ret;
-	return ret;
+	*result = TRUE;
+	return TRUE;
 }
 
 gboolean netconfig_iface_network_state_remove_route(
 		NetconfigNetworkState *master,
 		gchar *ip_addr, gchar *netmask,
-		gchar *interface, gboolean *result, GError **error)
+		gchar *interface, gchar *gateway, gint32 address_family, gboolean *result, GError **error)
 {
-	gboolean ret = FALSE;
-	gboolean rv = FALSE;
 	const char *path = ROUTE_EXEC_PATH;
-	char *const args[] = {"route", "del",
-				"-net", ip_addr,
-				"netmask", netmask,
-				"dev", interface,
-				0};
+	char *const args[] = { "/sbin/route", "del", "-net", ip_addr,
+		"netmask", netmask, "dev", interface, NULL };
 	char *const envs[] = { NULL };
+	const char* buf = NULL;
+	char* ch = NULL;
+	int prefix_len = 0;
+	int pos = 0;
 
-	DBG("ip_addr(%s), netmask(%s), interface(%s)", ip_addr, netmask, interface);
+	DBG("ip_addr(%s), netmask(%s), interface(%s), gateway(%s)", ip_addr, netmask, interface, gateway);
 
-	if (ip_addr == NULL || netmask == NULL || interface == NULL) {
-		DBG("Invalid parameter!");
-		goto done;
+	switch(address_family) {
+		case AF_INET:
+			if (ip_addr == NULL || netmask == NULL || interface == NULL) {
+				DBG("Invalid parameter!");
+				netconfig_error_invalid_parameter(error);
+				*result = FALSE;
+				return FALSE;
+			}
+			if (netconfig_execute_file(path, args, envs) < 0) {
+				DBG("Failed to remove the route");
+				netconfig_error_permission_denied(error);
+				*result = FALSE;
+				return FALSE;
+			}
+			break;
+		case AF_INET6:
+			if (ip_addr == NULL || interface == NULL || gateway == NULL) {
+				DBG("Invalid parameter!");
+				netconfig_error_invalid_parameter(error);
+				*result = FALSE;
+				return FALSE;
+			}
+
+			buf = ip_addr;
+			ch = strchr(buf, '/');
+			pos = ch - buf + 1;
+			if (ch) {
+				prefix_len = atoi(ch + 1);
+				ip_addr[pos-1] = '\0';
+			} else {
+				prefix_len = 128;
+			}
+
+			if (netconfig_del_route_ipv6(ip_addr, interface, gateway, prefix_len) < 0) {
+				DBG("Failed to remove the route");
+				netconfig_error_permission_denied(error);
+				*result = FALSE;
+				return FALSE;
+			}
+			break;
+		default:
+			DBG("Unknown Address Family");
+			netconfig_error_invalid_parameter(error);
+			*result = FALSE;
+			return FALSE;
 	}
 
-	rv = netconfig_execute_file(path, args, envs);
-	if (rv != TRUE) {
-		DBG("Failed to remove a new route");
-		goto done;
-	}
+	DBG("Successfully removed the route");
+	*result = TRUE;
 
-	DBG("Successfully remove a new route");
-	ret = TRUE;
-
-done:
-	*result = ret;
-	return ret;
+	return TRUE;
 }
 
 gboolean netconfig_iface_network_state_ethernet_cable_state(

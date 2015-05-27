@@ -44,6 +44,8 @@ typedef enum {
 	NETCONFIG_ERROR_FAILED_GET_SIM_AUTH_WRONG_DATA = 0x0C,
 	NETCONFIG_ERROR_FAILED_GET_SIM_AUTH_DELAY = 0x0D,
 	NETCONFIG_ERROR_MAX 			= 0x0E,
+	NETCONFIG_ERROR_INVALID_PARAMETER	= 0x0F,
+	NETCONFIG_ERROR_PERMISSION_DENIED	= 0x10,
 } NETCONFIG_ERROR;
 
 GQuark netconfig_error_quark(void);
@@ -65,5 +67,7 @@ void netconfig_error_fail_req_sim_auth(GError **error);
 void netconfig_error_fail_req_sim_auth_wrong_param(GError **error);
 void netconfig_error_fail_get_sim_auth_wrong_data(GError **error);
 void netconfig_error_fail_get_sim_auth_delay(GError **error);
+void netconfig_error_invalid_parameter(GError **error);
+void netconfig_error_permission_denied(GError **error);
 
 #endif /* __NETCONFIG_ERROR_H__ */

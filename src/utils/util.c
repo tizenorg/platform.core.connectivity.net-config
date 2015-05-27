@@ -24,6 +24,8 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <net/route.h>
+#include <arpa/inet.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <wifi-direct.h>
@@ -330,6 +332,110 @@ gboolean netconfig_execute_file(const char *file_path,
 
 	DBG("failed to fork()...(%s)", strerror(errno));
 	return FALSE;
+}
+
+int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len)
+{
+	struct in6_rtmsg rt;
+	int fd = 0;
+	int err = 0;
+
+	memset(&rt, 0, sizeof(rt));
+
+	rt.rtmsg_dst_len = prefix_len;
+
+	rt.rtmsg_flags = RTF_UP | RTF_HOST;
+
+	if (inet_pton(AF_INET6, ip_addr, &rt.rtmsg_dst) < 0) {
+		err = -errno;
+		return err;
+	}
+
+	if (gateway != NULL) {
+		rt.rtmsg_flags |= RTF_GATEWAY;
+		if (inet_pton(AF_INET6, gateway, &rt.rtmsg_gateway) < 0) {
+			err = -errno;
+			return err;
+		}
+	}
+
+	rt.rtmsg_metric = 1;
+
+	fd = socket(AF_INET6, SOCK_DGRAM, 0);
+	if (fd < 0)
+		return -1;
+
+	rt.rtmsg_ifindex = 0;
+
+	if (interface) {
+		struct ifreq ifr;
+		memset(&ifr, 0, sizeof(ifr));
+		strcpy(ifr.ifr_name, interface);
+		ioctl(fd, SIOCGIFINDEX, &ifr);
+		rt.rtmsg_ifindex = ifr.ifr_ifindex;
+	}
+
+	if ((err = ioctl(fd, SIOCADDRT, &rt)) < 0) {
+		DBG("Failed to add route: %d\n", err);
+		close(fd);
+		return -1;
+	}
+
+	close(fd);
+
+	return 1;
+}
+
+int netconfig_del_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len)
+{
+	struct in6_rtmsg rt;
+	int fd = 0;
+	int err = 0;
+
+	memset(&rt, 0, sizeof(rt));
+
+	rt.rtmsg_dst_len = prefix_len;
+
+	rt.rtmsg_flags = RTF_UP | RTF_HOST;
+
+	if (inet_pton(AF_INET6, ip_addr, &rt.rtmsg_dst) < 0) {
+		err = -errno;
+		return err;
+	}
+
+	if (gateway != NULL) {
+		rt.rtmsg_flags |= RTF_GATEWAY;
+		if (inet_pton(AF_INET6, gateway, &rt.rtmsg_gateway) < 0) {
+			err = -errno;
+			return err;
+		}
+	}
+
+	rt.rtmsg_metric = 1;
+
+	fd = socket(AF_INET6, SOCK_DGRAM, 0);
+	if (fd < 0)
+		return -1;
+
+	rt.rtmsg_ifindex = 0;
+
+	if (interface) {
+		struct ifreq ifr;
+		memset(&ifr, 0, sizeof(ifr));
+		strcpy(ifr.ifr_name, interface);
+		ioctl(fd, SIOCGIFINDEX, &ifr);
+		rt.rtmsg_ifindex = ifr.ifr_ifindex;
+	}
+
+	if ((err = ioctl(fd, SIOCDELRT, &rt)) < 0) {
+		DBG("Failed to add route: %d\n", err);
+		close(fd);
+		return -1;
+	}
+
+	close(fd);
+
+	return 1;
 }
 
 gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error)

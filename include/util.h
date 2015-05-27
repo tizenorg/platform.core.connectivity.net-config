@@ -47,6 +47,8 @@ gboolean netconfig_is_wifi_tethering_on(void);
 
 gboolean netconfig_execute_file(const char *file_path,
 		char *const args[], char *const env[]);
+int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len);
+int netconfig_del_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len);
 
 gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error);
 void netconfig_set_wifi_mac_address(void);

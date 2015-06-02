@@ -775,7 +775,7 @@ gboolean netconfig_iface_network_state_ethernet_cable_state(
 		return FALSE;
 	}
 
-	DBG("Successfully get ethernet cable state[%d]", state);
+	DBG("Successfully get ethernet cable state[%d]", *state);
 	return TRUE;
 }
 

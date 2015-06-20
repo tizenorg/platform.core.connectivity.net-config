@@ -1,6 +1,6 @@
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.90_32
+Version:    0.1.90_33
 Release:    1
 Group:      System/Network
 License:    Apache-2.0
@@ -12,7 +12,7 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(dlog)
 BuildRequires:  pkgconfig(vconf)
-BuildRequires:  pkgconfig(wifi-direct)
+BuildRequires:  pkgconfig(capi-network-wifi-direct)
 BuildRequires:  pkgconfig(tapi)
 Requires(post): /usr/bin/vconftool
 BuildRequires:    pkgconfig(libsystemd-daemon)

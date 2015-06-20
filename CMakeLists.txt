@@ -42,7 +42,7 @@ PKG_CHECK_MODULES(pkgs REQUIRED
 	dbus-glib-1
 	dlog
 	vconf
-	wifi-direct
+	capi-network-wifi-direct
 	tapi
 	libsystemd-daemon)
 

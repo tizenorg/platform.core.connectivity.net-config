@@ -55,6 +55,9 @@ void netconfig_set_wifi_mac_address(void);
 
 void netconfig_add_wifi_found_notification(void);
 void netconfig_del_wifi_found_notification(void);
+gboolean netconfig_interface_up(const char *ifname);
+gboolean netconfig_interface_down(const char *ifname);
+
 
 #ifdef __cplusplus
 }

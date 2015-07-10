@@ -1,6 +1,6 @@
 Name:       net-config
 Summary:    TIZEN Network Configuration Module
-Version:    0.1.90_33
+Version:    0.1.90_34
 Release:    1
 Group:      System/Network
 License:    Apache-2.0
@@ -27,7 +27,8 @@ cp %{SOURCE1001} .
 
 
 %build
-%cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
+%cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} \
+	-DTIZEN_P2P_ENABLE=1 \
 
 make %{?_smp_mflags}
 

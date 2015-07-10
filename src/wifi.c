@@ -36,6 +36,7 @@
 #include "wifi-eap-config.h"
 #include "wifi-background-scan.h"
 #include "wifi-agent.h"
+#include "wifi-firmware.h"
 
 #include "netconfig-iface-wifi-glue.h"
 

@@ -29,12 +29,17 @@ SET(SRCS
 	src/utils/util.c
 	src/utils/emulator.c
 	src/utils/mdm-private.c
+	src/wifi-firmware.c
 	)
 
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "")
 	SET(CMAKE_BUILD_TYPE "Release")
 ENDIF("${CMAKE_BUILD_TYPE}" STREQUAL "")
 MESSAGE("Build type: ${CMAKE_BUILD_TYPE}")
+
+IF(TIZEN_P2P_ENABLE)
+	ADD_DEFINITIONS(-DTIZEN_P2P_ENABLE)
+ENDIF(TIZEN_P2P_ENABLE)
 
 INCLUDE(FindPkgConfig)
 PKG_CHECK_MODULES(pkgs REQUIRED

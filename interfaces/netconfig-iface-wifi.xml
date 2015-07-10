@@ -64,4 +64,12 @@
 			<arg type="a{sv}" name="OutFields" direction="out"/>
 		</method>
 	</interface>
+	<interface name="net.netconfig.wifi.Firmware">
+		<method name="Start">
+			<arg type="s" name="Device" direction="in"/>
+		</method>
+		<method name="Stop">
+			<arg type="s" name="Device" direction="in"/>
+		</method>
+	</interface>
 </node>

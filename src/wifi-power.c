@@ -38,6 +38,7 @@
 #include "mdm-private.h"
 #include "wifi-agent.h"
 #include "wifi-eap-config.h"
+#include "wifi-firmware.h"
 
 
 #define WLAN_DRIVER_SCRIPT "/usr/bin/wlan.sh"

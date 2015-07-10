@@ -546,3 +546,62 @@ done:
 		close(ctl_sk);
 	}
 }
+
+gboolean netconfig_interface_up(const char *ifname)
+{
+	int fd;
+	struct ifreq ifr;
+
+	fd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (fd < 0)
+		return FALSE;
+
+	memset(&ifr, 0, sizeof(ifr));
+	g_strlcpy((char *)ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+	if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	ifr.ifr_flags |= (IFF_UP | IFF_DYNAMIC);
+	if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	close(fd);
+
+	INFO("Successfully activated wireless interface");
+	return TRUE;
+}
+
+gboolean netconfig_interface_down(const char *ifname)
+{
+	int fd;
+	struct ifreq ifr;
+
+	fd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (fd < 0)
+		return FALSE;
+
+	memset(&ifr, 0, sizeof(ifr));
+	g_strlcpy((char *)ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+	if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	ifr.ifr_flags = (ifr.ifr_flags & ~IFF_UP) | IFF_DYNAMIC;
+	if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	close(fd);
+
+	DBG("Successfully de-activated wireless interface");
+	return TRUE;
+}
+

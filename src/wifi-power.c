@@ -115,14 +115,15 @@ static gboolean __netconfig_wifi_disable_technology(void)
 static gboolean __netconfig_wifi_load_driver(void)
 {
 	gboolean rv = FALSE;
-	const char *path = WLAN_DRIVER_SCRIPT;
-	char *const args[] = { "wlan.sh", "start", NULL };
-	char *const envs[] = { NULL };
 
 	if (netconfig_emulator_is_emulated() == TRUE)
 		return rv;
 
 #if defined EMBEDDED_TARGET
+	const char *path = WLAN_DRIVER_SCRIPT;
+	char *const args[] = { "wlan.sh", "start", NULL };
+	char *const envs[] = { NULL };
+
 	rv = netconfig_execute_file(path, args, envs);
 	if (rv != TRUE) {
 		DBG("Failed to load wireless device driver");
@@ -137,14 +138,15 @@ static gboolean __netconfig_wifi_load_driver(void)
 gboolean netconfig_wifi_remove_driver(void)
 {
 	gboolean rv = FALSE;
-	const char *path = WLAN_DRIVER_SCRIPT;
-	char *const args[] = { "wlan.sh", "stop", NULL };
-	char *const env[] = { NULL };
 
 	if (netconfig_emulator_is_emulated() == TRUE)
 		return rv;
 
 #if defined EMBEDDED_TARGET
+	const char *path = WLAN_DRIVER_SCRIPT;
+	char *const args[] = { "wlan.sh", "stop", NULL };
+	char *const env[] = { NULL };
+
 	rv = netconfig_execute_file(path, args, env);
 	if (rv != TRUE) {
 		DBG("Failed to remove wireless device driver");

@@ -179,7 +179,6 @@ static gboolean __netconfig_test_device_picker()
 
 static void __netconfig_pop_device_picker(void)
 {
-	int rv = 0;
 	int wifi_ug_state = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);

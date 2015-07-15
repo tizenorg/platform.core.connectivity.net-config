@@ -156,7 +156,6 @@ static struct netconfig_default_connection
 
 static void __netconfig_pop_3g_alert_syspoppup(void)
 {
-	int rv = 0;
 	int wifi_ug_state = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);

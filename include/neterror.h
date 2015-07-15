@@ -43,5 +43,7 @@ void netconfig_error_fail_get_sim_auth_wrong_data(GError **error);
 void netconfig_error_fail_get_sim_auth_delay(GError **error);
 void netconfig_error_invalid_parameter(GError **error);
 void netconfig_error_permission_denied(GError **error);
+void netconfig_error_wifi_load_inprogress(GError **error);
+
 
 #endif /* __NETCONFIG_ERROR_H__ */

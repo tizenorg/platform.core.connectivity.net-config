@@ -35,6 +35,7 @@
 #include "network-state.h"
 #include "neterror.h"
 #include "wifi.h"
+#include "wifi-power.h"
 
 #define SIGNAL_SCAN_DONE		"ScanDone"
 #define SIGNAL_BSS_ADDED		"BSSAdded"

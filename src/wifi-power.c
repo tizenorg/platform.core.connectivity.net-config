@@ -42,6 +42,7 @@
 
 
 #define WLAN_DRIVER_SCRIPT "/usr/bin/wlan.sh"
+#define WLAN_SUPPLICANT_SCRIPT		"/usr/sbin/wpa_supp.sh"
 
 static gboolean power_in_progress = FALSE;
 static gboolean fm_waiting = FALSE;
@@ -112,6 +113,33 @@ static gboolean __netconfig_wifi_disable_technology(void)
 	return reply;
 }
 
+static int __netconfig_wifi_supplicant(gboolean enable)
+{
+	int rv = 0;
+	const char *path = WLAN_SUPPLICANT_SCRIPT;
+	char *const args_enable[] = { "/usr/sbin/wpa_supp.sh", "start", NULL };
+	char *const args_disable[] = { "/usr/sbin/wpa_supp.sh", "stop", NULL };
+	char *const envs[] = { NULL };
+	static gboolean enabled = FALSE;
+
+	if (enabled == enable)
+		return -EALREADY;
+
+	if (enable == TRUE)
+		rv = netconfig_execute_file(path, args_enable, envs);
+	else
+		rv = netconfig_execute_file(path, args_disable, envs);
+	if (rv < 0)
+		return -EIO;
+
+	DBG("wpa_supplicant %s", enable == TRUE ? "started" : "stopped");
+
+	enabled = enable;
+
+	return 0;
+}
+
+
 static gboolean __netconfig_wifi_load_driver(void)
 {
 	gboolean rv = FALSE;
@@ -129,7 +157,15 @@ static gboolean __netconfig_wifi_load_driver(void)
 		DBG("Failed to load wireless device driver");
 		return FALSE;
 	}
+#else
+	/*start the Supplicant Daemon*/
+	int err = 0;
+	err = __netconfig_wifi_supplicant(TRUE);
+	if (err < 0 && err != -EALREADY)
+		return err;
+
 #endif
+
 
 	DBG("Successfully loaded wireless device driver");
 	return TRUE;
@@ -152,7 +188,15 @@ gboolean netconfig_wifi_remove_driver(void)
 		DBG("Failed to remove wireless device driver");
 		return FALSE;
 	}
+#else
+	/*Stop the Supplicant Daemon*/
+	int err = 0;
+	err = __netconfig_wifi_supplicant(FALSE);
+	if (err < 0 && err != -EALREADY)
+		return err;
+
 #endif
+
 
 	DBG("Successfully removed wireless device driver");
 	return TRUE;
@@ -231,6 +275,7 @@ static gboolean __netconfig_wifi_direct_power_off(void)
 
 static int __netconfig_wifi_try_to_load_driver(void)
 {
+
 	if (netconfig_is_wifi_allowed() != TRUE)
 		return -EPERM;
 

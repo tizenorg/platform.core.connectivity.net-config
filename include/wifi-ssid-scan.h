@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,23 +26,15 @@ extern "C" {
 
 #include "wifi.h"
 
-enum netconfig_wifi_security {
-	WIFI_SECURITY_UNKNOWN = 0x00,
-	WIFI_SECURITY_NONE = 0x01,
-	WIFI_SECURITY_WEP = 0x02,
-	WIFI_SECURITY_PSK = 0x03,
-	WIFI_SECURITY_IEEE8021X = 0x04,
-};
-
 gboolean netconfig_wifi_get_ssid_scan_state(void);
 
 void netconfig_wifi_notify_ssid_scan_done(void);
-void netconfig_wifi_bss_added(DBusMessage *message);
+void netconfig_wifi_bss_added(GVariant *message);
 
 gboolean netconfig_wifi_ssid_scan(const char *ssid);
 
-gboolean netconfig_iface_wifi_request_specific_scan(NetconfigWifi *wifi,
-		gchar *ssid, GError **error);
+gboolean handle_request_specific_scan(Wifi *wifi,
+		GDBusMethodInvocation *context, const gchar *ssid);
 
 #ifdef __cplusplus
 }

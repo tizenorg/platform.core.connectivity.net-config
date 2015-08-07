@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
  */
 
 #ifndef __NETCONFIG_WIFI_AGENT_H__
-#define  __NETCONFIG_WIFI_AGENT_H__
+#define __NETCONFIG_WIFI_AGENT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,11 +28,21 @@ extern "C" {
 
 gboolean netconfig_agent_register(void);
 gboolean netconfig_agent_unregister(void);
-gboolean netconfig_iface_wifi_set_field(NetconfigWifi *wifi,
-		GHashTable *fields, GError **error);
-gboolean netconfig_iface_wifi_request_input(NetconfigWifi *wifi,
-		gchar *service, GHashTable *fields,
-		DBusGMethodInvocation *context);
+
+gboolean netconfig_wifi_set_agent_field_for_eap_network(
+		const char *name, const char *identity, const char *passphrase);
+
+gboolean handle_set_field(NetConnmanAgent *connman_agent,
+		GDBusMethodInvocation *context, const gchar *service, GVariant *fields);
+gboolean handle_request_input(NetConnmanAgent *connman_agent,
+		GDBusMethodInvocation *context, const gchar *service, GVariant *fields);
+gboolean handle_report_error(NetConnmanAgent *connman_agent,
+		GDBusMethodInvocation *context,
+		const gchar *service, const gchar *error);
+
+gboolean handle_request_browser(NetConnmanAgent *connman_agent,
+		GDBusMethodInvocation *context,
+		const gchar *service, const gchar *url);
 
 #ifdef __cplusplus
 }

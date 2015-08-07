@@ -2,23 +2,25 @@
 <node name="/net/netconfig/network">
 	<interface name="net.netconfig.network">
 		<method name="AddRoute">
-			<arg  type="s" name="ip_addr" direction="in" />
-			<arg  type="s" name="netmask" direction="in" />
-			<arg  type="s" name="interface" direction="in" />
+			<arg type="s" name="ip_addr" direction="in"/>
+			<arg type="s" name="netmask" direction="in"/>
+			<arg type="s" name="interface" direction="in"/>
 			<arg type="s" name="gateway" direction="in"/>
 			<arg  type="i" name="address_family" direction="in"/>
-			<arg  type="b" name="result" direction="out" />
+			<arg type="b" name="result" direction="out"/>
 		</method>
 		<method name="RemoveRoute">
-			<arg  type="s" name="ip_addr" direction="in" />
-			<arg  type="s" name="netmask" direction="in" />
-			<arg  type="s" name="interface" direction="in" />
+			<arg type="s" name="ip_addr" direction="in"/>
+			<arg type="s" name="netmask" direction="in"/>
+			<arg type="s" name="interface" direction="in"/>
 			<arg type="s" name="gateway" direction="in"/>
 			<arg  type="i" name="address_family" direction="in"/>
-			<arg  type="b" name="result" direction="out" />
+			<arg type="b" name="result" direction="out"/>
 		</method>
 		<method name="EthernetCableState">
 			<arg  type="i" name="state" direction="out"/>
 		</method>
+		<method name="CheckGetPrivilege"></method>
+		<method name="CheckProfilePrivilege"></method>
 	</interface>
 </node>

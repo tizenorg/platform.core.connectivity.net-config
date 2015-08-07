@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,13 @@
  *
  */
 
-#include <tapi_common.h>
-#include <TapiUtility.h>
-#include <ITapiSim.h>
-
 #include "log.h"
 #include "util.h"
 #include "netdbus.h"
 #include "neterror.h"
+#include "wifi-tel-intf.h"
+#include "network-state.h"
+#include "wifi-eap.h"
 
 #define SIM_RAND_DATA_LEN 16
 #define SIM_AUTH_MAX_RESP_DATA_LEN 128
@@ -50,12 +49,12 @@ struct wifii_authentication_data {
 	char *integrity_data;
 };
 
-TapiHandle *tapi_handle = NULL;
 static struct wifii_authentication_data *wifi_authdata;
 
-static void *__netconfig_wifi_free_wifi_authdata(struct wifii_authentication_data *data)
+static void *__netconfig_wifi_free_wifi_authdata(
+		struct wifii_authentication_data *data)
 {
-	if (data) {
+	if (data != NULL) {
 		if (data->resp_data)
 			g_free(data->resp_data);
 		if (data->authentication_key)
@@ -72,100 +71,104 @@ static void *__netconfig_wifi_free_wifi_authdata(struct wifii_authentication_dat
 	return NULL;
 }
 
-static void __netconfig_tapi_init()
+static void __netconfig_wifi_clean_authentication(void)
 {
-	tapi_handle = tel_init(NULL);
-}
-
-static void __netconfig_tapi_deinit()
-{
-	tel_deinit(tapi_handle);
-	tapi_handle = NULL;
+	netconfig_tel_deinit();
 
 	wifi_authdata = __netconfig_wifi_free_wifi_authdata(wifi_authdata);
 }
 
-static gboolean __netconfig_wifi_get_sim_imsi(DBusGMethodInvocation *context)
+static gboolean __netconfig_wifi_get_sim_imsi(Wifi *wifi,
+		GDBusMethodInvocation *context)
 {
-	DBG(" ");
-
 	int ret;
-	GError *error = NULL;
+	TapiHandle *handle;
 	TelSimImsiInfo_t imsi_info;
 	char *imsi;
 
-	if (tapi_handle == NULL)
-		__netconfig_tapi_init();
-
-	ret = tel_get_sim_imsi(tapi_handle, &imsi_info);
-	if (ret != TAPI_API_SUCCESS) {
-		ERR("Failed tel_get_sim_imsi() : [%d]", ret);
-		netconfig_error_fail_get_imsi(&error);
-		dbus_g_method_return_error(context, error);
+	handle = (TapiHandle *)netconfig_tel_init();
+	if (handle == NULL) {
+		ERR("tapi_init failed");
+		netconfig_error_fail_get_imsi(context);
 		return FALSE;
 	}
 
-	imsi = g_strdup_printf("%s%s%s", imsi_info.szMcc, imsi_info.szMnc, imsi_info.szMsin);
+	ERR("before tel_get_sim_imsi");
+	ret = tel_get_sim_imsi(handle, &imsi_info);
+	ERR("after tel_get_sim_imsi");
+	if (ret != TAPI_API_SUCCESS) {
+		ERR("Failed tel_get_sim_imsi() : [%d]", ret);
+		netconfig_error_fail_get_imsi(context);
+		return FALSE;
+	}
 
-	dbus_g_method_return(context, imsi);
+	imsi = g_strdup_printf("%s%s%s", imsi_info.szMcc,
+			imsi_info.szMnc, imsi_info.szMsin);
+
+	wifi_complete_get_sim_imsi(wifi, context, imsi);
 	g_free(imsi);
 
 	return TRUE;
 }
 
-void __netconfig_response_sim_authentication(TapiHandle *handle, int result, void *data, void *user_data)
+void __netconfig_response_sim_authentication(TapiHandle *handle,
+		int result, void *data, void *user_data)
 {
-	DBG(" ");
-
 	if (wifi_authdata != NULL)
 		wifi_authdata = __netconfig_wifi_free_wifi_authdata(wifi_authdata);
 
 	wifi_authdata = g_try_new0(struct wifii_authentication_data, 1);
 
-	TelSimAuthenticationResponse_t *auth_resp = (TelSimAuthenticationResponse_t *) data;
+	TelSimAuthenticationResponse_t *auth_resp =
+				(TelSimAuthenticationResponse_t *) data;
 	if (auth_resp == NULL) {
 		ERR("the auth response is NULL");
+
 		wifi_authdata->auth_result = -1;
 		return;
-	} else {
+	} else
 		wifi_authdata->auth_result = auth_resp->auth_result;
-	}
 
 	if (auth_resp->auth_result == TAPI_SIM_AUTH_NO_ERROR) {
 		wifi_authdata->resp_length = auth_resp->resp_length;
-		wifi_authdata->authentication_key_length = auth_resp->authentication_key_length;
+		wifi_authdata->authentication_key_length =
+					auth_resp->authentication_key_length;
 
 		if (wifi_authdata->resp_data != NULL)
 			g_free(wifi_authdata->resp_data);
+
 		wifi_authdata->resp_data = g_strdup(auth_resp->resp_data);
 
 		if (wifi_authdata->authentication_key != NULL)
 			g_free(wifi_authdata->authentication_key);
-		wifi_authdata->authentication_key = g_strdup(auth_resp->authentication_key);
+
+		wifi_authdata->authentication_key =
+							g_strdup(auth_resp->authentication_key);
 	} else {
 		ERR("the result error for sim auth : [%d]", auth_resp->auth_result);
+
 		wifi_authdata->resp_length = 0;
 		wifi_authdata->authentication_key_length = 0;
 	}
 }
 
-void __netconfig_response_aka_authentication(TapiHandle *handle, int result, void *data, void *user_data)
+void __netconfig_response_aka_authentication(TapiHandle *handle,
+		int result, void *data, void *user_data)
 {
-	DBG(" ");
-
 	if (wifi_authdata != NULL)
 		wifi_authdata = __netconfig_wifi_free_wifi_authdata(wifi_authdata);
 
 	wifi_authdata = g_try_new0(struct wifii_authentication_data, 1);
 
-	TelSimAuthenticationResponse_t *auth_resp = (TelSimAuthenticationResponse_t *) data;
+	TelSimAuthenticationResponse_t *auth_resp =
+					(TelSimAuthenticationResponse_t *) data;
 	if (auth_resp == NULL) {
 		ERR("the auth response is NULL");
+
 		wifi_authdata->auth_result = -1;
 		return;
-	} else {
+	} else
 		wifi_authdata->auth_result = auth_resp->auth_result;
-	}
 
 	if (auth_resp->auth_result == TAPI_SIM_AUTH_NO_ERROR) {
 		wifi_authdata->resp_length = auth_resp->resp_length;
@@ -174,176 +177,202 @@ void __netconfig_response_aka_authentication(TapiHandle *handle, int result, voi
 
 		if (wifi_authdata->resp_data != NULL)
 			g_free(wifi_authdata->resp_data);
+
 		wifi_authdata->resp_data = g_strdup(auth_resp->resp_data);
 
 		if (wifi_authdata->cipher_data != NULL)
 			g_free(wifi_authdata->cipher_data);
+
 		wifi_authdata->cipher_data = g_strdup(auth_resp->cipher_data);
 
 		if (wifi_authdata->integrity_data != NULL)
 			g_free(wifi_authdata->integrity_data);
+
 		wifi_authdata->integrity_data = g_strdup(auth_resp->integrity_data);
 	} else {
 		ERR("the result error for aka auth : [%d]", auth_resp->auth_result);
+
 		if (auth_resp->auth_result == TAPI_SIM_AUTH_SQN_FAILURE ||
 					auth_resp->auth_result == TAPI_SIM_AUTH_SYNCH_FAILURE) {
 			wifi_authdata->resp_length = auth_resp->resp_length;
 
 			if (wifi_authdata->resp_data != NULL)
 				g_free(wifi_authdata->resp_data);
+
 			wifi_authdata->resp_data = g_strdup(auth_resp->resp_data);
 		}
 	}
 }
 
-static gboolean __netconfig_wifi_req_sim_auth(GArray *rand_data, GError **error)
+static gboolean __netconfig_wifi_req_sim_auth(GArray *rand_data,
+		GDBusMethodInvocation *context)
 {
-	DBG(" ");
-
 	int i;
 	int ret;
+	TapiHandle *handle;
 	TelSimAuthenticationData_t auth_data;
+
+	if (rand_data == NULL)
+		return FALSE;
 
 	if (rand_data->len != SIM_RAND_DATA_LEN) {
 		ERR("wrong rand data len : [%d]", rand_data->len);
-		netconfig_error_fail_req_sim_auth_wrong_param(error);
+
+		netconfig_error_fail_req_sim_auth_wrong_param(context);
 		return FALSE;
 	}
 
 	if ((ret = g_array_get_element_size(rand_data)) != 1) {
 		ERR("wrong rand data size : [%d]", ret);
-		netconfig_error_fail_req_sim_auth_wrong_param(error);
+
+		netconfig_error_fail_req_sim_auth_wrong_param(context);
 		return FALSE;
 	}
 
 	memset(&auth_data, 0, sizeof(auth_data));
+
 	auth_data.auth_type = TAPI_SIM_AUTH_TYPE_GSM;
 	auth_data.rand_length = SIM_RAND_DATA_LEN;
+
 	for (i=0; i<rand_data->len; i++)
 		auth_data.rand_data[i] = g_array_index(rand_data, guint8, i);
 
-	if (tapi_handle == NULL)
-		__netconfig_tapi_init();
+	handle = (TapiHandle *)netconfig_tel_init();
+	if (handle == NULL) {
+		netconfig_error_fail_req_sim_auth(context);
+		return FALSE;
+	}
 
-	ret = tel_req_sim_authentication(tapi_handle, &auth_data, __netconfig_response_sim_authentication, NULL);
+	ret = tel_req_sim_authentication(handle,
+			&auth_data, __netconfig_response_sim_authentication, NULL);
 	if (ret != TAPI_API_SUCCESS) {
 		ERR("Failed tel_req_sim_authentication() : [%d]", ret);
-		netconfig_error_fail_req_sim_auth(error);
+
+		netconfig_error_fail_req_sim_auth(context);
 		return FALSE;
 	}
 
 	return TRUE;
 }
 
-static gboolean __netconfig_wifi_req_aka_auth(GArray *rand_data, GArray *autn_data, GError **error)
+static gboolean __netconfig_wifi_req_aka_auth(
+		GArray *rand_data, GArray *autn_data, GDBusMethodInvocation *context)
 {
-	DBG(" ");
-
 	int i;
 	int ret;
+	TapiHandle *handle;
 	TelSimAuthenticationData_t auth_data;
+
+	if (rand_data == NULL || autn_data == NULL)
+		return FALSE;
 
 	if (rand_data->len != AKA_RAND_DATA_LEN) {
 		ERR("wrong rand data len : [%d]", rand_data->len);
-		netconfig_error_fail_req_sim_auth_wrong_param(error);
+
+		netconfig_error_fail_req_sim_auth_wrong_param(context);
 		return FALSE;
 	}
 
 	if (autn_data->len != AKA_AUTN_DATA_LEN) {
 		ERR("wrong autn data len : [%d]", autn_data->len);
-		netconfig_error_fail_req_sim_auth_wrong_param(error);
+
+		netconfig_error_fail_req_sim_auth_wrong_param(context);
 		return FALSE;
 	}
 
 	if ((ret = g_array_get_element_size(rand_data)) != 1) {
 		ERR("wrong rand data size : [%d]", ret);
-		netconfig_error_fail_req_sim_auth_wrong_param(error);
+
+		netconfig_error_fail_req_sim_auth_wrong_param(context);
 		return FALSE;
 	}
 
 	if ((ret = g_array_get_element_size(autn_data)) != 1) {
 		ERR("wrong autn data size : [%d]", ret);
-		netconfig_error_fail_req_sim_auth_wrong_param(error);
+
+		netconfig_error_fail_req_sim_auth_wrong_param(context);
 		return FALSE;
 	}
 
 	memset(&auth_data, 0, sizeof(auth_data));
+
 	auth_data.auth_type = TAPI_SIM_AUTH_TYPE_3G;
 	auth_data.rand_length = AKA_RAND_DATA_LEN;
 	auth_data.autn_length = AKA_AUTN_DATA_LEN;
+
 	for (i=0; i<rand_data->len; i++)
 		auth_data.rand_data[i] = g_array_index(rand_data, guint8, i);
+
 	for (i=0; i<autn_data->len; i++)
 		auth_data.autn_data[i] = g_array_index(autn_data, guint8, i);
 
-	if (tapi_handle == NULL)
-		__netconfig_tapi_init();
-
-	ret = tel_req_sim_authentication(tapi_handle, &auth_data, __netconfig_response_aka_authentication, NULL);
-	if (ret != TAPI_API_SUCCESS) {
-		ERR("Failed tel_req_sim_authentication() : [%d]", ret);
-		netconfig_error_fail_req_sim_auth(error);
+	handle = (TapiHandle *)netconfig_tel_init();
+	if (handle == NULL) {
+		netconfig_error_fail_req_sim_auth(context);
 		return FALSE;
 	}
 
+	ret = tel_req_sim_authentication(handle, &auth_data,
+			__netconfig_response_aka_authentication, NULL);
+
+	if (ret != TAPI_API_SUCCESS) {
+		ERR("Failed tel_req_sim_authentication() : [%d]", ret);
+
+		netconfig_error_fail_req_sim_auth(context);
+		return FALSE;
+	}
 	return TRUE;
 }
 
-static gboolean __netconfig_wifi_get_sim_authdata(DBusGMethodInvocation *context)
+static gboolean __netconfig_wifi_get_sim_authdata(Wifi *wifi,
+		GDBusMethodInvocation *context)
 {
-	DBG(" ");
-
 	GArray *array = NULL;
-	GError *error = NULL;
 
 	if (wifi_authdata == NULL) {
 		DBG("the status error : no response yet");
-		netconfig_error_fail_get_sim_auth_delay(&error);
-		dbus_g_method_return_error(context, error);
+		netconfig_error_fail_get_sim_auth_delay(context);
 		return FALSE;
 	}
 
 	if (wifi_authdata->auth_result == TAPI_SIM_AUTH_NO_ERROR) {
 		if (wifi_authdata->resp_length == SIM_AUTH_SRES_LEN &&
 				wifi_authdata->authentication_key_length == SIM_AUTH_KC_LEN) {
-			array = g_array_sized_new(FALSE, FALSE, sizeof(guchar), SIM_AUTH_SRES_LEN+SIM_AUTH_KC_LEN);
-			g_array_append_vals(array, wifi_authdata->resp_data, SIM_AUTH_SRES_LEN);
-			g_array_append_vals(array, wifi_authdata->authentication_key, SIM_AUTH_KC_LEN);
-			dbus_g_method_return(context, array);
-			g_array_free (array, TRUE);
+			array = g_array_sized_new(FALSE, FALSE, sizeof(guchar),
+					SIM_AUTH_SRES_LEN+SIM_AUTH_KC_LEN);
+			g_array_append_vals(array, wifi_authdata->resp_data,
+					SIM_AUTH_SRES_LEN);
+			g_array_append_vals(array, wifi_authdata->authentication_key,
+					SIM_AUTH_KC_LEN);
 		} else {
 			ERR("auth data length is wrong, SRES = [%d], Kc = [%d]",
-					wifi_authdata->resp_length, wifi_authdata->authentication_key_length);
-
-			netconfig_error_fail_get_sim_auth_wrong_data(&error);
-			dbus_g_method_return_error(context, error);
-			__netconfig_tapi_deinit();
+					wifi_authdata->resp_length,
+					wifi_authdata->authentication_key_length);
+			netconfig_error_fail_get_sim_auth_wrong_data(context);
+			__netconfig_wifi_clean_authentication();
 			return FALSE;
 		}
 	} else {
 		ERR("failed auth result = [%d]", wifi_authdata->auth_result);
-		netconfig_error_fail_get_sim_auth_wrong_data(&error);
-		dbus_g_method_return_error(context, error);
-		__netconfig_tapi_deinit();
+		netconfig_error_fail_get_sim_auth_wrong_data(context);
+		__netconfig_wifi_clean_authentication();
 		return FALSE;
 	}
 
-	__netconfig_tapi_deinit();
+	wifi_complete_get_sim_auth(wifi, context, array->data);
+	g_array_free (array, TRUE);
+	__netconfig_wifi_clean_authentication();
 	return TRUE;
 }
 
-static gboolean __netconfig_wifi_get_aka_authdata(DBusGMethodInvocation *context)
+static gboolean __netconfig_wifi_get_aka_authdata(Wifi *wifi, GDBusMethodInvocation *context)
 {
-	DBG(" ");
-
 	GArray *array = NULL;
-	GError *error = NULL;
 	guchar res_len;
 
 	if (wifi_authdata == NULL) {
 		DBG("the status error : no response yet");
-		netconfig_error_fail_get_sim_auth_delay(&error);
-		dbus_g_method_return_error(context, error);
+		netconfig_error_fail_get_sim_auth_delay(context);
 		return FALSE;
 	}
 
@@ -353,25 +382,24 @@ static gboolean __netconfig_wifi_get_aka_authdata(DBusGMethodInvocation *context
 
 	case TAPI_SIM_AUTH_SQN_FAILURE:
 	case TAPI_SIM_AUTH_SYNCH_FAILURE:
-		array = g_array_sized_new(FALSE, FALSE, sizeof(guchar), wifi_authdata->resp_length+1);
+		array = g_array_sized_new(FALSE, FALSE, sizeof(guchar),
+									wifi_authdata->resp_length+1);
 		res_len = (guchar)((wifi_authdata->resp_length-1) & 0xff);
 
 		g_array_append_vals(array, &res_len, 1);
-		g_array_append_vals(array, wifi_authdata->resp_data, wifi_authdata->resp_length);
+		g_array_append_vals(array, wifi_authdata->resp_data,
+								wifi_authdata->resp_length);
 
-		dbus_g_method_return(context, array);
+		wifi_complete_get_aka_auth(wifi, context, array->data);
 		g_array_free (array, TRUE);
 
-		g_free(wifi_authdata->resp_data);
-		g_free(wifi_authdata);
-		wifi_authdata = NULL;
+		__netconfig_wifi_clean_authentication();
 
 		return TRUE;
 
 	default:
-		netconfig_error_fail_get_sim_auth_wrong_data(&error);
-		dbus_g_method_return_error(context, error);
-		__netconfig_tapi_deinit();
+		netconfig_error_fail_get_sim_auth_wrong_data(context);
+		__netconfig_wifi_clean_authentication();
 		return FALSE;
 	}
 
@@ -379,93 +407,117 @@ static gboolean __netconfig_wifi_get_aka_authdata(DBusGMethodInvocation *context
 			wifi_authdata->resp_length <= AKA_AUTH_RES_MAX_LEN) &&
 			wifi_authdata->cipher_length == AKA_AUTH_CK_LEN &&
 			wifi_authdata->integrity_length == AKA_AUTH_IK_LEN) {
-		array = g_array_sized_new(FALSE, FALSE, sizeof(guchar), wifi_authdata->resp_length+AKA_AUTH_CK_LEN+AKA_AUTH_IK_LEN+1);
+		array = g_array_sized_new(FALSE, FALSE, sizeof(guchar),
+				wifi_authdata->resp_length+AKA_AUTH_CK_LEN+AKA_AUTH_IK_LEN+1);
 
 		res_len = (guchar)((wifi_authdata->resp_length-1) & 0xff);
 		g_array_append_vals(array, &res_len, 1);
-		g_array_append_vals(array, wifi_authdata->resp_data, wifi_authdata->resp_length);
-		g_array_append_vals(array, wifi_authdata->cipher_data, AKA_AUTH_CK_LEN);
-		g_array_append_vals(array, wifi_authdata->integrity_data, AKA_AUTH_IK_LEN);
-
-		dbus_g_method_return(context, array);
-		g_array_free (array, TRUE);
+		g_array_append_vals(array, wifi_authdata->resp_data,
+								wifi_authdata->resp_length);
+		g_array_append_vals(array, wifi_authdata->cipher_data,
+								AKA_AUTH_CK_LEN);
+		g_array_append_vals(array, wifi_authdata->integrity_data,
+								AKA_AUTH_IK_LEN);
 	} else {
 		ERR("auth data length is wrong, res = [%d], Kc = [%d], Ki = [%d]",
-				wifi_authdata->resp_length, wifi_authdata->cipher_length, wifi_authdata->integrity_length);
+				wifi_authdata->resp_length, wifi_authdata->cipher_length,
+				wifi_authdata->integrity_length);
 
-		netconfig_error_fail_get_sim_auth_wrong_data(&error);
-		dbus_g_method_return_error(context, error);
-		__netconfig_tapi_deinit();
+		netconfig_error_fail_get_sim_auth_wrong_data(context);
+		__netconfig_wifi_clean_authentication();
 		return FALSE;
 	}
 
-	__netconfig_tapi_deinit();
+	wifi_complete_get_aka_auth(wifi, context, array->data);
+	g_array_free (array, TRUE);
+	__netconfig_wifi_clean_authentication();
+
 	return TRUE;
 }
 
-gboolean netconfig_iface_wifi_get_sim_imsi(NetconfigWifi *wifi, DBusGMethodInvocation *context)
+gboolean handle_get_sim_imsi(Wifi *wifi, GDBusMethodInvocation *context)
 {
 	gboolean ret = TRUE;
 
-	DBG("Get sim Imsi");
+	DBG("Get IMSI");
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
-	ret = __netconfig_wifi_get_sim_imsi(context);
+	ret = __netconfig_wifi_get_sim_imsi(wifi, context);
 
 	return ret;
 }
 
-gboolean netconfig_iface_wifi_req_sim_auth(NetconfigWifi *wifi, GArray *rand_data, gboolean *result, GError **error)
+gboolean handle_req_sim_auth(Wifi *wifi, GDBusMethodInvocation *context,
+		const gchar *rand_data)
 {
-	gboolean ret = TRUE;
+	gboolean result = TRUE;
 
-	DBG("Req sim Authentication");
+	DBG("Request SIM Authentication");
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
-	ret = __netconfig_wifi_req_sim_auth(rand_data, error);
+	result = __netconfig_wifi_req_sim_auth((GArray *)rand_data, context);
 
-	*result = ret;
+	if (result)
+		wifi_complete_req_sim_auth(wifi, context, result);
+
+	return result;
+}
+
+gboolean handle_req_aka_auth(Wifi *wifi, GDBusMethodInvocation *context,
+		const gchar *rand_data, const gchar *autn_data)
+{
+	gboolean result = TRUE;
+	GArray *rand_data_garray;
+	GArray *autn_data_garray;
+
+	rand_data_garray = g_array_sized_new(FALSE, FALSE, sizeof(guchar),
+			strlen(rand_data));
+	memcpy(rand_data_garray->data, rand_data, rand_data_garray->len);
+
+	autn_data_garray = g_array_sized_new(FALSE, FALSE, sizeof(guchar),
+			strlen(autn_data));
+	memcpy(autn_data_garray->data, rand_data, autn_data_garray->len);
+
+	DBG("Request AKA Authentication");
+
+	g_return_val_if_fail(wifi != NULL, FALSE);
+
+	result = __netconfig_wifi_req_aka_auth(rand_data_garray, autn_data_garray, context);
+	if (result) {
+		wifi_complete_req_aka_auth(wifi, context, result);
+	} else {
+		netconfig_error_dbus_method_return(context, NETCONFIG_ERROR_FAILED_REQ_AKA_AUTH, "FailReqAkaAuth");
+	}
+
+	g_array_free(rand_data_garray, FALSE);
+	g_array_free(autn_data_garray, FALSE);
+
+	return result;
+}
+
+gboolean handle_get_sim_auth(Wifi *wifi, GDBusMethodInvocation *context)
+{
+	gboolean ret = TRUE;
+
+	DBG("Get SIM Authdata");
+
+	g_return_val_if_fail(wifi != NULL, FALSE);
+
+	ret = __netconfig_wifi_get_sim_authdata(wifi, context);
 	return ret;
 }
 
-gboolean netconfig_iface_wifi_req_aka_auth(NetconfigWifi *wifi, GArray *rand_data, GArray *autn_data, gboolean *result, GError **error)
+gboolean handle_get_aka_auth(Wifi *wifi, GDBusMethodInvocation *context)
 {
 	gboolean ret = TRUE;
 
-	DBG("Req aka Authentication");
+	DBG("Get AKA Authdata");
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
-	ret = __netconfig_wifi_req_aka_auth(rand_data, autn_data, error);
-
-	*result = ret;
-	return ret;
-}
-
-gboolean netconfig_iface_wifi_get_sim_auth(NetconfigWifi *wifi, DBusGMethodInvocation *context)
-{
-	gboolean ret = TRUE;
-
-	DBG("Get sim Authdata");
-
-	g_return_val_if_fail(wifi != NULL, FALSE);
-
-	ret = __netconfig_wifi_get_sim_authdata(context);
-
-	return ret;
-}
-
-gboolean netconfig_iface_wifi_get_aka_auth(NetconfigWifi *wifi, DBusGMethodInvocation *context)
-{
-	gboolean ret = TRUE;
-
-	DBG("Get aka Authdata");
-
-	g_return_val_if_fail(wifi != NULL, FALSE);
-
-	ret = __netconfig_wifi_get_aka_authdata(context);
+	ret = __netconfig_wifi_get_aka_authdata(wifi, context);
 
 	return ret;
 }

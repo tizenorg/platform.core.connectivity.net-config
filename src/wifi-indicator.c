@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  *
  */
 
-
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -30,6 +30,8 @@
 #include "log.h"
 #include "util.h"
 #include "netdbus.h"
+#include "wifi-state.h"
+#include "network-state.h"
 #include "network-statistics.h"
 #include "netsupplicant.h"
 #include "wifi-indicator.h"
@@ -38,162 +40,104 @@
 
 #define NETCONFIG_WIFI_INDICATOR_INTERVAL	1
 
-static guint64 netconfig_wifi_tx_bytes = 0;
-static guint64 netconfig_wifi_rx_bytes = 0;
+#if defined TIZEN_WEARABLE
+#define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL1	(19200 * 1024)
+#define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL2	(2560 * 1024)
+#define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL3	(1536 * 1024)
+#else
+#define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL1	(19200 * 1024)
+#define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL2	(7680 * 1024)
+#define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL3	(3840 * 1024)
+#endif
+#define NETCONFIG_PROCWIRELESS					"/proc/net/wireless"
 
+static int netconfig_wifi_rssi = VCONFKEY_WIFI_SNR_MIN;
 static guint netconfig_wifi_indicator_timer = 0;
-
-#if defined NL80211
-static int __netconfig_wifi_get_signal(const char *object_path)
-{
-	DBusConnection *connection = NULL;
-	DBusMessage *message = NULL;
-	DBusMessageIter iter;
-	int rssi_dbm = 0;
-	int MessageType = 0;
-
-	if (object_path == NULL) {
-		ERR("Error!!! path is NULL");
-		goto error;
-	}
-
-	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (connection == NULL) {
-		ERR("Error!!! Failed to get system DBus");
-		goto error;
-	}
-
-	message = netconfig_supplicant_invoke_dbus_method(
-			SUPPLICANT_SERVICE, connection, object_path,
-			SUPPLICANT_INTERFACE ".Interface", "GetLinkSignal",
-			NULL);
-
-	if (message == NULL) {
-		ERR("Error!!! Failed to get service properties");
-		goto error;
-	}
-
-	MessageType = dbus_message_get_type(message);
-
-	if (MessageType == DBUS_MESSAGE_TYPE_ERROR) {
-		const char *err_msg = dbus_message_get_error_name(message);
-		ERR("Error!!! Error message received [%s]", err_msg);
-		goto error;
-	}
-
-	dbus_message_iter_init(message, &iter);
-
-	if ((MessageType = dbus_message_iter_get_arg_type(&iter)) == DBUS_TYPE_INT32)
-		dbus_message_iter_get_basic(&iter, &rssi_dbm);
-	else
-		goto error;
-
-	dbus_message_unref(message);
-	dbus_connection_unref(connection);
-
-	return rssi_dbm;
-
-error:
-	if (message != NULL)
-		dbus_message_unref(message);
-
-	if (connection != NULL)
-		dbus_connection_unref(connection);
-
-	return VCONFKEY_WIFI_SNR_MIN;
-}
-
-static int __netconfig_wifi_get_rssi_from_supplicant(void)
-{
-	int rssi_dbm =0;
-
-	char object_path[DBUS_PATH_MAX_BUFLEN] = { 0, };
-	char *path_ptr = &object_path[0];
-
-	if (netconfig_wifi_get_supplicant_interface(&path_ptr) != TRUE) {
-		DBG("Fail to get wpa_supplicant DBus path");
-		return VCONFKEY_WIFI_SNR_MIN;
-	}
-
-	rssi_dbm = __netconfig_wifi_get_signal((const char *)path_ptr);
-
-	return rssi_dbm;
-}
-#endif /* #if defined NL80211 */
-
-#if !defined NL80211
-static int __netconfig_wifi_get_rssi_from_system(void)
-{
-	int rssi_dbm = 0;
-	char ifname[16] = { 0, };
-	char *ifname_ptr = &ifname[0];
-
-	int fd = -1;
-	struct iwreq wifi_req;
-	struct iw_statistics stats;
-	unsigned int iw_stats_len = sizeof(struct iw_statistics);
-
-	if (netconfig_wifi_get_ifname(&ifname_ptr) != TRUE) {
-		DBG("Fail to get Wi-Fi ifname from wpa_supplicant: %s", ifname_ptr);
-		return VCONFKEY_WIFI_SNR_MIN;
-	}
-
-	/* Set device name */
-	memset(wifi_req.ifr_name, 0, sizeof(wifi_req.ifr_name));
-	strncpy(wifi_req.ifr_name, ifname, sizeof(wifi_req.ifr_name) - 1);
-	wifi_req.ifr_name[sizeof(wifi_req.ifr_name) - 1] = '\0';
-
-	wifi_req.u.data.pointer = (caddr_t) &stats;
-	wifi_req.u.data.length = iw_stats_len;
-	wifi_req.u.data.flags = 1;	/* Clear updated flag */
-
-	if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-		DBG("Fail to open socket to get rssi");
-		return VCONFKEY_WIFI_SNR_MIN;
-	}
-
-	memset(&stats, 0, iw_stats_len);
-
-	if (ioctl(fd, SIOCGIWSTATS, &wifi_req) < 0) {
-		DBG("Fail to execute ioctl for SIOCGIWSTATS");
-		close(fd);
-
-		return VCONFKEY_WIFI_SNR_MIN;
-	}
-	close(fd);
-
-	rssi_dbm = stats.qual.level - 255; /** signed integer, so 255 */
-
-	return rssi_dbm;
-}
-#endif /* #if !defined NL80211 */
 
 int netconfig_wifi_get_rssi(void)
 {
-	int rssi_dbm = 0;
+	return netconfig_wifi_rssi;
+}
 
-	/* There are two ways to get Wi-Fi RSSI:
-	 *  - WEXT interface, get DBus path of wpa_supplicant,
-	 *  and get Wi-Fi interface name e.g. wlan0 from wpa_supplicant.
-	 *  IOCTL with ifname will return RSSI dB.
-	 *  - NL80211 interface, get DBus path of wpa_supplicant,
-	 *  and get RSSI from wpa_supplicant directly.
-	 *  However, in this case wpa_supplicant needs some modification
-	 *  to get RSSI from DBus interface. */
+static int __netconfig_wifi_update_and_get_rssi(void)
+{
+	FILE *fp;
+	char buf[512];
+	char *p_ifname = NULL, *p_entry = NULL;
+	int rssi_dbm = VCONFKEY_WIFI_SNR_MIN;
 
-#if defined NL80211
-	rssi_dbm = __netconfig_wifi_get_rssi_from_supplicant();
-#else
-	rssi_dbm = __netconfig_wifi_get_rssi_from_system();
-#endif
+	fp = fopen(NETCONFIG_PROCWIRELESS, "r");
+	if (fp == NULL) {
+		ERR("Failed to open %s", NETCONFIG_PROCWIRELESS);
+		return rssi_dbm;
+	}
+
+	/* skip the first and second line */
+	if (fgets(buf, sizeof(buf), fp) == NULL ||
+			fgets(buf, sizeof(buf), fp) == NULL)
+		goto endline;
+
+	while (fgets(buf, sizeof(buf), fp)) {
+		unsigned int status;
+		int link, noise;
+		/* No need to read */
+		/*
+		unsigned long nwid, crypt, frag, retry, misc, missed;
+		*/
+
+		p_ifname = buf;
+		while (*p_ifname == ' ') p_ifname++;
+		p_entry = strchr(p_ifname, ':');
+		if (p_entry == NULL)
+			goto endline;
+		*p_entry++ = '\0';
+
+		if (g_strcmp0(p_ifname, WIFI_IFNAME) != 0)
+			continue;
+
+		/* read wireless status */
+		p_entry = strtok(p_entry, " .");	// status			"%x"
+		if (p_entry != NULL)
+			sscanf(p_entry, "%x", &status);
+		p_entry = strtok(NULL, " .");		// Quality link		"%d"
+		if (p_entry != NULL)
+			sscanf(p_entry, "%d", &link);
+		p_entry = strtok(NULL, " .");		// Quality level	"%d"
+		if (p_entry != NULL)
+			sscanf(p_entry, "%d", &rssi_dbm);
+		p_entry = strtok(NULL, " .");		// Quality noise	"%d"
+		if (p_entry != NULL)
+			sscanf(p_entry, "%d", &noise);
+
+		/* No need to read */
+		/*
+		p_entry = strtok(NULL, " .");		// Discarded nwid	"%lu"
+		sscanf(p_entry, "%lu", &nwid);
+		p_entry = strtok(NULL, " .");		// Discarded crypt	"%lu"
+		sscanf(p_entry, "%lu", &crypt);
+		p_entry = strtok(NULL, " .");		// Discarded frag	"%lu"
+		sscanf(p_entry, "%lu", &frag);
+		p_entry = strtok(NULL, " .");		// Discarded retry	"%lu"
+		sscanf(p_entry, "%lu", &retry);
+		p_entry = strtok(NULL, " .");		// Discarded misc	"%lu"
+		sscanf(p_entry, "%lu", &misc);
+		p_entry = strtok(NULL, " .");		// Discarded missed	"%lu"
+		sscanf(p_entry, "%lu", &missed);
+		*/
+
+		break;
+	}
+
+endline:
+	fclose(fp);
+	netconfig_wifi_rssi = rssi_dbm;
 
 	return rssi_dbm;
 }
 
-static void __netconfig_wifi_set_rssi_level(int rssi_dbm)
+int netconfig_wifi_rssi_level(const int rssi_dbm)
 {
 	int snr_level = 0;
-	static int last_snr_level = 0;
 
 	/* Wi-Fi Signal Strength Display
 	 *
@@ -211,65 +155,190 @@ static void __netconfig_wifi_set_rssi_level(int rssi_dbm)
 	else
 		snr_level = 1;
 
+	return snr_level;
+}
+
+static void __netconfig_wifi_set_rssi_level(const int snr_level)
+{
+	static int last_snr_level = 0;
+
 	if (snr_level != last_snr_level) {
-		INFO("Wi-Fi RSSI: %d dB, %d level", rssi_dbm, snr_level);
-
-		vconf_set_int(VCONFKEY_WIFI_STRENGTH, snr_level);
-
+		netconfig_set_vconf_int(VCONFKEY_WIFI_STRENGTH, snr_level);
 		last_snr_level = snr_level;
+	}
+}
+
+static void __netconfig_wifi_data_activity_booster(int level)
+{
+	gboolean reply = FALSE;
+	GVariant *params = NULL;
+	int level1 = 1;
+	int level2 = 2;
+	int level3 = 3;
+
+	int lock = 2000;
+	int unlock = 0;
+
+	static int old_level = 0;
+
+	if (level < 0)
+		return;
+
+	if (level > 0) {
+		/* enable booster */
+		switch(level) {
+		case 1:
+			params = g_variant_new("(ii)", level1, lock);
+			break;
+		case 2:
+			params = g_variant_new("(ii)", level2, lock);
+			break;
+		case 3:
+			params = g_variant_new("(ii)", level3, lock);
+			break;
+		default:
+			ERR("Invalid level");
+			return;
+		}
+
+		reply = netconfig_invoke_dbus_method_nonblock(
+				"org.tizen.system.deviced",
+				"/Org/Tizen/System/DeviceD/PmQos",
+				"org.tizen.system.deviced.PmQos",
+				"WifiThroughput",
+				params,
+				NULL);
+		if (reply != TRUE)
+			return;
+	}
+
+	/* disable previous booster */
+	if (old_level == 0 || old_level == level)
+		return;
+
+	switch(old_level) {
+	case 1:
+		params = g_variant_new("(ii)", level1, unlock);
+		break;
+	case 2:
+		params = g_variant_new("(ii)", level2, unlock);
+		break;
+	case 3:
+		params = g_variant_new("(ii)", level3, unlock);
+		break;
+	default:
+		ERR("Invalid level");
+		return;
+	}
+
+	reply = netconfig_invoke_dbus_method_nonblock(
+			"org.tizen.system.deviced",
+			"/Org/Tizen/System/DeviceD/PmQos",
+			"org.tizen.system.deviced.PmQos",
+			"WifiThroughput",
+			params,
+			NULL);
+	if (reply != TRUE)
+		return;
+
+	old_level = level;
+}
+
+static void __netconfig_wifi_update_indicator(void)
+{
+	static int last_transfer_state = 0;
+	static guint64 netconfig_wifi_tx_bytes = 0;
+	static guint64 netconfig_wifi_rx_bytes = 0;
+	static int booster_tic = 0;
+	static int old_level = 0;
+	int booster_level = 0;
+	guint64 tx, rx, tx_diff, rx_diff;
+	int transfer_state;
+
+	if (netconfig_wifi_get_bytes_statistics(&tx, &rx) == TRUE) {
+		tx_diff = tx - netconfig_wifi_tx_bytes;
+		rx_diff = rx - netconfig_wifi_rx_bytes;
+
+		if (tx_diff > 0) {
+			if (rx_diff > 0)
+				transfer_state = VCONFKEY_WIFI_TRANSFER_STATE_TXRX;
+			else
+				transfer_state = VCONFKEY_WIFI_TRANSFER_STATE_TX;
+		} else {
+			if (rx_diff > 0)
+				transfer_state = VCONFKEY_WIFI_TRANSFER_STATE_RX;
+			else
+				transfer_state = VCONFKEY_WIFI_TRANSFER_STATE_NONE;
+		}
+
+		if (transfer_state != last_transfer_state) {
+			netconfig_set_vconf_int(VCONFKEY_WIFI_TRANSFER_STATE,
+										transfer_state);
+			last_transfer_state = transfer_state;
+		}
+
+		/* NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER */
+		if (tx_diff >= NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL1 ||
+			rx_diff >= NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL1)
+			booster_level = 1;
+		else if (tx_diff >= NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL2 ||
+				rx_diff >= NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL2)
+			booster_level = 2;
+		else if (tx_diff >= NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL3 ||
+				rx_diff >= NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL3)
+			booster_level = 3;
+
+		if (old_level == booster_level) {
+			if (--booster_tic <= 0) {
+				__netconfig_wifi_data_activity_booster(booster_level);
+
+				booster_tic = 2;
+			}
+		} else {
+			__netconfig_wifi_data_activity_booster(booster_level);
+
+			if (booster_level > 0)
+				booster_tic = 2;
+			else
+				booster_tic = 0;
+		}
+
+		old_level = booster_level;
+
+		netconfig_wifi_tx_bytes = tx;
+		netconfig_wifi_rx_bytes = rx;
 	}
 }
 
 static gboolean __netconfig_wifi_indicator_monitor(gpointer data)
 {
 	int rssi_dbm = 0;
+	int snr_level = 0;
 	int pm_state = VCONFKEY_PM_STATE_NORMAL;
-	guint64 tx = 0, rx = 0;
+
+	if (netconfig_wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED)
+		return FALSE;
 
 	/* In case of LCD off, we don't need to update Wi-Fi indicator */
 	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
 	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
 		return TRUE;
 
-	rssi_dbm = netconfig_wifi_get_rssi();
+	rssi_dbm = __netconfig_wifi_update_and_get_rssi();
+	//INFO("%d dbm", rssi_dbm);
+	snr_level = netconfig_wifi_rssi_level(rssi_dbm);
+	__netconfig_wifi_set_rssi_level(snr_level);
 
-	if (netconfig_wifi_get_bytes_statistics(&tx, &rx) == TRUE) {
-		if (netconfig_wifi_tx_bytes < tx) {
-			if (netconfig_wifi_rx_bytes < rx)
-				vconf_set_int(VCONFKEY_WIFI_TRANSFER_STATE, VCONFKEY_WIFI_TRANSFER_STATE_TXRX);
-			else
-				vconf_set_int(VCONFKEY_WIFI_TRANSFER_STATE, VCONFKEY_WIFI_TRANSFER_STATE_TX);
-		} else {
-			if (netconfig_wifi_rx_bytes < rx)
-				vconf_set_int(VCONFKEY_WIFI_TRANSFER_STATE, VCONFKEY_WIFI_TRANSFER_STATE_RX);
-			else
-				vconf_set_int(VCONFKEY_WIFI_TRANSFER_STATE, VCONFKEY_WIFI_TRANSFER_STATE_NONE);
-		}
-
-		netconfig_wifi_tx_bytes = tx;
-		netconfig_wifi_rx_bytes = rx;
-	}
-
-	__netconfig_wifi_set_rssi_level(rssi_dbm);
+	__netconfig_wifi_update_indicator();
 
 	return TRUE;
 }
 
 void netconfig_wifi_indicator_start(void)
 {
-	guint64 tx = 0, rx = 0;
-
 	INFO("Start Wi-Fi indicator");
 
-	vconf_set_int(VCONFKEY_WIFI_STRENGTH, VCONFKEY_WIFI_STRENGTH_MAX);
-
-	if (netconfig_wifi_get_bytes_statistics(&tx, &rx) == TRUE) {
-		netconfig_wifi_tx_bytes = tx;
-		netconfig_wifi_rx_bytes = rx;
-	} else {
-		netconfig_wifi_tx_bytes = 0;
-		netconfig_wifi_rx_bytes = 0;
-	}
+	netconfig_set_vconf_int(VCONFKEY_WIFI_STRENGTH, VCONFKEY_WIFI_STRENGTH_MAX);
 
 	netconfig_start_timer_seconds(
 			NETCONFIG_WIFI_INDICATOR_INTERVAL,
@@ -282,7 +351,7 @@ void netconfig_wifi_indicator_stop(void)
 {
 	INFO("Stop Wi-Fi indicator");
 
-	vconf_set_int(VCONFKEY_WIFI_STRENGTH, VCONFKEY_WIFI_STRENGTH_MAX);
-
 	netconfig_stop_timer(&netconfig_wifi_indicator_timer);
+
+	netconfig_wifi_rssi = VCONFKEY_WIFI_SNR_MIN;
 }

@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,6 @@
 
 #include "log.h"
 #include "netdbus.h"
-#include "netconfig.h"
-
-#define NETCONFIG_DBUS_REPLY_TIMEOUT (10 * 1000)
 
 #define DBUS_PARAM_TYPE_STRING		"string"
 #define DBUS_PARAM_TYPE_INT16		"int16"
@@ -41,240 +38,100 @@
 #define DBUS_PARAM_TYPE_VARIANT		"variant"
 #define DBUS_PARAM_TYPE_ARRAY		"array"
 
+static GDBusObjectManagerServer *manager_server_wifi = NULL;
+static GDBusObjectManagerServer *manager_server_state = NULL;
+static GDBusObjectManagerServer *manager_server_statistics = NULL;
+static guint owner_id = 0;
+static netconfig_got_name_cb g_callback = NULL;
 
-static gboolean __netconfig_dbus_append_param_variant(
-		DBusMessageIter *iter, char *type, char *param)
+struct gdbus_conn_data {
+	GDBusConnection *connection;
+	int conn_ref_count;
+	GCancellable *cancellable;
+};
+
+static struct gdbus_conn_data gconn_data = {NULL, 0, NULL};
+
+GDBusObjectManagerServer *netconfig_get_wifi_manager(void)
 {
-	DBusMessageIter value, array;
-	char *args = NULL, *ch = NULL;
-	dbus_bool_t b_value = FALSE;
-
-	if (strcmp(type, DBUS_PARAM_TYPE_STRING) == 0) {
-		dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
-				DBUS_TYPE_STRING_AS_STRING, &value);
-
-		dbus_message_iter_append_basic(&value, DBUS_TYPE_STRING, &param);
-
-		dbus_message_iter_close_container(iter, &value);
-	} else if (strcmp(type, DBUS_PARAM_TYPE_BOOLEAN) == 0) {
-		if (strcmp(param, "true") == 0) {
-			b_value = TRUE;
-			dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
-					DBUS_TYPE_BOOLEAN_AS_STRING, &value);
-			dbus_message_iter_append_basic(&value,
-					DBUS_TYPE_BOOLEAN, &b_value);
-			dbus_message_iter_close_container(iter, &value);
-		} else if (strcmp(param, "false") == 0) {
-			b_value = FALSE;
-			dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
-					DBUS_TYPE_BOOLEAN_AS_STRING, &value);
-			dbus_message_iter_append_basic(&value,
-					DBUS_TYPE_BOOLEAN, &b_value);
-			dbus_message_iter_close_container(iter, &value);
-		} else {
-			ERR("Error!!! Expected \"true\" or"
-				"\"false\" instead of \"%s\"", ch);
-			return FALSE;
-		}
-	} else if (strcmp(type, DBUS_PARAM_TYPE_OBJECT_PATH) == 0) {
-		dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
-				DBUS_TYPE_OBJECT_PATH_AS_STRING, &value);
-
-		dbus_message_iter_append_basic(&value, DBUS_TYPE_OBJECT_PATH, &param);
-
-		dbus_message_iter_close_container(iter, &value);
-	} else if (strcmp(type, DBUS_PARAM_TYPE_ARRAY) == 0) {
-		args = param;
-		ch = strchr(args, ':');
-		if (ch == NULL) {
-			ERR("Error!!! Invalid data format[\"%s\"]", args);
-			return FALSE;
-		}
-		*ch = 0; ch++;
-
-		if (strcmp(args, DBUS_PARAM_TYPE_STRING) == 0) {
-			dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
-					DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_STRING_AS_STRING,
-					&value);
-
-			dbus_message_iter_open_container(&value, DBUS_TYPE_ARRAY,
-					DBUS_TYPE_STRING_AS_STRING, &array);
-
-			dbus_message_iter_append_basic(&array, DBUS_TYPE_STRING, &ch);
-
-			dbus_message_iter_close_container(&value, &array);
-
-			dbus_message_iter_close_container(iter, &value);
-		} else if (strcmp(args, DBUS_PARAM_TYPE_OBJECT_PATH) == 0) {
-			dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT,
-					DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_OBJECT_PATH_AS_STRING,
-					&value);
-
-			dbus_message_iter_open_container(&value, DBUS_TYPE_ARRAY,
-					DBUS_TYPE_OBJECT_PATH_AS_STRING, &array);
-
-			dbus_message_iter_append_basic(&array, DBUS_TYPE_OBJECT_PATH, &ch);
-
-			dbus_message_iter_close_container(&value, &array);
-
-			dbus_message_iter_close_container(iter, &value);
-		} else {
-			ERR("Error!!! Not supported data format[\"%s\"]", args);
-			return FALSE;
-		}
-	} else {
-		ERR("Error!!! Not supported data format[\"%s\"]", args);
-		return FALSE;
-	}
-
-	return TRUE;
+	return manager_server_wifi;
 }
 
-static gboolean __netconfig_dbus_append_param(
-		DBusMessage *message, char *param_array[])
+GDBusObjectManagerServer *netconfig_get_state_manager(void)
 {
-	int count = 0;
-	dbus_uint32_t uint32 = 0;
-	DBusMessageIter iter;
-	char *args = NULL, *ch = NULL;
-
-	if (param_array == NULL)
-		return TRUE;
-
-	dbus_message_iter_init_append(message, &iter);
-
-	while (param_array[count] != NULL) {
-		args = param_array[count];
-		DBG("parameter %d - [%s]", count, param_array[count]);
-
-		ch = strchr(args, ':');
-		if (ch == NULL) {
-			ERR("Error!!! Invalid parameter[\"%s\"]\n", args);
-			return FALSE;
-		}
-		*ch = 0; ch++;
-
-		if (strcmp(args, DBUS_PARAM_TYPE_STRING) == 0) {
-			dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &ch);
-		} else if (strcmp(args, DBUS_PARAM_TYPE_UINT32) == 0) {
-			uint32 = strtoul(ch, NULL, 0);
-			dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT32, &uint32);
-		} else if (strcmp(args, DBUS_PARAM_TYPE_VARIANT) == 0) {
-			args = ch;
-			ch = strchr(args, ':');
-			if (ch == NULL) {
-				ERR("Error!!! Invalid data format[\"%s\"]\n", args);
-				return FALSE;
-			}
-			*ch = 0; ch++;
-
-			if (__netconfig_dbus_append_param_variant(&iter, args, ch) != TRUE)
-				return FALSE;
-
-		} else if (strcmp(args, DBUS_PARAM_TYPE_OBJECT_PATH) == 0) {
-			dbus_message_iter_append_basic(&iter, DBUS_TYPE_OBJECT_PATH, &ch);
-		} else {
-			ERR("Error!!! Not supported data format[\"%s\"]", args);
-			return FALSE;
-		}
-
-		count++;
-	}
-
-	return TRUE;
+	return manager_server_state;
 }
 
-gboolean netconfig_dbus_get_basic_params_string(DBusMessage *message,
-		char **key, int type, void *value)
+GDBusObjectManagerServer *netconfig_get_statistics_manager(void)
 {
-	DBusMessageIter iter, iter_variant;
-
-	dbus_message_iter_init(message, &iter);
-	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&iter));
-		return FALSE;
-	}
-
-	dbus_message_iter_get_basic(&iter, key);
-
-	if (value == NULL)
-		return TRUE;
-
-	dbus_message_iter_next(&iter);
-	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_VARIANT) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&iter));
-		return TRUE;
-	}
-
-	dbus_message_iter_recurse(&iter, &iter_variant);
-	if (dbus_message_iter_get_arg_type(&iter_variant) != type)
-		return FALSE;
-
-	dbus_message_iter_get_basic(&iter_variant, value);
-
-	return TRUE;
+	return manager_server_statistics;
 }
 
-gboolean netconfig_dbus_get_basic_params_array(DBusMessage *message,
-		char **key, void **value)
+GDBusConnection *netconfig_gdbus_get_connection(void)
 {
-	DBusMessageIter args, dict, entry, variant;
-	int type = 0;
+	return gconn_data.connection;
+}
 
-	if (key == NULL)
-		return FALSE;
+GCancellable *netconfig_gdbus_get_gdbus_cancellable(void)
+{
+	return gconn_data.cancellable;
+}
 
-	/* read parameters */
-	if (dbus_message_iter_init(message, &args) == FALSE) {
-		DBG("Message does not have parameters");
-		return FALSE;
+void netconfig_gdbus_pending_call_ref(void)
+{
+	g_object_ref(gconn_data.connection);
+
+	__sync_fetch_and_add(&gconn_data.conn_ref_count, 1);
+}
+
+void netconfig_gdbus_pending_call_unref(void)
+{
+	if (gconn_data.conn_ref_count < 1)
+		return;
+
+	g_object_unref(gconn_data.connection);
+
+	if (__sync_sub_and_fetch(&gconn_data.conn_ref_count, 1) < 1) {
+		/* TODO: Check this
+		 * gconn_data.connection = NULL;
+		 */
+	}
+}
+
+int netconfig_create_gdbus_call(GDBusConnection *conn)
+{
+	if (gconn_data.connection != NULL) {
+		ERR("Connection already set");
+		return -1;
 	}
 
-	if (dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_ARRAY) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&args));
+	gconn_data.connection = conn;
+	if (gconn_data.connection == NULL) {
+		ERR("Failed to connect to the D-BUS daemon");
+		return -1;
+	}
+
+	gconn_data.cancellable = g_cancellable_new();
+
+	return 0;
+}
+
+gboolean netconfig_is_cellular_internet_profile(const char *profile)
+{
+	const char internet_suffix[] = "_1";
+	char *suffix = NULL;
+
+	if (profile == NULL)
 		return FALSE;
+
+	if (g_str_has_prefix(profile, CONNMAN_CELLULAR_SERVICE_PROFILE_PREFIX)
+			== TRUE) {
+		suffix = strrchr(profile, '_');
+		if (g_strcmp0(suffix, internet_suffix) == 0)
+			return TRUE;
 	}
 
-	dbus_message_iter_recurse(&args, &dict);
-
-	if (dbus_message_iter_get_arg_type(&dict) != DBUS_TYPE_DICT_ENTRY) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&dict));
-		return FALSE;
-	}
-
-	dbus_message_iter_recurse(&dict, &entry);
-
-	if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_STRING) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&entry));
-		return FALSE;
-	}
-
-	dbus_message_iter_get_basic(&entry, key);
-
-	if (value == NULL)
-		return TRUE;
-
-	dbus_message_iter_next(&entry);
-
-	if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_VARIANT) {
-		DBG("Argument type %d", dbus_message_iter_get_arg_type(&entry));
-		return TRUE;
-	}
-
-	dbus_message_iter_recurse(&entry, &variant);
-
-	type = dbus_message_iter_get_arg_type(&variant);
-	if (type == DBUS_TYPE_STRING)
-		dbus_message_iter_get_basic(&variant, value);
-	else if (type == DBUS_TYPE_BYTE || type == DBUS_TYPE_BOOLEAN ||
-			type == DBUS_TYPE_INT16 || type == DBUS_TYPE_UINT16 ||
-			type == DBUS_TYPE_INT32 || type == DBUS_TYPE_UINT32 ||
-			type == DBUS_TYPE_DOUBLE)
-		dbus_message_iter_get_basic(&variant, *value);
-	else
-		DBG("Argument type %d", type);
-
-	return TRUE;
+	return FALSE;
 }
 
 gboolean netconfig_is_cellular_profile(const char *profile)
@@ -309,218 +166,150 @@ gboolean netconfig_is_bluetooth_profile(const char *profile)
 	return g_str_has_prefix(profile, CONNMAN_BLUETOOTH_SERVICE_PROFILE_PREFIX);
 }
 
-gboolean netconfig_invoke_dbus_method_nonblock(
-		const char *dest, const char *path,
-		const char *interface_name, const char *method, char *param_array[],
-		DBusPendingCallNotifyFunction notify_func)
+gboolean netconfig_invoke_dbus_method_nonblock(const char *dest, const char *path,
+		const char *interface_name, const char *method, GVariant *params,
+		GAsyncReadyCallback notify_func)
 {
-	dbus_bool_t result;
-	DBusPendingCall *call;
-	DBusMessage *message = NULL;
-	DBusConnection *connection = NULL;
+	GDBusConnection *connection = NULL;
 
-	DBG("[DBUS Async] %s %s %s", interface_name, method, path);
+	DBG("[GDBUS Async] %s %s %s", interface_name, method, path);
 
-	connection = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
+	connection = netconfig_gdbus_get_connection();
 	if (connection == NULL) {
-		ERR("Failed to get system bus");
-
+		ERR("Failed to get gdbus connection");
 		return FALSE;
 	}
 
-	message = dbus_message_new_method_call(dest, path, interface_name, method);
-	if (message == NULL) {
-		ERR("Failed DBus method call");
+	g_dbus_connection_call(connection,
+			dest,
+			path,
+			interface_name,
+			method,
+			params,
+			NULL,
+			G_DBUS_CALL_FLAGS_NONE,
+			NETCONFIG_DBUS_REPLY_TIMEOUT,
+			netconfig_gdbus_get_gdbus_cancellable(),
+			(GAsyncReadyCallback) notify_func,
+			NULL);
 
-		dbus_connection_unref(connection);
-
-		return FALSE;
-	}
-
-	if (__netconfig_dbus_append_param(message, param_array) == FALSE) {
-		ERR("Failed to append DBus params");
-
-		dbus_message_unref(message);
-		dbus_connection_unref(connection);
-
-		return FALSE;
-	}
-
-	result = dbus_connection_send_with_reply(connection, message, &call,
-			NETCONFIG_DBUS_REPLY_TIMEOUT);
-
-	if (result != TRUE || call == NULL) {
-		ERR("dbus_connection_send_with_reply() failed.");
-
-		dbus_message_unref(message);
-		dbus_connection_unref(connection);
-
-		return FALSE;
-	}
-
-	if (notify_func == NULL)
-		dbus_pending_call_cancel(call);
-	else
-		dbus_pending_call_set_notify(call, notify_func, NULL, NULL);
-
-	dbus_message_unref(message);
-	dbus_connection_unref(connection);
+	if (notify_func != NULL)
+		netconfig_gdbus_pending_call_ref();
 
 	return TRUE;
 }
 
-DBusMessage *netconfig_invoke_dbus_method(const char *dest, const char *path,
-		const char *interface_name, const char *method, char *param_array[])
+GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
+		const char *interface_name, const char *method, GVariant *params)
 {
-	DBusError error;
-	DBusConnection *conn = NULL;
-	DBusMessage *reply = NULL;
-	DBusMessage *message = NULL;
 
-	DBG("[DBUS Sync] %s %s %s", interface_name, method, path);
+	GError *error = NULL;
+	GVariant *reply = NULL;
+	GDBusConnection *connection;
 
-	conn = dbus_bus_get(DBUS_BUS_SYSTEM, NULL);
-	if (conn == NULL) {
-		ERR("Failed to get system bus");
-
-		return NULL;
+	connection = netconfig_gdbus_get_connection();
+	if (connection == NULL) {
+		ERR("Failed to get GDBusconnection");
+		return reply;
 	}
 
-	message = dbus_message_new_method_call(dest, path, interface_name, method);
-	if (message == NULL) {
-		ERR("Error!!! Failed to GetProperties");
-
-		dbus_connection_unref(conn);
-
-		return NULL;
-	}
-
-	if (__netconfig_dbus_append_param(message, param_array) == FALSE) {
-		ERR("Error!!! __netconfig_dbus_append_param() failed");
-
-		dbus_message_unref(message);
-		dbus_connection_unref(conn);
-
-		return NULL;
-	}
-
-	dbus_error_init(&error);
-
-	reply =	dbus_connection_send_with_reply_and_block(conn, message,
-			NETCONFIG_DBUS_REPLY_TIMEOUT, &error);
+	reply = g_dbus_connection_call_sync(
+			connection,
+			dest,
+			path,
+			interface_name,
+			method,
+			params,
+			NULL,
+			G_DBUS_CALL_FLAGS_NONE,
+			NETCONFIG_DBUS_REPLY_TIMEOUT,
+			netconfig_gdbus_get_gdbus_cancellable(),
+			&error);
 
 	if (reply == NULL) {
-		if (dbus_error_is_set(&error) == TRUE) {
-			ERR("Error!!! dbus_connection_send_with_reply_and_block() failed. "
-					"DBus error [%s: %s]", error.name, error.message);
-
-			dbus_error_free(&error);
-		} else
-			ERR("Error!!! Failed to get properties");
-
-		dbus_message_unref(message);
-		dbus_connection_unref(conn);
+		if (error != NULL) {
+			ERR("g_dbus_connection_call_sync() failed"
+						"error [%d: %s]", error->code, error->message);
+			g_error_free(error);
+		} else {
+			ERR("g_dbus_connection_call_sync() failed");
+		}
 
 		return NULL;
 	}
-
-	dbus_message_unref(message);
-	dbus_connection_unref(conn);
 
 	return reply;
 }
 
-char *netconfig_wifi_get_connected_service_name(DBusMessage *message)
+static void __netconfig_got_bus_cb(GDBusConnection *conn, const gchar *name,
+		gpointer user_data)
 {
-	int is_connected = 0;
-	char *essid_name = NULL;
-	DBusMessageIter iter, array;
-
-	dbus_message_iter_init(message, &iter);
-	dbus_message_iter_recurse(&iter, &array);
-
-	while (dbus_message_iter_get_arg_type(&array) == DBUS_TYPE_DICT_ENTRY) {
-		DBusMessageIter entry, string;
-		const char *key = NULL;
-
-		dbus_message_iter_recurse(&array, &entry);
-		dbus_message_iter_get_basic(&entry, &key);
-
-		if (g_str_equal(key, "State") == TRUE && is_connected == 0) {
-			dbus_message_iter_next(&entry);
-			dbus_message_iter_recurse(&entry, &string);
-
-			if (dbus_message_iter_get_arg_type(&string) == DBUS_TYPE_STRING) {
-				dbus_message_iter_get_basic(&string, &key);
-
-				if (g_str_equal(key, "ready") == TRUE ||
-						g_str_equal(key, "online") == TRUE)
-					is_connected = 1;
-			}
-		} else if (g_str_equal(key, "Name") == TRUE) {
-			dbus_message_iter_next(&entry);
-			dbus_message_iter_recurse(&entry, &string);
-
-			if (dbus_message_iter_get_arg_type(&string) == DBUS_TYPE_STRING) {
-				dbus_message_iter_get_basic(&string, &key);
-
-				essid_name = (char *)g_strdup(key);
-			}
-		}
-
-		dbus_message_iter_next(&array);
-	}
-
-	if (is_connected == 1 && essid_name != NULL)
-		return essid_name;
-
-	if (essid_name != NULL)
-		g_free(essid_name);
-
-	return NULL;
+	netconfig_create_gdbus_call(conn);
 }
 
-DBusGConnection *netconfig_setup_dbus(void)
+static void __netconfig_got_name_cb(GDBusConnection *conn, const gchar *name,
+		gpointer user_data)
 {
-	DBusGConnection* connection = NULL;
-	GError *error = NULL;
-	DBusGProxy *proxy;
-	guint rv = 0;
+	INFO("Got gdbus name: [%s] and gdbus connection: [%p]", name, conn);
 
-	connection = dbus_g_bus_get(DBUS_BUS_SYSTEM, &error);
-	if (connection == NULL) {
-		ERR("Fail to get DBus(%s)", error->message);
-		g_error_free(error);
+	if (g_callback != NULL) {
+		g_callback();
+	}
+}
 
-		return connection;
+static void __netconfig_lost_name_cb(GDBusConnection *conn, const gchar *name,
+		gpointer user_data)
+{
+	/* May service name is already in use */
+	ERR("Service name is already in use");
+
+	/* The result of DBus name request is only permitted,
+	 *  such as DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER.
+	 */
+	exit(2);
+}
+
+int netconfig_setup_gdbus(netconfig_got_name_cb cb)
+{
+	g_callback = cb;
+
+	manager_server_wifi = g_dbus_object_manager_server_new(
+				NETCONFIG_WIFI_PATH);
+	if (manager_server_wifi == NULL) {
+		ERR("Manager server for WIFI_PATH not created.");
+		exit(1);
 	}
 
-	INFO("Successfully get system DBus connection(%p)", connection);
-
-	proxy = dbus_g_proxy_new_for_name(connection, "org.freedesktop.DBus",
-			"/org/freedesktop/DBus",
-			"org.freedesktop.DBus");
-
-	if (!dbus_g_proxy_call(proxy, "RequestName", &error,
-			G_TYPE_STRING, NETCONFIG_SERVICE, G_TYPE_UINT, 0,
-			G_TYPE_INVALID, G_TYPE_UINT, &rv,
-			G_TYPE_INVALID)) {
-		ERR("Failed to acquire service(%s) error(%s)",
-				NETCONFIG_SERVICE, error->message);
-		g_error_free(error);
-
-		dbus_g_connection_unref(connection);
-
-		return NULL;
+	manager_server_state = g_dbus_object_manager_server_new(
+				NETCONFIG_NETWORK_STATE_PATH);
+	if (manager_server_state == NULL) {
+		ERR("Manager server for STATE_PATH not created.");
+		exit(1);
 	}
 
-	if (rv != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-		ERR("Service name is already in use");
-
-		dbus_g_connection_unref(connection);
-
-		return NULL;
+	manager_server_statistics = g_dbus_object_manager_server_new(
+				NETCONFIG_NETWORK_STATISTICS_PATH);
+	if (manager_server_statistics == NULL) {
+		ERR("Manager server for STATISTICS_PATH not created.");
+		exit(1);
 	}
 
-	return connection;
+	owner_id = g_bus_own_name(G_BUS_TYPE_SYSTEM, NETCONFIG_SERVICE,
+			G_BUS_NAME_OWNER_FLAGS_NONE, __netconfig_got_bus_cb,
+			__netconfig_got_name_cb, __netconfig_lost_name_cb,
+			NULL, NULL);
+	if (!owner_id) {
+		ERR("Could not get system bus!");
+		return -EIO;
+	}
+
+	INFO("Got system bus!");
+	return 0;
+}
+
+void netconfig_cleanup_gdbus(void)
+{
+	g_bus_unown_name (owner_id);
+
+	return;
 }

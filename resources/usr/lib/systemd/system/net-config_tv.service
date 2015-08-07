@@ -1,0 +1,12 @@
+[Unit]
+Description=Network Configuration service
+
+[Service]
+Type=dbus
+BusName=net.netconfig
+RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/net-config.service
+ExecStart=/usr/sbin/net-config
+
+[Install]
+WantedBy=multi-user.target

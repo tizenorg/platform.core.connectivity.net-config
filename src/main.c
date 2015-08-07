@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,32 +18,30 @@
  */
 
 #include <stdio.h>
-#include <systemd/sd-daemon.h>
-#include <getopt.h>
-#include <unistd.h>
-#include <signal.h>
 #include <errno.h>
-//#include <system_info.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <system_info.h>
 
 #include "log.h"
 #include "wifi.h"
-#include "util.h"
-#include "emulator.h"
 #include "netdbus.h"
+#include "emulator.h"
+#include "neterror.h"
+#include "wifi-agent.h"
+#include "wifi-power.h"
 #include "network-clock.h"
 #include "network-state.h"
-#include "network-statistics.h"
-#include "signal-handler.h"
-#include "wifi-agent.h"
 #include "network-monitor.h"
+#include "signal-handler.h"
+#include "network-statistics.h"
 
 static GMainLoop *main_loop = NULL;
 
-//#define ETHERNET_FEATURE	"http://tizen.org/feature/network.ethernet"
-static int no_fork = FALSE;
+#define ETHERNET_FEATURE       "http://tizen.org/feature/network.ethernet"
 
 /*Poll the ethernet Cable Plug-in /Plug-out status at every 1000 ms*/
-#define ETH_POLLING_TIME	1000
+#define ETH_POLLING_TIME       1000
 
 /* Callback to Poll the Ethernet Status*/
 gboolean __net_ethernet_cable_status_polling_callback(gpointer data)
@@ -52,95 +50,75 @@ gboolean __net_ethernet_cable_status_polling_callback(gpointer data)
 	return TRUE;
 }
 
-void netconfig_signal_handler_SIGTERM(int signum)
+void __netconfig_got_name_cb(void)
 {
-	g_main_loop_quit(main_loop);
-}
-
-int netconfig_register_signal_handler_SIGTERM(void)
-{
-	struct sigaction sigset;
-
-	sigemptyset(&sigset.sa_mask);
-	sigaddset( &sigset.sa_mask, SIGTERM );
-	sigset.sa_flags = 0;
-	sigset.sa_handler = netconfig_signal_handler_SIGTERM;
-
-	if (sigaction( SIGTERM, &sigset, NULL) < 0) {
-		ERR("Sigaction for SIGTERM failed [%s]", strerror( errno ));
-		return -1;
-	}
-
-	INFO( "Handler for SIGTERM ok" );
-	return 0;
-}
-
-int netconfig_test_input_parameters(int argc, char* argv[])
-{
-        struct option tab[] = {
-                { "nofork", no_argument, 0, 0 },
-                { NULL, 0, NULL, 0 }
-        };
-        int idx = 0;
-
-        while (getopt_long(argc, argv, "", tab, &idx) >= 0) {
-
-		if (idx == 0)
-			no_fork = TRUE;
-		idx = 0;
-	}
-	return 0;
-}
-
-int main(int argc, char* argv[])
-{
-	DBusGConnection *connection;
-	int check_ethernet_monitor_timer = 0;
-	//bool ethernet_feature_supported = FALSE;
-
-	DBG("Network Configuration Module");
-
-	/*
-	 * Call parameters veryfication
-	 */
-	netconfig_test_input_parameters(argc, argv);
-
-	if (!no_fork) {
-		if (daemon(0, 0) != 0)
-			DBG("Cannot start daemon");
-	}
-
-	netconfig_set_wifi_mac_address();
-
-	g_type_init();
-
-	main_loop = g_main_loop_new(NULL, FALSE);
-
-	connection = netconfig_setup_dbus();
-	if (connection == NULL)
-		return -1;
-
-	if (netconfig_network_state_create_and_init(connection) == NULL)
-		return -1;
+	netconfig_wifi_create_and_init();
+	netconfig_network_state_create_and_init();
+	netconfig_network_statistics_create_and_init();
 
 	netconfig_register_signal();
-
-	/* Registering the agent for exchanging security credentials */
 	netconfig_agent_register();
 
-	if (netconfig_wifi_create_and_init(connection) == NULL)
-		return -1;
+#if defined TIZEN_TV
+	__netconfig_set_ether_macaddr();
+#endif
+}
 
-	if (netconfig_network_statistics_create_and_init(connection) == NULL)
-		return -1;
+int main(int argc, char *argv[])
+{
+	int ret;
+	int check_ethernet_monitor_timer = 0;
+	bool ethernet_feature_supported = FALSE;
 
-	/* Register SIGCHLD signal handler function */
-	if (netconfig_register_signal_handler_SIGTERM() != 0)
-		return -1;
+	umask(0077);
+
+	DBG("Network Configuration service");
+	if (daemon(0, 0) != 0)
+		DBG("Cannot start daemon");
+
+	if (mkdir(WIFI_STORAGEDIR, S_IRUSR | S_IWUSR | S_IXUSR |
+			S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0) {
+		if (errno != EEXIST)
+			ERR("Failed to create Wi-Fi directory");
+	}
+
+	if (mkdir(WIFI_CERT_STORAGEDIR, S_IRUSR | S_IWUSR | S_IXUSR |
+			S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0) {
+		if (errno != EEXIST)
+			ERR("Failed to create cert directory");
+	}
+
+#if !GLIB_CHECK_VERSION(2,36,0)
+	g_type_init();
+#endif
+
+	main_loop = g_main_loop_new(NULL, FALSE);
+	if (main_loop == NULL) {
+		ERR("Couldn't create GMainLoop\n");
+		return 0;
+	}
+
+	ret = netconfig_setup_gdbus(__netconfig_got_name_cb);
+	if (ret > 0) {
+		ERR("_netconfig_setup_gdbus is failed\n");
+		return 0;
+	}
+
+	netconfig_error_init();
+
+#if !defined TIZEN_TELEPHONY_ENABLE
+	netconfig_clock_init();
+#endif
 
 	/* If its environment uses Emulator, network configuration is set by emulator default */
 	netconfig_emulator_test_and_start();
-/*
+
+	/*In case no emulator, set the ETH0 Mac address*/
+#if defined TIZEN_TV
+	if (netconfig_emulator_is_emulated() == FALSE)
+		__netconfig_set_ether_macaddr();
+#endif
+
 	if (!system_info_get_platform_bool(ETHERNET_FEATURE, &ethernet_feature_supported)) {
 		if (ethernet_feature_supported == TRUE) {
 			//Register the callback to check the ethernet Plug-in /Plug-out Status
@@ -151,14 +129,15 @@ int main(int argc, char* argv[])
 	} else {
 		ERR("Error - Feature getting from System Info");
 	}
-*/
-
-	// Notyfication to systemd
-	sd_notify(0, "READY=1");
 
 	g_main_loop_run(main_loop);
 
+	netconfig_cleanup_gdbus();
+
 	netconfig_deregister_signal();
+
+	netconfig_wifi_power_deinitialize();
+
 	netconfig_wifi_state_notifier_cleanup();
 
 	/*remove the Timer*/

@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,34 +24,20 @@
 extern "C" {
 #endif
 
-#include <glib-object.h>
-#include <dbus/dbus-glib.h>
-
-G_BEGIN_DECLS
-
-typedef struct NetconfigNetworkState	NetconfigNetworkState;
-typedef struct NetconfigNetworkStateClass	NetconfigNetworkStateClass;
-
-#define NETCONFIG_TYPE_NETWORK_STATE	( netconfig_network_state_get_type() )
-#define NETCONFIG_NETWORK_STATE(obj)	( G_TYPE_CHECK_INSTANCE_CAST( (obj),NETCONFIG_TYPE_NETWORK_STATE, NetconfigNetworkState ) )
-#define NETCONFIG_IS_NETWORK_STATE(obj)	(G_TYPE_CHECK_INSTANCE_TYPE( (obj), NETCONFIG_TYPE_NETWORK_STATE) )
-
-#define NETCONFIG_NETWORK_STATE_CLASS(klass)	( G_TYPE_CHECK_CLASS_CAST( (klass), NETCONFIG_TYPE_NETWORK_STATE, NetconfigNetworkStateClass) )
-#define NETCONFIG_IS_NETWORK_STATE_CLASS(klass)	( G_TYPE_CHECK_CLASS_TYPE( (klass), NETCONFIG_TYPE_NETWORK_STATE) )
-#define NETCONFIG_NETWORK_STATE_GET_CLASS(obj)	( G_TYPE_INSTANCE_GET_CLASS( (obj), NETCONFIG_TYPE_NETWORK_STATE, NetconfigNetworkStateClass ) )
-
-GType netconfig_network_state_get_type(void);
-
-gpointer netconfig_network_state_create_and_init(DBusGConnection *conn);
+void netconfig_network_state_create_and_init(void);
 void netconfig_network_notify_ethernet_cable_state(const char *key);
 
 const char *netconfig_get_default_profile(void);
+const char *netconfig_get_default_ifname(void);
 const char *netconfig_get_default_ipaddress(void);
+const char *netconfig_get_default_ipaddress6(void);
 const char *netconfig_get_default_proxy(void);
+unsigned int netconfig_get_default_frequency(void);
 const char *netconfig_wifi_get_connected_essid(const char *default_profile);
-void netconfig_set_default_profile(const char *profile);
 
-G_END_DECLS
+void netconfig_update_default(void);
+void netconfig_update_default_profile(const char *profile);
+char *netconfig_network_get_ifname(const char *profile);
 
 #ifdef __cplusplus
 }

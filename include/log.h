@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,16 +25,26 @@ extern "C" {
 #endif
 
 #include <dlog.h>
-#include <stdio.h>
 #include <string.h>
 
-#undef LOG_TAG
-#define LOG_TAG "NET_CONFIG"
+#define NETCONFIG_DEBUG_FILE (1)
 
-#define DBG(format, arg...)		LOGD(format, ## arg)
-#define INFO(format, arg...)		LOGI(format, ## arg)
-#define WARN(format, arg...)		LOGW(format, ## arg)
-#define ERR(format, arg...)		LOGE(format, ## arg)
+#define NETCONFIG_TAG		"NETCONFIG"
+
+void __netconfig_debug(const char *format, ...);
+
+#define __LOG(level, format, arg...) \
+	do { \
+		if (NETCONFIG_DEBUG_FILE) { \
+			__netconfig_debug("%s(%d) "format"\n", __FUNCTION__, __LINE__,  ## arg); \
+		} \
+		SLOG(level, NETCONFIG_TAG, format, ## arg); \
+	} while(0)
+
+#define DBG(format, arg...)	__LOG(LOG_DEBUG, format, ## arg)
+#define INFO(format, arg...)	__LOG(LOG_INFO, format, ## arg)
+#define WARN(format, arg...)	__LOG(LOG_WARN, format, ## arg)
+#define ERR(format, arg...)	__LOG(LOG_ERROR, format, ## arg)
 
 #ifdef __cplusplus
 }

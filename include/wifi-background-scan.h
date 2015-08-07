@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,16 +26,19 @@ extern "C" {
 
 #include "wifi.h"
 
-void netconfig_wifi_bgscan_start(void);
+void netconfig_wifi_bgscan_start(gboolean immediate_scan);
 void netconfig_wifi_bgscan_stop(void);
 gboolean netconfig_wifi_get_bgscan_state(void);
 
 gboolean netconfig_wifi_get_scanning(void);
 void netconfig_wifi_set_scanning(gboolean scanning);
+gboolean netconfig_wifi_is_bgscan_paused(void);
+void netconfig_wifi_set_bgscan_pause(gboolean pause);
 
-gboolean netconfig_iface_wifi_set_bgscan(NetconfigWifi *wifi, guint scan_mode, GError **error);
-void netconfig_wifi_init_bgscan();
-void netconfig_wifi_deinit_bgscan();
+gboolean handle_set_bgscan(Wifi *wifi, GDBusMethodInvocation *context, guint scan_mode);
+gboolean handle_resume_bgscan(Wifi *wifi, GDBusMethodInvocation *context);
+gboolean handle_pause_bgscan(Wifi *wifi, GDBusMethodInvocation *context);
+
 
 #ifdef __cplusplus
 }

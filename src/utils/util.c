@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,27 +17,34 @@
  *
  */
 
-#include <unistd.h>
+#include <aul.h>
+#include <app.h>
+#include <errno.h>
+#include <vconf.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
+#include <unistd.h>
 #include <net/if.h>
 #include <net/route.h>
 #include <arpa/inet.h>
-#include <vconf.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <vconf-keys.h>
-#include <wifi-direct.h>
+#include <syspopup_caller.h>
+#include <bundle.h>
+#include <bundle_internal.h>
+#include <eventsystem.h>
 
 #include "log.h"
 #include "util.h"
 #include "neterror.h"
 #include "wifi-state.h"
 
-#define WIFI_MAC_INFO_FILE	"/opt/etc/.mac.info"
-#define WIFI_MAC_INFO_LENGTH	17
-#define WIFI_DEV_NAME		"wlan0"
+#define WC_POPUP_EXTRA_DATA_KEY	"http://samsung.com/appcontrol/data/connection_type"
+
+static gboolean netconfig_device_picker_test = FALSE;
 
 GKeyFile *netconfig_keyfile_load(const char *pathname)
 {
@@ -89,8 +96,7 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 		g_error_free(error);
 	}
 
-	if (chmod(pathname, S_IRUSR | S_IWUSR) != 0)
-		DBG("Unable to change permission of %s", pathname);
+	chmod(pathname, S_IRUSR | S_IWUSR);
 
 	g_free(keydata);
 
@@ -179,15 +185,39 @@ static gboolean __netconfig_test_device_picker()
 
 static void __netconfig_pop_device_picker(void)
 {
+#if defined TIZEN_WEARABLE
+	int ret = 0;
+	app_control_h	control = NULL;
+
+	ret = app_control_create(&control);
+	if (APP_CONTROL_ERROR_NONE != ret) {
+		DBG("failed to create app control");
+		return ;
+	}
+
+	app_control_add_extra_data(control, "viewtype", "scanlist");
+
+	app_control_set_app_id(control, "org.tizen.wifi");
+	ret = app_control_send_launch_request(control, NULL, NULL);
+	if (APP_CONTROL_ERROR_NONE == ret)
+		DBG("Launch request sent successfully");
+
+	app_control_destroy(control);
+#else
+	bundle *b = NULL;
 	int wifi_ug_state = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 
-	DBG("Launch Wi-Fi device picker");
-	// TODO : display a popup
+	b = bundle_create();
 
+	DBG("Launch Wi-Fi device picker");
+	syspopup_launch("wifi-qs", b);
+
+	bundle_free(b);
+#endif
 }
 
 static gboolean __netconfig_wifi_try_device_picker(gpointer data)
@@ -222,23 +252,38 @@ static guint __netconfig_wifi_device_picker_get_timer_id(void)
 	return __netconfig_wifi_device_picker_timer_id(FALSE, -1);
 }
 
+void netconfig_wifi_enable_device_picker_test(void)
+{
+	netconfig_device_picker_test = TRUE;
+}
+
 void netconfig_wifi_device_picker_service_start(void)
 {
-	int wifi_ug_state;
 	const int NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL = 700;
-	int hotspot_wifi_state = VCONFKEY_MOBILE_HOTSPOT_WIFI_OFF;
 	guint timer_id = 0;
+
+	if (netconfig_device_picker_test == TRUE)
+		netconfig_device_picker_test = FALSE;
+	else
+		return;
+
+#if defined TIZEN_WEARABLE
+	if (aul_app_is_running("org.tizen.wifi") > 0) {
+		DBG("wifi app is running");
+		return;
+	}
+#else
+	int wifi_ug_state;
+
+	if (netconfig_device_picker_test == TRUE)
+		netconfig_device_picker_test = FALSE;
+	else
+		return;
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
-
-	/* If Wi-Fi tethering is pending on, don't show device picker UI*/
-	vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_WIFI_STATE, &hotspot_wifi_state);
-	if (hotspot_wifi_state == VCONFKEY_MOBILE_HOTSPOT_WIFI_PENDING_ON) {
-		DBG("hotspot_wifi_state %d", hotspot_wifi_state);
-		return;
-	}
+#endif
 
 	DBG("Register device picker timer with %d milliseconds",
 			NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL);
@@ -266,16 +311,21 @@ void netconfig_wifi_device_picker_service_stop(void)
 
 gboolean netconfig_is_wifi_direct_on(void)
 {
+#if defined TIZEN_P2P_ENABLE
 	int wifi_direct_state = 0;
 
 	vconf_get_int(VCONFKEY_WIFI_DIRECT_STATE, &wifi_direct_state);
 
 	DBG("Wi-Fi direct mode %d", wifi_direct_state);
 	return (wifi_direct_state != 0) ? TRUE : FALSE;
+#else
+	return FALSE;
+#endif
 }
 
 gboolean netconfig_is_wifi_tethering_on(void)
 {
+#if defined TIZEN_TETHERING_ENABLE
 	int wifi_tethering_state = 0;
 
 	vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_MODE, &wifi_tethering_state);
@@ -283,54 +333,164 @@ gboolean netconfig_is_wifi_tethering_on(void)
 	DBG("Wi-Ti tethering mode %d", wifi_tethering_state);
 	if (wifi_tethering_state & VCONFKEY_MOBILE_HOTSPOT_MODE_WIFI)
 		return TRUE;
-
+#endif
 	return FALSE;
 }
 
-/* args[] and env[] should be terminated with NULL pointer */
-gboolean netconfig_execute_file(const char *file_path,
-		char *const args[], char *const env[])
+gboolean netconfig_interface_up(const char *ifname)
+{
+	int fd;
+	struct ifreq ifr;
+
+	fd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (fd < 0)
+		return FALSE;
+
+	memset(&ifr, 0, sizeof(ifr));
+	g_strlcpy((char *)ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+	if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	ifr.ifr_flags |= (IFF_UP | IFF_DYNAMIC);
+	if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	close(fd);
+
+	DBG("Successfully activated wireless interface");
+	return TRUE;
+}
+
+gboolean netconfig_interface_down(const char *ifname)
+{
+	int fd;
+	struct ifreq ifr;
+
+	fd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (fd < 0)
+		return FALSE;
+
+	memset(&ifr, 0, sizeof(ifr));
+	g_strlcpy((char *)ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+	if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	ifr.ifr_flags = (ifr.ifr_flags & ~IFF_UP) | IFF_DYNAMIC;
+	if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0) {
+		close(fd);
+		return FALSE;
+	}
+
+	close(fd);
+
+	DBG("Successfully de-activated wireless interface");
+	return TRUE;
+}
+
+int netconfig_execute_file(const char *file_path,
+		char *const args[], char *const envs[])
+{
+	pid_t pid = 0;
+	int status = 0;
+	int rv = 0;
+	errno = 0;
+	register unsigned int index = 0;
+
+	while (args[index] != NULL) {
+		DBG("%s", args[index]);
+		index++;
+	}
+
+	if (!(pid = fork())) {
+		DBG("pid(%d), ppid (%d)", getpid(), getppid());
+		DBG("Inside child, exec (%s) command", file_path);
+
+		errno = 0;
+		if (execve(file_path, args, envs) == -1) {
+			DBG("Fail to execute command (%s)", strerror(errno));
+			exit(1);
+		}
+	} else if (pid > 0) {
+		if (waitpid(pid, &status, 0) == -1)
+			DBG("wait pid (%u) status (%d)", pid, status);
+
+		if (WIFEXITED(status)) {
+			rv = WEXITSTATUS(status);
+			DBG("exited, status=%d", rv);
+		} else if (WIFSIGNALED(status)) {
+			DBG("killed by signal %d", WTERMSIG(status));
+		} else if (WIFSTOPPED(status)) {
+			DBG("stopped by signal %d", WSTOPSIG(status));
+		} else if (WIFCONTINUED(status)) {
+			DBG("continued");
+		}
+
+		return rv;
+	}
+
+	DBG("failed to fork(%s)", strerror(errno));
+	return -EIO;
+}
+
+static void on_clat_handler()
+{
+	pid_t clat_pid = 0;
+	int state = 0;
+
+	clat_pid = waitpid(-1, &state, WNOHANG);
+
+	DBG("clat(%d) state(%d)", clat_pid, WEXITSTATUS(state));
+}
+
+int netconfig_execute_clatd(const char *file_path, char *const args[])
 {
 	pid_t pid = 0;
 	int rv = 0;
 	errno = 0;
+	register unsigned int index = 0;
 
-	if (!(pid = fork())) {
-		register unsigned int index = 0;
-		INFO("pid(%d), ppid (%d)", getpid(), getppid());
-		INFO("Inside child, exec (%s) command", file_path);
+	struct sigaction act;
+	int state = 0;
 
-		index = 0;
-		while (args[index] != NULL) {
-			INFO(" %s", args[index]);
-			index++;
-		}
+	act.sa_handler = on_clat_handler;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
 
-		errno = 0;
-		if (execve(file_path, args, env) == -1) {
-			DBG("Fail to execute command...(%s)",
-					strerror(errno));
-			return FALSE;
-		}
-	} else if (pid > 0) {
-		if (waitpid(pid, &rv, 0) == -1) {
-			DBG("wait pid (%u) rv (%d)", pid, rv);
-
-			if (WIFEXITED(rv)) {
-				DBG("exited, rv=%d", WEXITSTATUS(rv));
-			} else if (WIFSIGNALED(rv)) {
-				DBG("killed by signal %d", WTERMSIG(rv));
-			} else if (WIFSTOPPED(rv)) {
-				DBG("stopped by signal %d", WSTOPSIG(rv));
-			} else if (WIFCONTINUED(rv)) {
-				DBG("continued");
-			}
-		}
-		return TRUE;
+	state = sigaction(SIGCHLD, &act, 0);
+	if (state != 0) {
+		DBG("sigaction() : %d");
+		return -1;
 	}
 
-	DBG("failed to fork()...(%s)", strerror(errno));
-	return FALSE;
+	while (args[index] != NULL) {
+		DBG("%s", args[index]);
+		index++;
+	}
+
+	if (!(pid = fork())) {
+		DBG("pid(%d), ppid (%d)", getpid(), getppid());
+		DBG("Inside child, exec (%s) command", file_path);
+
+		errno = 0;
+		if (execvp(file_path, args) == -1) {
+			ERR("Fail to execute command (%s)", strerror(errno));
+			return -1;
+		}
+	} else if (pid > 0) {
+		ERR("Success to launch clatd");
+		return rv;
+	}
+
+	DBG("failed to fork(%s)", strerror(errno));
+	return -EIO;
 }
 
 int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len)
@@ -369,7 +529,7 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	if (interface) {
 		struct ifreq ifr;
 		memset(&ifr, 0, sizeof(ifr));
-		strcpy(ifr.ifr_name, interface);
+		strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name)-1);
 		ioctl(fd, SIOCGIFINDEX, &ifr);
 		rt.rtmsg_ifindex = ifr.ifr_ifindex;
 	}
@@ -421,7 +581,7 @@ int netconfig_del_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	if (interface) {
 		struct ifreq ifr;
 		memset(&ifr, 0, sizeof(ifr));
-		strcpy(ifr.ifr_name, interface);
+		strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name)-1);
 		ioctl(fd, SIOCGIFINDEX, &ifr);
 		rt.rtmsg_ifindex = ifr.ifr_ifindex;
 	}
@@ -437,170 +597,251 @@ int netconfig_del_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	return 1;
 }
 
-gboolean netconfig_iface_wifi_launch_direct(NetconfigWifi *wifi, GError **error)
+gboolean handle_launch_direct(Wifi *wifi, GDBusMethodInvocation *context)
 {
-	gboolean ret = TRUE;
-
+#if defined TIZEN_P2P_ENABLE
+	int ret = 0;
 	DBG("Launch Wi-Fi direct daemon");
 
 	const char *path = "/usr/bin/wifi-direct-server.sh";
-	char *const args[] = { "wifi-direct-server.sh", "start", NULL};
-	char *const env[] = { NULL };
+	char *const args[] = { "wifi-direct-server.sh", "start", NULL };
+	char *const envs[] = { NULL };
 
-	ret = netconfig_execute_file(path, args, env);
-
-	if (ret != TRUE) {
-		INFO("Failed to launch Wi-Fi direct daemon");
-
-		netconfig_error_wifi_direct_failed(error);
+	ret = netconfig_execute_file(path, args, envs);
+	if (ret < 0) {
+		ERR("Failed to launch Wi-Fi direct daemon");
+		netconfig_error_wifi_direct_failed(context);
+		return FALSE;
 	}
+	wifi_complete_launch_direct(wifi, context);
+	return TRUE;
+#else
+	wifi_complete_launch_direct(wifi, context);
+	return FALSE;
+#endif
+}
+
+gboolean netconfig_send_notification_to_net_popup(const char * noti, const char * ssid)
+{
+	int ret = 0;
+	bundle *b;
+	static gboolean is_found_noti_exists = FALSE;
+	static gboolean is_portal_noti_exists = FALSE;
+
+	if (noti == NULL) {
+		ERR("Invalid notification");
+		return FALSE;
+	}
+
+	if (g_strcmp0(noti, NETCONFIG_DEL_FOUND_AP_NOTI) == 0) {
+		if (is_found_noti_exists == FALSE)
+			return TRUE;
+
+		is_found_noti_exists = FALSE;
+	} else if (g_strcmp0(noti, NETCONFIG_ADD_FOUND_AP_NOTI) == 0) {
+		if (is_found_noti_exists == TRUE)
+			return TRUE;
+
+		is_found_noti_exists = TRUE;
+	} else if (g_strcmp0(noti, NETCONFIG_ADD_PORTAL_NOTI) == 0) {
+		if (is_portal_noti_exists == TRUE)
+			return TRUE;
+
+		is_portal_noti_exists = TRUE;
+	} else if (g_strcmp0(noti, NETCONFIG_DEL_PORTAL_NOTI) == 0) {
+		if (is_portal_noti_exists == FALSE)
+			return TRUE;
+
+		is_portal_noti_exists = FALSE;
+	}
+
+	b = bundle_create();
+	bundle_add(b, "_SYSPOPUP_TYPE_", noti);
+
+	if (ssid != NULL) {
+		DBG("ssid (%s)", ssid);
+		bundle_add(b, "_AP_NAME_", ssid);
+	}
+
+	ret = aul_launch_app("net.netpopup", b);
+
+	bundle_free(b);
+
+	if (ret < 0) {
+		ERR("Unable to launch noti-popup. Err = %d", ret);
+		return FALSE;
+	}
+
+	DBG("Successfully sent notification (%s)", noti);
+	return TRUE;
+}
+
+int netconfig_send_message_to_net_popup(const char *title,
+		const char *content, const char *type, const char *ssid)
+{
+	int ret = 0;
+	bundle *b = bundle_create();
+
+	bundle_add(b, "_SYSPOPUP_TITLE_", title);
+	bundle_add(b, "_SYSPOPUP_CONTENT_", content);
+	bundle_add(b, "_SYSPOPUP_TYPE_", type);
+	bundle_add(b, "_AP_NAME_", ssid);
+
+	ret = aul_launch_app("net.netpopup", b);
+
+	bundle_free(b);
 
 	return ret;
 }
 
-void netconfig_add_wifi_found_notification(void)
+void netconfig_set_system_event(const char * sys_evt, const char * evt_key, const char * evt_val)
 {
-	INFO("Add wifi found notification");
+	bundle *b = NULL;
+
+	DBG("System event set [%s : %s : %s]", sys_evt, evt_key, evt_val);
+
+	b = bundle_create();
+	bundle_add_str(b, evt_key, evt_val);
+	eventsystem_send_system_event(sys_evt, b);
+	bundle_free(b);
 }
 
-void netconfig_del_wifi_found_notification(void)
+#if defined TIZEN_WEARABLE
+int wc_launch_syspopup(netconfig_wcpopup_type_e type)
 {
-	INFO("Delete wifi found notification");
+        int ret;
+        bundle* b;
+        char *ssid = NULL;
+
+        b = bundle_create();
+        if (!b) {
+                ERR("Failed to create bundle");
+                return -1;
+        }
+
+        switch (type) {
+        case WC_POPUP_TYPE_SESSION_OVERLAPPED:
+                bundle_add(b, "event-type", "wps-session-overlapped");
+                break;
+        case WC_POPUP_TYPE_WIFI_CONNECTED:
+                ssid = vconf_get_str(VCONFKEY_WIFI_CONNECTED_AP_NAME);
+                if (ssid == NULL) {
+                        ERR("Failed to get connected ap ssid");
+                        ssid = g_strdup(" ");
+                }
+                bundle_add(b, "event-type", "wifi-connected");
+                bundle_add(b, "ssid", ssid);
+                if (ssid)
+                        g_free(ssid);
+                break;
+        case WC_POPUP_TYPE_WIFI_RESTRICT:
+				bundle_add(b, "event-type", "wifi-restrict");
+				break;
+        default:
+                ERR("Popup is not supported[%d]", type);
+                bundle_free(b);
+                return -1;
+        }
+
+        ret = syspopup_launch("wc-syspopup", b);
+        if (ret < 0)
+                ERR("Failed to launch syspopup");
+
+        bundle_free(b);
+
+        return ret;
 }
 
-
-void netconfig_set_wifi_mac_address(void)
+int wc_launch_popup(netconfig_wcpopup_type_e type)
 {
-	FILE *fp = NULL;
-	struct ifreq ifr;
-	int ctl_sk = -1;
-	char buf[WIFI_MAC_INFO_LENGTH + 1];
-	char *mac_info;
+	int ret;
+	app_control_h app_control = NULL;
 
-	mac_info = vconf_get_str(VCONFKEY_WIFI_BSSID_ADDRESS);
-	if (mac_info == NULL) {
-		ERR("Failed to open vconf key %s", VCONFKEY_WIFI_BSSID_ADDRESS);
+	ret = app_control_create(&app_control);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		ERR("Failed to create appcontrol[%d]", ret);
+		return -1;
 	}
 
-	INFO("%s : %s", VCONFKEY_WIFI_BSSID_ADDRESS, mac_info);
+	switch (type) {
+	case WC_POPUP_TYPE_CAPTIVE_PORTAL:
+		app_control_add_extra_data(app_control, WC_POPUP_EXTRA_DATA_KEY, "captive-portal");
+		break;
+	default:
+		ERR("Popup is not supported[%d]", type);
+		app_control_destroy(app_control);
+		return -1;
+	}
 
-	fp = fopen(WIFI_MAC_INFO_FILE, "r");
-	if (fp != NULL) {
-		if (fgets(buf, sizeof(buf), fp) == NULL) {
-			ERR("Failed to get MAC info from %s", WIFI_MAC_INFO_FILE);
-			goto done;
+	app_control_set_app_id(app_control, "com.samsung.weconn-popup");
+	ret = app_control_send_launch_request(app_control, NULL, NULL);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		DBG("failed appcontrol launch request [%d]", ret);
+		app_control_destroy(app_control);
+		return -1;
+	}
+
+	app_control_destroy(app_control);
+
+	return 0;
+}
+#endif
+
+void netconfig_set_vconf_int(const char * key, int value)
+{
+	int ret = 0;
+
+	DBG("[%s: %d]", key, value);
+
+	ret = vconf_set_int(key, value);
+	if (ret != VCONF_OK)
+		ERR("Failed to set");
+}
+
+void netconfig_set_vconf_str(const char * key, const char * value)
+{
+	int ret = 0;
+
+	DBG("[%s: %s]", key, value);
+
+	ret = vconf_set_str(key, value);
+	if (ret != VCONF_OK)
+		ERR("Failed to set");
+}
+
+char* netconfig_get_env(const char *key)
+{
+	FILE *fp;
+	char buf[256], *entry = NULL, *value = NULL, *last;
+	int len=0;
+
+	if (!key)
+		return NULL;
+
+	fp = fopen(NETCONFIG_TIZENMOBILEENV, "r");
+	if (!fp)
+		return NULL;
+
+	while (fgets(buf, sizeof(buf), fp)) {
+		entry = buf;
+		entry = strtok_r(entry, "=", &last);
+		if (entry) {
+			if (strstr(entry, key)) {
+				entry = strtok_r(NULL, "\n", &last);
+				if(entry){
+					len = strlen(entry);
+					value = (char*)malloc(len+1);
+					g_strlcpy(value, entry, len+1);
+				}
+				else{
+					value = (char*)malloc(sizeof(char));
+					g_strlcpy(value, "\n", sizeof(char));
+				}
+				break;
+			}
 		}
-
-		INFO("%s : %s", WIFI_MAC_INFO_FILE, buf);
-
-		if (strlen(buf) < WIFI_MAC_INFO_LENGTH) {
-			ERR("Failed to get MAC info from %s", WIFI_MAC_INFO_FILE);
-			goto done;
-		}
-
-		buf[WIFI_MAC_INFO_LENGTH] = '\0';
-	} else {
-		// not MAC into file use ioctl to get MAC
-		ctl_sk = socket(PF_INET,SOCK_DGRAM,0);
-		if (ctl_sk < 0 ) {
-			ERR("Failed to open socket");
-			goto done;
-		}
-
-		memset(&ifr, 0, sizeof(struct ifreq));
-		strncpy(ifr.ifr_name, WIFI_DEV_NAME, sizeof(ifr.ifr_name) - 1);
-		ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = 0;
-
-		if (ioctl(ctl_sk, SIOCGIFHWADDR, &ifr) != 0) {
-			ERR("Failed to SIOCGIFHWADDR ioctl");
-			goto done;
-		}
-
-		snprintf(buf, WIFI_MAC_INFO_LENGTH + 1,
-			 "%02x:%02x:%02x:%02x:%02x:%02x",
-			 (unsigned char)ifr.ifr_hwaddr.sa_data[0],
-			 (unsigned char)ifr.ifr_hwaddr.sa_data[1],
-			 (unsigned char)ifr.ifr_hwaddr.sa_data[2],
-			 (unsigned char)ifr.ifr_hwaddr.sa_data[3],
-			 (unsigned char)ifr.ifr_hwaddr.sa_data[4],
-			 (unsigned char)ifr.ifr_hwaddr.sa_data[5]);
-
-		INFO("%s MAC address: %s", WIFI_DEV_NAME, buf);
 	}
 
-	if (mac_info && (g_str_equal(mac_info, buf) == TRUE))
-		goto done;
-
-	if (vconf_set_str(VCONFKEY_WIFI_BSSID_ADDRESS, buf) != 0)
-		ERR("Failed to set MAC info to %s", VCONFKEY_WIFI_BSSID_ADDRESS);
-
-done:
-	g_free(mac_info);
-
-	if (fp != NULL) {
-		fclose(fp);
-	}
-
-	if (ctl_sk >= 0) {
-		close(ctl_sk);
-	}
+	fclose(fp);
+	return value;
 }
-
-gboolean netconfig_interface_up(const char *ifname)
-{
-	int fd;
-	struct ifreq ifr;
-
-	fd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-	if (fd < 0)
-		return FALSE;
-
-	memset(&ifr, 0, sizeof(ifr));
-	g_strlcpy((char *)ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-
-	if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
-		close(fd);
-		return FALSE;
-	}
-
-	ifr.ifr_flags |= (IFF_UP | IFF_DYNAMIC);
-	if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0) {
-		close(fd);
-		return FALSE;
-	}
-
-	close(fd);
-
-	INFO("Successfully activated wireless interface");
-	return TRUE;
-}
-
-gboolean netconfig_interface_down(const char *ifname)
-{
-	int fd;
-	struct ifreq ifr;
-
-	fd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-	if (fd < 0)
-		return FALSE;
-
-	memset(&ifr, 0, sizeof(ifr));
-	g_strlcpy((char *)ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-
-	if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
-		close(fd);
-		return FALSE;
-	}
-
-	ifr.ifr_flags = (ifr.ifr_flags & ~IFF_UP) | IFF_DYNAMIC;
-	if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0) {
-		close(fd);
-		return FALSE;
-	}
-
-	close(fd);
-
-	DBG("Successfully de-activated wireless interface");
-	return TRUE;
-}
-

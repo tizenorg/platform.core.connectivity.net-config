@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,23 @@
  * limitations under the License.
  *
  */
-
-#ifndef MDM_PRIVATE_H_
-#define MDM_PRIVATE_H_
+#ifndef __NETCONFIG_WIFI_TEL_INTF_H__
+#define __NETCONFIG_WIFI_TEL_INTF_H__
 
 #ifdef __cplusplus
-extern "C" {
+	 extern "C" {
 #endif
 
-#include <glib.h>
+#include <ITapiSim.h>
+#include <TapiUtility.h>
+#include "wifi.h"
 
-gboolean netconfig_is_wifi_allowed(void);
+TapiHandle * netconfig_tel_init(void);
+void netconfig_tel_deinit(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MDM_PRIVATE_H_ */
+#endif /* __NETCONFIG_WIFI_TEL_INTERFACE_H__ */
+

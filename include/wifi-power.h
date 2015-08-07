@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,15 +24,29 @@
 extern "C" {
 #endif
 
-#include <glib.h>
+#include "wifi.h"
 
-void netconfig_set_power_in_progress(gboolean in_progress);
-void netconfig_check_fm_waiting(void);
-void netconfig_wifi_power_configuration(void);
+void netconfig_wifi_power_initialize(void);
+void netconfig_wifi_power_deinitialize(void);
 
-gboolean netconfig_iface_wifi_load_driver(NetconfigWifi *wifi, GError **error);
-gboolean netconfig_iface_wifi_remove_driver(NetconfigWifi *wifi, GError **error);
+int netconfig_wifi_on(void);
+int netconfig_wifi_off(void);
+int netconfig_wifi_driver_and_supplicant(gboolean enable);
 
+void netconfig_wifi_disable_technology_state_by_only_connman_signal(void);
+
+void netconfig_wifi_recover_firmware(void);
+
+gboolean handle_load_driver(Wifi *wifi,
+		GDBusMethodInvocation *context, gboolean device_picker_test);
+gboolean handle_remove_driver(Wifi *wifi, GDBusMethodInvocation *context);
+
+gboolean handle_load_p2p_driver(Wifi *wifi, GDBusMethodInvocation *context);
+gboolean handle_remove_p2p_driver(Wifi *wifi, GDBusMethodInvocation *context);
+
+#if defined TIZEN_TV
+       void __netconfig_set_ether_macaddr();
+#endif
 
 #ifdef __cplusplus
 }

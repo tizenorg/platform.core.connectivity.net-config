@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +23,19 @@
 
 #include "log.h"
 #include "util.h"
-#include "wifi.h"
 #include "netdbus.h"
 #include "wifi-state.h"
 #include "wifi-background-scan.h"
 
+#if defined TIZEN_WEARABLE
+#define SCAN_PERIODIC_DELAY		15
+#define SCAN_EXPONENTIAL_MIN	5
+#define SCAN_EXPONENTIAL_MAX	320
+#else
 #define SCAN_PERIODIC_DELAY		10
 #define SCAN_EXPONENTIAL_MIN	4
 #define SCAN_EXPONENTIAL_MAX	128
+#endif
 
 enum {
 	WIFI_BGSCAN_MODE_EXPONENTIAL = 0x00,
@@ -45,10 +50,12 @@ struct bgscan_timer_data {
 };
 
 static gboolean netconfig_wifi_scanning = FALSE;
+static gboolean netconfig_bgscan_paused = FALSE;
 
 static struct bgscan_timer_data *__netconfig_wifi_bgscan_get_bgscan_data(void)
 {
-	static struct bgscan_timer_data timer_data = {SCAN_EXPONENTIAL_MIN, WIFI_BGSCAN_MODE_EXPONENTIAL, 0};
+	static struct bgscan_timer_data timer_data =
+					{SCAN_EXPONENTIAL_MIN, WIFI_BGSCAN_MODE_EXPONENTIAL, 0};
 
 	return &timer_data;
 }
@@ -78,67 +85,100 @@ static guint __netconfig_wifi_bgscan_get_mode(void)
 	return __netconfig_wifi_bgscan_mode(FALSE, -1);
 }
 
-static gboolean __netconfig_wifi_bgscan_request_connman_scan(void)
+static gboolean __netconfig_wifi_bgscan_request_connman_scan(int retries)
 {
-	DBusMessage *reply = NULL;
+	gboolean reply = FALSE;
+	guint state = netconfig_wifi_state_get_service_state();
 
-	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTED)
+	if (state == NETCONFIG_WIFI_CONNECTED)
 		if (__netconfig_wifi_bgscan_get_mode() == WIFI_BGSCAN_MODE_EXPONENTIAL)
-			return FALSE;
+			return TRUE;
 
-	if (netconfig_wifi_state_get_service_state() == NETCONFIG_WIFI_CONNECTING)
-		return FALSE;
+	if (state == NETCONFIG_WIFI_ASSOCIATION ||state == NETCONFIG_WIFI_CONFIGURATION) {
+		/* During Wi-Fi connecting, Wi-Fi can be disappeared.
+		 * After 1 sec, try scan even if connecting state */
+		if (retries < 2)
+			return FALSE;
+	}
 
 	netconfig_wifi_set_scanning(TRUE);
 
-		reply = netconfig_invoke_dbus_method(CONNMAN_SERVICE, CONNMAN_WIFI_TECHNOLOGY_PREFIX,
-			CONNMAN_TECHNOLOGY_INTERFACE, "Scan", NULL);
+	reply = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
+			CONNMAN_WIFI_TECHNOLOGY_PREFIX,
+			CONNMAN_TECHNOLOGY_INTERFACE, "Scan", NULL, NULL);
+	if (reply != TRUE)
+		netconfig_wifi_set_scanning(FALSE);
 
-	if (reply == NULL) {
-		ERR("Error! Request failed");
+	return reply;
+}
+
+static gboolean __netconfig_wifi_bgscan_next_scan(gpointer data);
+
+static gboolean __netconfig_wifi_bgscan_immediate_scan(gpointer data)
+{
+	static int retries = 0;
+
+#if !defined TIZEN_WEARABLE
+	if (netconfig_wifi_is_bgscan_paused())
+		return FALSE;
+#endif
+
+	if (__netconfig_wifi_bgscan_request_connman_scan(retries) == TRUE) {
+		retries = 0;
+		return FALSE;
+	} else if (retries > 2) {
+		retries = 0;
 		return FALSE;
 	}
 
-	dbus_message_unref(reply);
+	retries++;
 
 	return TRUE;
 }
 
-static gboolean __netconfig_wifi_bgscan_request_scan(gpointer data);
-
-static void __netconfig_wifi_bgscan_start_timer(struct bgscan_timer_data *data)
+static void __netconfig_wifi_bgscan_start_timer(gboolean immediate_scan,
+		struct bgscan_timer_data *data)
 {
-	if (data == NULL)
+	if (!data)
 		return;
 
 	netconfig_stop_timer(&(data->timer_id));
 
 	data->mode = __netconfig_wifi_bgscan_get_mode();
 
+	if (data->time < SCAN_EXPONENTIAL_MIN)
+		data->time = SCAN_EXPONENTIAL_MIN;
+
 	switch (data->mode) {
 	case WIFI_BGSCAN_MODE_EXPONENTIAL:
-		if (data->time == 0)
-			data->time = SCAN_EXPONENTIAL_MIN;
-		else if ((data->time >= SCAN_EXPONENTIAL_MAX) ||
-				(data->time > SCAN_EXPONENTIAL_MAX / 2))
-			data->time = SCAN_EXPONENTIAL_MAX;
+		if (immediate_scan == TRUE) {
+			if ((data->time * 2) > SCAN_EXPONENTIAL_MAX)
+				data->time = SCAN_EXPONENTIAL_MAX;
+			else
+				data->time = data->time * 2;
+		}
+
+		break;
+	case WIFI_BGSCAN_MODE_PERIODIC:
+		if ((data->time * 2) > SCAN_PERIODIC_DELAY)
+			data->time = SCAN_PERIODIC_DELAY;
 		else
 			data->time = data->time * 2;
 
 		break;
-	case WIFI_BGSCAN_MODE_PERIODIC:
-		data->time = SCAN_PERIODIC_DELAY;
-
-		break;
 	default:
-		DBG("Error! Wi-Fi background scan mode [%d]", data->mode);
+		DBG("Invalid Wi-Fi background scan mode[%d]", data->mode);
 		return;
 	}
 
-	DBG("Register background scan timer with %d seconds", data->time);
+	if (immediate_scan == TRUE)
+		g_timeout_add(500, __netconfig_wifi_bgscan_immediate_scan, NULL);
+
+	DBG("Scan immediately[%d], mode[%d], next[%d]",
+				immediate_scan, data->mode, data->time);
 
 	netconfig_start_timer_seconds(data->time,
-			__netconfig_wifi_bgscan_request_scan, data, &(data->timer_id));
+				__netconfig_wifi_bgscan_next_scan, data, &(data->timer_id));
 }
 
 static void __netconfig_wifi_bgscan_stop_timer(struct bgscan_timer_data *data)
@@ -149,78 +189,52 @@ static void __netconfig_wifi_bgscan_stop_timer(struct bgscan_timer_data *data)
 	netconfig_stop_timer(&(data->timer_id));
 }
 
-static gboolean __netconfig_wifi_bgscan_request_scan(gpointer data)
+static gboolean __netconfig_wifi_bgscan_next_scan(gpointer data)
 {
 	struct bgscan_timer_data *timer = (struct bgscan_timer_data *)data;
 	int pm_state = VCONFKEY_PM_STATE_NORMAL;
-	int hotspot_wifi_state = VCONFKEY_MOBILE_HOTSPOT_WIFI_OFF;
 
 	if (timer == NULL)
 		return FALSE;
-
-	/* If Wi-Fi tethering is pending on, don't trigger scan event*/
-	vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_WIFI_STATE, &hotspot_wifi_state);
-	if (hotspot_wifi_state == VCONFKEY_MOBILE_HOTSPOT_WIFI_PENDING_ON) {
-		DBG("hotspot_wifi_state %d", hotspot_wifi_state);
-		return TRUE;
-	}
 
 	/* In case of LCD off, we don't need Wi-Fi scan */
 	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
 	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
 		return TRUE;
 
-	__netconfig_wifi_bgscan_stop_timer(timer);
-
-	DBG("Request Wi-Fi scan to ConnMan");
-	__netconfig_wifi_bgscan_request_connman_scan();
-
-	__netconfig_wifi_bgscan_start_timer(timer);
+	__netconfig_wifi_bgscan_start_timer(TRUE, timer);
 
 	return FALSE;
 }
 
-static void __netconfig_wifi_bgscan_mode_cb(keynode_t* node, void* user_data)
+void netconfig_wifi_set_bgscan_pause(gboolean pause)
 {
-	int value;
-	int wifi_state;
-
-	if (vconf_get_int(VCONFKEY_WIFI_BGSCAN_MODE, &value) < 0) {
-		ERR("VCONFKEY_WIFI_BGSCAN_MODE get failed");
-		return;
-	}
-
-	DBG("Background scanning mode is changed : %d", value);
-
-	__netconfig_wifi_bgscan_set_mode((guint)value);
-
-	if (vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
-		ERR("VCONFKEY_WIFI_STATE get failed");
-		return;
-	}
-
-	if (wifi_state == VCONFKEY_WIFI_OFF)
-		return;
-
-	struct bgscan_timer_data *timer_data = __netconfig_wifi_bgscan_get_bgscan_data();
-
-	if (timer_data->timer_id != 0)
-		netconfig_wifi_bgscan_stop();
-
-	netconfig_wifi_bgscan_start();
+	DBG("[%s] Wi-Fi background scan", pause ? "Pause" : "Resume");
+	netconfig_bgscan_paused = pause;
 }
 
-void netconfig_wifi_bgscan_start(void)
+gboolean netconfig_wifi_is_bgscan_paused(void)
 {
+	DBG("Wi-Fi background scan is [%s]", netconfig_bgscan_paused ? "Paused" : "Runnable");
+	return netconfig_bgscan_paused;
+}
+
+void netconfig_wifi_bgscan_start(gboolean immediate_scan)
+{
+	enum netconfig_wifi_tech_state wifi_tech_state;
 	struct bgscan_timer_data *timer_data =
 			__netconfig_wifi_bgscan_get_bgscan_data();
 
 	if (timer_data == NULL)
 		return;
 
-	DBG("Wi-Fi background scan start");
+	wifi_tech_state = netconfig_wifi_state_get_technology_state();
+	if (wifi_tech_state < NETCONFIG_WIFI_TECH_POWERED)
+		return;
 
-	__netconfig_wifi_bgscan_start_timer(timer_data);
+	DBG("Wi-Fi background scan started or re-started(%d)", immediate_scan);
+
+	__netconfig_wifi_bgscan_start_timer(immediate_scan, timer_data);
 }
 
 void netconfig_wifi_bgscan_stop(void)
@@ -257,38 +271,46 @@ void netconfig_wifi_set_scanning(gboolean scanning)
 		netconfig_wifi_scanning = scanning;
 }
 
-gboolean netconfig_iface_wifi_set_bgscan(NetconfigWifi *wifi, guint scan_mode, GError **error)
+gboolean handle_set_bgscan(Wifi *wifi, GDBusMethodInvocation *context,
+		guint scan_mode)
 {
-	struct bgscan_timer_data *timer_data = __netconfig_wifi_bgscan_get_bgscan_data();
+	gint old_mode = 0;
+	int pm_state = VCONFKEY_PM_STATE_NORMAL;
+
+	old_mode = __netconfig_wifi_bgscan_get_mode();
+	if (old_mode == scan_mode){
+		wifi_complete_set_bgscan(wifi, context);
+		return TRUE;
+	}
 
 	__netconfig_wifi_bgscan_set_mode(scan_mode);
 
-	if (timer_data->timer_id != 0)
-		netconfig_wifi_bgscan_stop();
+	netconfig_wifi_bgscan_stop();
 
-	netconfig_wifi_bgscan_start();
+	/* In case of LCD off, we don't need Wi-Fi scan right now */
+	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
+	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
+		netconfig_wifi_bgscan_start(FALSE);
+	else
+		netconfig_wifi_bgscan_start(TRUE);
 
+	wifi_complete_set_bgscan(wifi, context);
 	return TRUE;
 }
 
-void netconfig_wifi_init_bgscan()
+gboolean handle_resume_bgscan(Wifi *wifi, GDBusMethodInvocation *context)
 {
-	guint scan_mode = __netconfig_wifi_bgscan_get_mode();
+	netconfig_wifi_set_bgscan_pause(FALSE);
 
-	if (scan_mode == WIFI_BGSCAN_MODE_PERIODIC)
-		vconf_set_int(VCONFKEY_WIFI_BGSCAN_MODE, VCONFKEY_WIFI_BGSCAN_MODE_PERIODIC);
-	else
-		vconf_set_int(VCONFKEY_WIFI_BGSCAN_MODE, VCONFKEY_WIFI_BGSCAN_MODE_EXPONENTIAL);
-
-	if (vconf_notify_key_changed(VCONFKEY_WIFI_BGSCAN_MODE,
-			__netconfig_wifi_bgscan_mode_cb, NULL))
-		DBG("Failed to set notify callback");
+	wifi_complete_resume_bgscan (wifi, context);
+	return TRUE;
 }
 
-void netconfig_wifi_deinit_bgscan()
+gboolean handle_pause_bgscan(Wifi *wifi, GDBusMethodInvocation *context)
 {
-	if (vconf_ignore_key_changed(VCONFKEY_WIFI_BGSCAN_MODE,
-			__netconfig_wifi_bgscan_mode_cb))
-		DBG("Failed to unset notify callback");
+	netconfig_wifi_set_bgscan_pause(TRUE);
+
+	wifi_complete_pause_bgscan(wifi, context);
+	return TRUE;
 }
 

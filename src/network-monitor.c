@@ -86,7 +86,7 @@ int netconfig_ethernet_cable_plugin_status_check()
 	ret = mdata->val_out;
 	ret = ret & BMSR_LINK_VALID;
 
-	if(ret == 4) { 
+	if(ret == 4) {
 		if(!g_chk_eth_send_notification)
 			netconfig_network_notify_ethernet_cable_state("ATTACHED");
 		g_chk_eth_send_notification = TRUE;

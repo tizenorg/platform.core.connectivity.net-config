@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2015 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,18 @@
  *
  */
 
-#ifndef __NETCONFIG_H__
-#define __NETCONFIG_H__
+#ifndef __NETCONFIG_CLATD_HANDLER__
+#define __NETCONFIG_CLATD_HANDLER__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define NETCONFIG_SERVICE	"net.netconfig"
+int netconfig_clatd_enable(void);
+int netconfig_clatd_disable(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __NETCONFIG_H__ */
+#endif /* __NETCONFIG_CLATD_HANDLER__ */

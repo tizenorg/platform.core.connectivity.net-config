@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,33 +20,45 @@
 #ifndef __NETCONFIG_NETDBUS_H__
 #define __NETCONFIG_NETDBUS_H__
 
+#include <glib.h>
+#include <gio/gio.h>
+#include <glib-object.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <glib.h>
-#include <dbus/dbus.h>
-#include <dbus/dbus-glib.h>
+#define DBUS_REPLY_TIMEOUT		(120 * 1000)
+#define NETCONFIG_DBUS_REPLY_TIMEOUT	(10 * 1000)
+#define DBUS_INTERFACE_PROPERTIES	"org.freedesktop.DBus.Properties"
+
+#define NETCONFIG_SERVICE				"net.netconfig"
 
 #define CONNMAN_SERVICE					"net.connman"
 #define CONNMAN_PATH					"/net/connman"
 
-#define CONNMAN_CLOCK_INTERFACE				CONNMAN_SERVICE ".Clock"
-#define CONNMAN_ERROR_INTERFACE				CONNMAN_SERVICE ".Error"
-#define CONNMAN_MANAGER_INTERFACE			CONNMAN_SERVICE ".Manager"
-#define CONNMAN_SERVICE_INTERFACE			CONNMAN_SERVICE ".Service"
-#define CONNMAN_TECHNOLOGY_INTERFACE			CONNMAN_SERVICE ".Technology"
-#define CONNMAN_MANAGER_PATH				"/"
+#define CONNMAN_CLOCK_INTERFACE			CONNMAN_SERVICE ".Clock"
+#define CONNMAN_ERROR_INTERFACE			CONNMAN_SERVICE ".Error"
+#define CONNMAN_MANAGER_INTERFACE		CONNMAN_SERVICE ".Manager"
+#define CONNMAN_SERVICE_INTERFACE		CONNMAN_SERVICE ".Service"
+#define CONNMAN_TECHNOLOGY_INTERFACE	CONNMAN_SERVICE ".Technology"
+#define CONNMAN_MANAGER_PATH			"/"
 
-#define CONNMAN_CELLULAR_SERVICE_PROFILE_PREFIX		CONNMAN_PATH "/service/cellular_"
+#define CONNMAN_CELLULAR_SERVICE_PROFILE_PREFIX	CONNMAN_PATH "/service/cellular_"
 #define CONNMAN_WIFI_SERVICE_PROFILE_PREFIX		CONNMAN_PATH "/service/wifi_"
-#define CONNMAN_ETHERNET_SERVICE_PROFILE_PREFIX		CONNMAN_PATH "/service/ethernet_"
-#define CONNMAN_BLUETOOTH_SERVICE_PROFILE_PREFIX	CONNMAN_PATH "/service/bluetooth_"
-#define CONNMAN_CELLULAR_TECHNOLOGY_PREFIX		CONNMAN_PATH "/technology/cellular"
-#define CONNMAN_WIFI_TECHNOLOGY_PREFIX			CONNMAN_PATH "/technology/wifi"
+#define CONNMAN_ETHERNET_SERVICE_PROFILE_PREFIX	CONNMAN_PATH "/service/ethernet_"
+#define CONNMAN_BLUETOOTH_SERVICE_PROFILE_PREFIX \
+											CONNMAN_PATH "/service/bluetooth_"
 
-#define NETCONFIG_WIFI_INTERFACE			"net.netconfig.wifi"
-#define NETCONFIG_WIFI_PATH				"/net/netconfig/wifi"
+#define CONNMAN_CELLULAR_TECHNOLOGY_PREFIX	CONNMAN_PATH "/technology/cellular"
+#define CONNMAN_WIFI_TECHNOLOGY_PREFIX		CONNMAN_PATH "/technology/wifi"
+#define CONNMAN_ETHERNET_TECHNOLOGY_PREFIX	CONNMAN_PATH "/technology/ethernet"
+#define CONNMAN_BLUETOOTH_TECHNOLOGY_PREFIX	CONNMAN_PATH "/technology/bluetooth"
+
+#define NETCONFIG_WIFI_INTERFACE		"net.netconfig.wifi"
+#define NETCONFIG_WIFI_PATH			"/net/netconfig/wifi"
+#define NETCONFIG_NETWORK_STATE_PATH		"/net/netconfig/network"
+#define NETCONFIG_NETWORK_STATISTICS_PATH	"/net/netconfig/network_statistics"
 #define NETCONFIG_NETWORK_PATH			"/net/netconfig/network"
 #define NETCONFIG_NETWORK_INTERFACE		"net.netconfig.network"
 
@@ -58,26 +70,32 @@ typedef enum {
 	NETCONFIG_DBUS_RESULT_DEFAULT_TECHNOLOGY,
 } netconfig_dbus_result_type;
 
+typedef void (*netconfig_got_name_cb)(void);
+
+GDBusObjectManagerServer *netconfig_get_wifi_manager(void);
+GDBusObjectManagerServer *netconfig_get_state_manager(void);
+GDBusObjectManagerServer *netconfig_get_statistics_manager(void);
+GDBusConnection *netconfig_gdbus_get_connection(void);
+GCancellable *netconfig_gdbus_get_gdbus_cancellable(void);
+void netconfig_gdbus_pending_call_ref(void);
+void netconfig_gdbus_pending_call_unref(void);
+int netconfig_create_gdbus_call(GDBusConnection *conn);
+
+gboolean netconfig_is_cellular_internet_profile(const char *profile);
 gboolean netconfig_is_cellular_profile(const char *profile);
 gboolean netconfig_is_wifi_profile(const char *profile);
 gboolean netconfig_is_ethernet_profile(const char *profile);
 gboolean netconfig_is_bluetooth_profile(const char *profile);
 
-char *netconfig_wifi_get_connected_service_name(DBusMessage *message);
+gboolean netconfig_invoke_dbus_method_nonblock(const char *dest, const char *path,
+		const char *interface_name, const char *method, GVariant *params,
+		GAsyncReadyCallback notify_func);
+GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
+		const char *interface_name, const char *method,
+		GVariant *params);
 
-gboolean netconfig_invoke_dbus_method_nonblock(
-		const char *dest, const char *path,
-		const char *interface_name, const char *method, char *param_array[],
-		DBusPendingCallNotifyFunction notify_func);
-DBusMessage *netconfig_invoke_dbus_method(const char *dest, const char *path,
-		const char *interface_name, const char *method, char *param_array[]);
-
-gboolean netconfig_dbus_get_basic_params_string(DBusMessage *message,
-		char **key, int type, void *value);
-gboolean netconfig_dbus_get_basic_params_array(DBusMessage *message,
-		char **key, void **value);
-
-DBusGConnection *netconfig_setup_dbus(void);
+int netconfig_setup_gdbus(netconfig_got_name_cb cb);
+void netconfig_cleanup_gdbus(void);
 
 #ifdef __cplusplus
 }

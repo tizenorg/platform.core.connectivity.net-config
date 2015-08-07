@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +26,11 @@ extern "C" {
 
 #include "wifi.h"
 
-gboolean netconfig_iface_wifi_get_passpoint(NetconfigWifi *wifi,
-		int *result, GError **error);
-gboolean netconfig_iface_wifi_set_passpoint(NetconfigWifi *wifi,
-		int enable, GError **error);
+gboolean handle_get_passpoint(Wifi *wifi, GDBusMethodInvocation *context);
+gboolean handle_set_passpoint(Wifi *wifi, GDBusMethodInvocation *context, gint enable);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __NETCONFIG_WIFI_PASSPOINT_H__ */
-

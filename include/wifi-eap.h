@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,13 @@ extern "C" {
 
 #include "wifi.h"
 
-gboolean netconfig_iface_wifi_get_sim_imsi(NetconfigWifi *wifi, DBusGMethodInvocation *context);
-gboolean netconfig_iface_wifi_req_sim_auth(NetconfigWifi *wifi, GArray *rand_data, gboolean *result, GError **error);
-gboolean netconfig_iface_wifi_req_aka_auth(NetconfigWifi *wifi, GArray *rand_data, GArray *autn_data, gboolean *result, GError **error);
-gboolean netconfig_iface_wifi_get_sim_auth(NetconfigWifi *wifi, DBusGMethodInvocation *context);
-gboolean netconfig_iface_wifi_get_aka_auth(NetconfigWifi *wifi, DBusGMethodInvocation *context);
+gboolean handle_get_sim_imsi(Wifi *wifi, GDBusMethodInvocation *context);
+gboolean handle_req_sim_auth(Wifi *wifi, GDBusMethodInvocation *context,
+		const gchar *rand_data);
+gboolean handle_req_aka_auth(Wifi *wifi, GDBusMethodInvocation *context,
+		const gchar *rand_data, const gchar *autn_data);
+gboolean handle_get_sim_auth(Wifi *wifi, GDBusMethodInvocation *context);
+gboolean handle_get_aka_auth(Wifi *wifi, GDBusMethodInvocation *context);
 
 #ifdef __cplusplus
 }

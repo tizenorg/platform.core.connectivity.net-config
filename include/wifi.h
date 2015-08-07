@@ -1,7 +1,7 @@
 /*
  * Network Configuration Module
  *
- * Copyright (c) 2012-2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,42 +18,25 @@
  */
 
 #ifndef __NETCONFIG_WIFI_H__
-#define  __NETCONFIG_WIFI_H__
+#define __NETCONFIG_WIFI_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <glib-object.h>
-#include <dbus/dbus-glib.h>
 
-G_BEGIN_DECLS
+#include "generated-code.h"
 
-typedef struct NetconfigWifi NetconfigWifi;
-typedef struct NetconfigWifiClass NetconfigWifiClass;
+#define WIFI_STORAGEDIR			"/var/lib/wifi"
+#define WIFI_CERT_STORAGEDIR	"/var/lib/wifi/cert"
+#define CONNMAN_STORAGEDIR		"/var/lib/connman"
 
-#define NETCONFIG_TYPE_WIFI	(netconfig_wifi_get_type())
-#define NETCONFIG_WIFI(obj)	(G_TYPE_CHECK_INSTANCE_CAST((obj), NETCONFIG_TYPE_WIFI, NetconfigWifi))
-#define NETCONFIG_IS_WIFI(obj)	(G_TYPE_CHECK_INSTANCE_TYPE((obj), NETCONFIG_TYPE_WIFI))
-#define NETCONFIG_WIFI_CLASS(klass)	(G_TYPE_CHECK_CLASS_CAST((klass), NETCONFIG_TYPE_WIFI, NetconfigWifiClass))
-#define NETCONFIG_IS_WIFI_CLASS(klass)	(G_TYPE_CHECK_CLASS_TYPE((klass), NETCONFIG_TYPE_WIFI))
-#define NETCONFIG_WIFI_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), NETCONFIG_TYPE_WIFI, NetconfigWifiClass))
-
-#define VCONF_WIFI_LAST_POWER_STATE "file/private/wifi/last_power_state"
-
-enum netconfig_wifi_power_state {
-	WIFI_POWER_OFF = 0x00,
-	WIFI_POWER_ON = 0x01,
-};
-
-GType netconfig_wifi_get_type(void);
-
-gpointer netconfig_wifi_create_and_init(DBusGConnection *conn);
-gboolean netconfig_wifi_remove_driver(void);
-void netconfig_wifi_notify_power_completed(gboolean power_on);
-
-G_END_DECLS
+void netconfig_wifi_create_and_init(void);
+void netconfig_wifi_init(void);
+Wifi *get_netconfig_wifi_object(void);
 
 #ifdef __cplusplus
 }

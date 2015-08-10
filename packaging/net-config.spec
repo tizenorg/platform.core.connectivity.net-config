@@ -18,7 +18,6 @@ BuildRequires:	pkgconfig(capi-system-info)
 BuildRequires:	pkgconfig(capi-appfw-application)
 BuildRequires:	pkgconfig(capi-network-wifi-direct)
 BuildRequires:	cmake
-BuildRequires:	model-build-features
 Requires:		vconf
 Requires:		connman
 Requires:		systemd

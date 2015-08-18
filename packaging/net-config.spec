@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.29
+Version:	1.1.30
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -96,8 +96,8 @@ mkdir -p %{buildroot}/opt/dbspace
 sqlite3 %{buildroot}/opt/dbspace/.wifi_offload.db < resources/usr/share/wifi_offloading.sql
 
 #DBus DAC (net-config.manifest enables DBus SMACK)
-#mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
-#cp resources/etc/dbus-1/system.d/net-config.conf %{buildroot}%{_sysconfdir}/dbus-1/system.d/net-config.conf
+mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
+cp resources/etc/dbus-1/system.d/net-config.conf %{buildroot}%{_sysconfdir}/dbus-1/system.d/net-config.conf
 
 #log dump
 mkdir -p %{buildroot}/opt/etc/dump.d/module.d/
@@ -178,7 +178,7 @@ ln -sf %{_unitdir}/net-config.service %{_sysconfdir}/systemd/default-extra-depen
 %attr(644,root,root) %{_sysconfdir}/resolv.conf
 %attr(644,root,root) %{_datadir}/dbus-1/system-services/*
 #DBus DAC
-#%attr(644,root,root) %{_sysconfdir}/dbus-1/system.d/*
+%attr(644,root,root) %{_sysconfdir}/dbus-1/system.d/*
 %attr(644,root,root) %{_libdir}/systemd/system/net-config.service
 %attr(644,root,root) %{_libdir}/systemd/system/multi-user.target.wants/net-config.service
 %if "%{?_lib}" == "lib64"

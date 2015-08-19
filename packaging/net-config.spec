@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.32
+Version:	1.1.33
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -35,6 +35,7 @@ TIZEN Network Configuration service
 %build
 cmake -DCMAKE_INSTALL_PREFIX=%{_prefix} \
 	-DTIZEN_WLAN_PASSPOINT=1 \
+	-DTIZEN_WLAN_USE_P2P_INTERFACE=1 \
 %if 0%{?model_build_feature_wlan_concurrent_mode}
 	-DWLAN_CONCURRENT_MODE=1 \
 %endif

@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.30
+Version:	1.1.31
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -92,8 +92,8 @@ cp resources/etc/resolv.conf %{buildroot}%{_sysconfdir}/resolv.conf
 mkdir -p %{buildroot}%{_sbindir}/
 cp resources/usr/sbin/net-config.service %{buildroot}%{_sbindir}/net-config.service
 
-mkdir -p %{buildroot}/opt/dbspace
-sqlite3 %{buildroot}/opt/dbspace/.wifi_offload.db < resources/usr/share/wifi_offloading.sql
+mkdir -p %{buildroot}/usr/dbspace
+sqlite3 %{buildroot}/usr/dbspace/.wifi_offload.db < resources/usr/share/wifi_offloading.sql
 
 #DBus DAC (net-config.manifest enables DBus SMACK)
 mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
@@ -186,8 +186,8 @@ ln -sf %{_unitdir}/net-config.service %{_sysconfdir}/systemd/default-extra-depen
 %attr(644,root,root) %{_unitdir}/multi-user.target.wants/net-config.service
 %endif
 %{_datadir}/license/net-config
-%attr(660,root,root) /opt/dbspace/.wifi_offload.db
-%attr(664,root,root) /opt/dbspace/.wifi_offload.db-journal
+%attr(660,root,root) /usr/dbspace/.wifi_offload.db
+%attr(664,root,root) /usr/dbspace/.wifi_offload.db-journal
 %attr(500,root,root) /opt/etc/dump.d/module.d/network_log_dump.sh
 %attr(500,root,root) /opt/var/lib/net-config/network_log_dump.sh
 %attr(500,root,root) /opt/var/lib/net-config/network_dump.sh

@@ -35,7 +35,12 @@
 
 #define WLAN_DRIVER_SCRIPT			"/usr/bin/wlan.sh"
 #define WLAN_IFACE_NAME				"wlan0"
+
+#if defined(TIZEN_TV)
 #define WLAN_P2P_IFACE_NAME			"p2p0"
+#else /* defined(TIZEN_TV) */
+#define WLAN_P2P_IFACE_NAME			"wlan0"
+#endif /* defined(TIZEN_TV) */
 
 static int __netconfig_sta_firmware_start(void)
 {
@@ -89,11 +94,7 @@ static int __netconfig_p2p_firmware_start(void)
 	rv = netconfig_execute_file(path, args, envs);
 	if (rv < 0)
 		return -EIO;
-#if 0
-	rv = netconfig_interface_up(WLAN_IFACE_NAME);
-	if (rv != TRUE)
-		return -EIO;
-#endif
+
 #if defined TIZEN_WLAN_USE_P2P_INTERFACE
 	rv = netconfig_interface_up(WLAN_P2P_IFACE_NAME);
 	if (rv != TRUE)

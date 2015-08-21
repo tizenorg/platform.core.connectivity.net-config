@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.33
+Version:	1.1.34
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -45,7 +45,7 @@ cmake -DCMAKE_INSTALL_PREFIX=%{_prefix} \
 %if ! 0%{?model_build_feature_network_tethering_disable}
 	-DTIZEN_TETHERING_ENABLE=1 \
 %endif
-%if "%{?tizen_profile_name}" == "tv"
+%if "%{profile}" == "tv"
 	-DTIZEN_TV=1 \
 %endif
 %if 0%{?model_build_feature_wlan_wearable} == 1
@@ -66,7 +66,7 @@ mkdir -p %{buildroot}%{_libdir}/systemd/system/
 mkdir -p %{buildroot}%{_unitdir}
 %endif
 
-%if "%{?tizen_profile_name}" == "tv"
+%if "%{profile}" == "tv"
 cp resources/usr/lib/systemd/system/net-config_tv.service %{buildroot}%{_libdir}/systemd/system/net-config.service
 mkdir -p %{buildroot}%{_libdir}/udev/rules.d/
 cp resources/usr/lib/udev/rules.d/99-wifiusb-dev.rules %{buildroot}%{_libdir}/udev/rules.d/99-wifiusb-dev.rules
@@ -119,7 +119,7 @@ cp LICENSE %{buildroot}%{_datadir}/license/net-config
 
 %post
 
-%if "%{?tizen_profile_name}" == "tv"
+%if "%{profile}" == "tv"
 vconftool set -t string db/dnet/mac_address "" -s system::vconf_network
 %endif
 
@@ -192,7 +192,7 @@ ln -sf %{_unitdir}/net-config.service %{_sysconfdir}/systemd/default-extra-depen
 %attr(500,root,root) /opt/etc/dump.d/module.d/network_log_dump.sh
 %attr(500,root,root) /opt/var/lib/net-config/network_log_dump.sh
 %attr(500,root,root) /opt/var/lib/net-config/network_dump.sh
-%if "%{?tizen_profile_name}" == "tv"
+%if "%{profile}" == "tv"
 %attr(644,root,root) %{_libdir}/udev/rules.d/99-wifiusb-dev.rules
 %endif
 %if 0%{?model_build_feature_wlan_wearable} == 1

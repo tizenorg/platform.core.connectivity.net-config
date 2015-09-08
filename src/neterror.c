@@ -136,6 +136,13 @@ void netconfig_error_fail_save_congifuration(GDBusMethodInvocation *context)
 			NETCONFIG_ERROR_INTERFACE".FailSaveConfiguration");
 }
 
+void netconfig_error_fail_ethernet_cable_state(GDBusMethodInvocation *context)
+{
+	g_dbus_method_invocation_return_error(context, netconfig_error_quark(),
+			NETCONFIG_ERROR_INTERNAL,
+			NETCONFIG_ERROR_INTERFACE".FailGetEthernetCableState");
+}
+
 void netconfig_error_dbus_method_return(GDBusMethodInvocation *context, netconfig_error_e error, const gchar *message)
 {
 	gchar *msg = NULL;

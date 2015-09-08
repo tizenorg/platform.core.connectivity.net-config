@@ -1006,18 +1006,22 @@ static gboolean handle_check_profile_privilege(Network *object,
 	return TRUE;
 }
 
-gboolean netconfig_iface_network_state_ethernet_cable_state(gint32 *state)
+gboolean handle_ethernet_cable_state(Network *object,
+		GDBusMethodInvocation *context)
 {
-       int ret = 0;
+	int ret = 0;
+	int state = 0;
 
-       ret = netconfig_get_ethernet_cable_state(state);
-       if(ret != 0) {
-               DBG("Failed to get ethernet cable state");
-               return FALSE;
-       }
+	ret = netconfig_get_ethernet_cable_state(&state);
+	if(ret != 0) {
+		DBG("Failed to get ethernet cable state");
+		netconfig_error_fail_ethernet_cable_state(context);
+		return FALSE;
+	}
 
-       DBG("Successfully get ethernet cable state[%d]", state);
-       return TRUE;
+	DBG("Successfully get ethernet cable state[%d]", state);
+	network_complete_ethernet_cable_state(object, context, state);
+	return TRUE;
 }
 
 void netconfig_network_state_create_and_init(void)
@@ -1044,6 +1048,8 @@ void netconfig_network_state_create_and_init(void)
 				G_CALLBACK(handle_check_profile_privilege), NULL);
 	g_signal_connect(netconfigstate, "handle-remove-route",
 				G_CALLBACK(handle_remove_route), NULL);
+	g_signal_connect(netconfigstate, "handle-ethernet-cable-state",
+				G_CALLBACK(handle_ethernet_cable_state), NULL);
 
 	if (!g_dbus_interface_skeleton_export(interface, connection,
 			NETCONFIG_NETWORK_STATE_PATH, NULL)) {

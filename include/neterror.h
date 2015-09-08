@@ -64,6 +64,7 @@ void netconfig_error_fail_req_sim_auth(GDBusMethodInvocation *context);
 void netconfig_error_fail_req_sim_auth_wrong_param(GDBusMethodInvocation *context);
 void netconfig_error_fail_get_sim_auth_wrong_data(GDBusMethodInvocation *context);
 void netconfig_error_fail_get_sim_auth_delay(GDBusMethodInvocation *context);
+void netconfig_error_fail_ethernet_cable_state(GDBusMethodInvocation *context);
 void netconfig_error_dbus_method_return(GDBusMethodInvocation *context, netconfig_error_e error, const gchar *message);
 
 void netconfig_error_init(void);

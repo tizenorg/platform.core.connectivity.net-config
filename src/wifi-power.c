@@ -808,7 +808,7 @@ static void __netconfig_wifi_pm_state_mode(keynode_t* node, void* user_data)
 	prev_state = new_state;
 }
 
-#if defined TIZEN_TETLEPHONY_ENABLE
+#if defined TIZEN_TELEPHONY_ENABLE
 static void _tapi_noti_sim_status_cb(TapiHandle *handle, const char *noti_id,
 										void *data, void *user_data)
 {

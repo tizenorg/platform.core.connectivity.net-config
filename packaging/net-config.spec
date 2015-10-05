@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.40
+Version:	1.1.41
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -155,6 +155,7 @@ vconftool set -t int memory/private/wifi/frequency 0 -i -s tizen::vconf::platfor
 #Network logs
 mkdir -p /opt/usr/data/network
 chmod 755 /opt/usr/data/network
+chsmack -a net-config::logging /opt/usr/data/network
 
 #Add net-config.service to systemd extra default dependency ignore list
 mkdir -p %{_sysconfdir}/systemd/default-extra-dependencies/ignore-units.d/

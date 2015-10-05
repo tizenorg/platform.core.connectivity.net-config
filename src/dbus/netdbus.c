@@ -42,7 +42,7 @@ static GDBusObjectManagerServer *manager_server_wifi = NULL;
 static GDBusObjectManagerServer *manager_server_state = NULL;
 static GDBusObjectManagerServer *manager_server_statistics = NULL;
 static guint owner_id = 0;
-static netconfig_got_name_cb g_callback = NULL;
+static got_name_cb g_callback = NULL;
 
 struct gdbus_conn_data {
 	GDBusConnection *connection;
@@ -52,27 +52,27 @@ struct gdbus_conn_data {
 
 static struct gdbus_conn_data gconn_data = {NULL, 0, NULL};
 
-GDBusObjectManagerServer *netconfig_get_wifi_manager(void)
+GDBusObjectManagerServer *netdbus_get_wifi_manager(void)
 {
 	return manager_server_wifi;
 }
 
-GDBusObjectManagerServer *netconfig_get_state_manager(void)
+GDBusObjectManagerServer *netdbus_get_state_manager(void)
 {
 	return manager_server_state;
 }
 
-GDBusObjectManagerServer *netconfig_get_statistics_manager(void)
+GDBusObjectManagerServer *netdbus_get_statistics_manager(void)
 {
 	return manager_server_statistics;
 }
 
-GDBusConnection *netconfig_gdbus_get_connection(void)
+GDBusConnection *netdbus_get_connection(void)
 {
 	return gconn_data.connection;
 }
 
-GCancellable *netconfig_gdbus_get_gdbus_cancellable(void)
+GCancellable *netdbus_get_cancellable(void)
 {
 	return gconn_data.cancellable;
 }
@@ -98,7 +98,7 @@ void netconfig_gdbus_pending_call_unref(void)
 	}
 }
 
-int netconfig_create_gdbus_call(GDBusConnection *conn)
+int _create_gdbus_call(GDBusConnection *conn)
 {
 	if (gconn_data.connection != NULL) {
 		ERR("Connection already set");
@@ -174,7 +174,7 @@ gboolean netconfig_invoke_dbus_method_nonblock(const char *dest, const char *pat
 
 	DBG("[GDBUS Async] %s %s %s", interface_name, method, path);
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		ERR("Failed to get gdbus connection");
 		return FALSE;
@@ -189,12 +189,9 @@ gboolean netconfig_invoke_dbus_method_nonblock(const char *dest, const char *pat
 			NULL,
 			G_DBUS_CALL_FLAGS_NONE,
 			NETCONFIG_DBUS_REPLY_TIMEOUT,
-			netconfig_gdbus_get_gdbus_cancellable(),
+			netdbus_get_cancellable(),
 			(GAsyncReadyCallback) notify_func,
 			NULL);
-
-	if (notify_func != NULL)
-		netconfig_gdbus_pending_call_ref();
 
 	return TRUE;
 }
@@ -207,7 +204,7 @@ GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
 	GVariant *reply = NULL;
 	GDBusConnection *connection;
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		ERR("Failed to get GDBusconnection");
 		return reply;
@@ -223,7 +220,7 @@ GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
 			NULL,
 			G_DBUS_CALL_FLAGS_NONE,
 			NETCONFIG_DBUS_REPLY_TIMEOUT,
-			netconfig_gdbus_get_gdbus_cancellable(),
+			netdbus_get_cancellable(),
 			&error);
 
 	if (reply == NULL) {
@@ -241,13 +238,13 @@ GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
 	return reply;
 }
 
-static void __netconfig_got_bus_cb(GDBusConnection *conn, const gchar *name,
+static void _got_bus_cb(GDBusConnection *conn, const gchar *name,
 		gpointer user_data)
 {
-	netconfig_create_gdbus_call(conn);
+	_create_gdbus_call(conn);
 }
 
-static void __netconfig_got_name_cb(GDBusConnection *conn, const gchar *name,
+static void _got_name_cb(GDBusConnection *conn, const gchar *name,
 		gpointer user_data)
 {
 	INFO("Got gdbus name: [%s] and gdbus connection: [%p]", name, conn);
@@ -257,11 +254,11 @@ static void __netconfig_got_name_cb(GDBusConnection *conn, const gchar *name,
 	}
 }
 
-static void __netconfig_lost_name_cb(GDBusConnection *conn, const gchar *name,
+static void _lost_name_cb(GDBusConnection *conn, const gchar *name,
 		gpointer user_data)
 {
 	/* May service name is already in use */
-	ERR("Service name is already in use");
+	ERR("_lost_name_cb [%s]", name);
 
 	/* The result of DBus name request is only permitted,
 	 *  such as DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER.
@@ -269,35 +266,32 @@ static void __netconfig_lost_name_cb(GDBusConnection *conn, const gchar *name,
 	exit(2);
 }
 
-int netconfig_setup_gdbus(netconfig_got_name_cb cb)
+int setup_gdbus(got_name_cb cb)
 {
 	g_callback = cb;
 
-	manager_server_wifi = g_dbus_object_manager_server_new(
-				NETCONFIG_WIFI_PATH);
+	manager_server_wifi = g_dbus_object_manager_server_new(NETCONFIG_WIFI_PATH);
 	if (manager_server_wifi == NULL) {
 		ERR("Manager server for WIFI_PATH not created.");
 		exit(1);
 	}
 
-	manager_server_state = g_dbus_object_manager_server_new(
-				NETCONFIG_NETWORK_STATE_PATH);
+	manager_server_state = g_dbus_object_manager_server_new(NETCONFIG_NETWORK_STATE_PATH);
 	if (manager_server_state == NULL) {
 		ERR("Manager server for STATE_PATH not created.");
 		exit(1);
 	}
 
-	manager_server_statistics = g_dbus_object_manager_server_new(
-				NETCONFIG_NETWORK_STATISTICS_PATH);
+	manager_server_statistics = g_dbus_object_manager_server_new(NETCONFIG_NETWORK_STATISTICS_PATH);
 	if (manager_server_statistics == NULL) {
 		ERR("Manager server for STATISTICS_PATH not created.");
 		exit(1);
 	}
 
 	owner_id = g_bus_own_name(G_BUS_TYPE_SYSTEM, NETCONFIG_SERVICE,
-			G_BUS_NAME_OWNER_FLAGS_NONE, __netconfig_got_bus_cb,
-			__netconfig_got_name_cb, __netconfig_lost_name_cb,
-			NULL, NULL);
+							  G_BUS_NAME_OWNER_FLAGS_NONE,
+							  _got_bus_cb, _got_name_cb, _lost_name_cb,
+							  NULL, NULL);
 	if (!owner_id) {
 		ERR("Could not get system bus!");
 		return -EIO;
@@ -307,9 +301,10 @@ int netconfig_setup_gdbus(netconfig_got_name_cb cb)
 	return 0;
 }
 
-void netconfig_cleanup_gdbus(void)
+void cleanup_gdbus(void)
 {
-	g_bus_unown_name (owner_id);
-
-	return;
+	g_bus_unown_name(owner_id);
+	g_object_unref(manager_server_wifi);
+	g_object_unref(manager_server_state);
+	g_object_unref(manager_server_statistics);
 }

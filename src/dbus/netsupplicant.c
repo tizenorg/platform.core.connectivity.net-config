@@ -27,7 +27,7 @@ const char *netconfig_wifi_get_supplicant_interface(void)
 {
 	GVariant *message = NULL;
 	GVariant *params = NULL;
-	const char *path;
+	gchar *path = NULL;
 	static char obj_path[DBUS_OBJECT_PATH_MAX] = { '\0', };
 
 	if (obj_path[0] != '\0')
@@ -48,6 +48,8 @@ const char *netconfig_wifi_get_supplicant_interface(void)
 
 	g_strlcpy(obj_path, path, DBUS_OBJECT_PATH_MAX);
 
+	if (path)
+		g_free(path);
 	g_variant_unref(message);
 
 	return (const char *)obj_path;
@@ -62,7 +64,7 @@ GVariant *netconfig_supplicant_invoke_dbus_method(const char *dest, const char *
 
 	INFO("[DBUS Sync] %s %s %s", interface_name, method, path);
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		ERR("Failed to get GDBus Connection");
 		return NULL;
@@ -78,7 +80,7 @@ GVariant *netconfig_supplicant_invoke_dbus_method(const char *dest, const char *
 			NULL,
 			G_DBUS_CALL_FLAGS_NONE,
 			NETCONFIG_DBUS_REPLY_TIMEOUT,
-			netconfig_gdbus_get_gdbus_cancellable(),
+			netdbus_get_cancellable(),
 			&error);
 
 	if (reply == NULL) {
@@ -105,7 +107,7 @@ gboolean netconfig_supplicant_invoke_dbus_method_nonblock(const char *dest,
 
 	INFO("[DBUS Async] %s %s %s", interface_name, method, path);
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		DBG("Failed to get GDBusconnection");
 		return FALSE;
@@ -120,12 +122,9 @@ gboolean netconfig_supplicant_invoke_dbus_method_nonblock(const char *dest,
 			NULL,
 			G_DBUS_CALL_FLAGS_NONE,
 			NETCONFIG_DBUS_REPLY_TIMEOUT,
-			netconfig_gdbus_get_gdbus_cancellable(),
+			netdbus_get_cancellable(),
 			(GAsyncReadyCallback) notify_func,
 			NULL);
-
-	if (notify_func != NULL)
-		netconfig_gdbus_pending_call_ref();
 
 	return TRUE;
 }

@@ -31,12 +31,13 @@ extern "C" {
 
 #define NETCONFIG_TAG		"NETCONFIG"
 
-void __netconfig_debug(const char *format, ...);
+void		netconfig_log(const char *format, ...);
+void		log_cleanup(void);
 
 #define __LOG(level, format, arg...) \
 	do { \
 		if (NETCONFIG_DEBUG_FILE) { \
-			__netconfig_debug("%s(%d) "format"\n", __FUNCTION__, __LINE__,  ## arg); \
+			netconfig_log("%s(%d) "format"\n", __FUNCTION__, __LINE__,  ## arg); \
 		} \
 		SLOG(level, NETCONFIG_TAG, format, ## arg); \
 	} while(0)

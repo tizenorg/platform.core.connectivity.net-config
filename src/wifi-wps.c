@@ -107,8 +107,7 @@ static void __netconfig_wifi_wps_notify_scan_done(void)//check this
 		}
 	}
 
-	wifi_emit_wps_scan_completed((Wifi *)get_netconfig_wifi_object(),
-			g_variant_builder_end(builder));
+	wifi_emit_wps_scan_completed((Wifi *)get_wifi_object(), g_variant_builder_end(builder));
 	g_variant_builder_unref(builder);
 
 	if (wps_bss_info_list != NULL) {
@@ -161,7 +160,7 @@ static void __netconfig_wifi_wps_get_bss_info_result(
 				gsize ssid_len;
 
 				ssid = g_variant_get_fixed_array(value, &ssid_len, sizeof(guchar));
-				if (ssid_len > 0 && ssid_len <= NETCONFIG_SSID_LEN) {
+				if (ssid != NULL && ssid_len > 0 && ssid_len <= NETCONFIG_SSID_LEN) {
 					memcpy(bss_info->ssid, ssid, ssid_len);
 					bss_info->ssid_len = ssid_len;
 				} else {
@@ -169,7 +168,7 @@ static void __netconfig_wifi_wps_get_bss_info_result(
 					bss_info->ssid_len = 0;
 				}
 			} else if (g_strcmp0(key, "Mode") == 0) {
-				const gchar *mode = NULL;
+				gchar *mode = NULL;
 
 				g_variant_get(value, "s", &mode);
 				if (mode == NULL)
@@ -181,6 +180,7 @@ static void __netconfig_wifi_wps_get_bss_info_result(
 						bss_info->mode = 2;
 					else
 						bss_info->mode = 0;
+					g_free(mode);
 				}
 			} else if (g_strcmp0(key, "Signal") == 0) {
 				gint16 signal;
@@ -208,7 +208,7 @@ done:
 		__netconfig_wifi_wps_notify_scan_done();
 
 		if (netconfig_is_wps_scan_aborted == FALSE)
-			netconfig_wifi_driver_and_supplicant(FALSE);
+			wifi_power_driver_and_supplicant(FALSE);
 	}
 }
 
@@ -279,7 +279,7 @@ done:
 		__netconfig_wifi_wps_notify_scan_done();
 
 		if (netconfig_is_wps_scan_aborted == FALSE)
-			netconfig_wifi_driver_and_supplicant(FALSE);
+			wifi_power_driver_and_supplicant(FALSE);
 	}
 }
 
@@ -346,9 +346,9 @@ static int __netconfig_wifi_wps_request_scan(const char *if_path)
 		return -ESRCH;
 	}
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
-		DBG("Failed to get GDBusconnection");
+		ERR("Failed to get GDBusconnection");
 		return -EIO;
 	}
 
@@ -366,9 +366,11 @@ static int __netconfig_wifi_wps_request_scan(const char *if_path)
 			NULL,
 			G_DBUS_CALL_FLAGS_NONE,
 			NETCONFIG_WPS_DBUS_REPLY_TIMEOUT,
-			netconfig_gdbus_get_gdbus_cancellable(),
+			netdbus_get_cancellable(),
 			NULL,
 			NULL);
+
+	netconfig_is_device_scanning = TRUE;
 
 	g_variant_unref(message);
 	/* Clear bss_info_list for the next scan result */
@@ -386,7 +388,7 @@ static void __netconfig_wifi_interface_create_result(
 		GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
 	GVariant *message;
-	const char *path = NULL;
+	gchar *path = NULL;
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
@@ -396,14 +398,17 @@ static void __netconfig_wifi_interface_create_result(
 	if (error == NULL) {
 		g_variant_get(message, "(o)", &path);
 
-		if (path)
+		if (path) {
 			__netconfig_wifi_wps_request_scan(path);
+			g_free(path);
+		}
 	} else {
-		DBG("Failed to create interface, Error: %d[%s]", error->code, error->message);
+		ERR("Failed to create interface, Error: %d[%s]", error->code, error->message);
+		__netconfig_wps_set_mode(FALSE);
+		wifi_power_driver_and_supplicant(FALSE);
 	}
 
 	g_variant_unref(message);
-	netconfig_gdbus_pending_call_unref();
 }
 
 static int  __netconfig_wifi_wps_create_interface(void)
@@ -414,7 +419,7 @@ static int  __netconfig_wifi_wps_create_interface(void)
 	const char *key = "Ifname";
 	const char *val = WIFI_IFNAME;
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		DBG("Failed to get GDBusconnection");
 		return -EIO;
@@ -433,11 +438,10 @@ static int  __netconfig_wifi_wps_create_interface(void)
 			NULL,
 			G_DBUS_CALL_FLAGS_NONE,
 			NETCONFIG_WPS_DBUS_REPLY_TIMEOUT,
-			netconfig_gdbus_get_gdbus_cancellable(),
+			netdbus_get_cancellable(),
 			(GAsyncReadyCallback) __netconfig_wifi_interface_create_result,
 			NULL);
 
-	netconfig_gdbus_pending_call_ref();
 	g_variant_unref(message);
 
 	return 0;
@@ -446,14 +450,14 @@ static int  __netconfig_wifi_wps_create_interface(void)
 static int __netconfig_wifi_wps_scan(void)
 {
 	int err = 0;
-	enum netconfig_wifi_tech_state wifi_tech_state;
+	wifi_tech_state_e wifi_tech_state;
 
 	if (netconfig_is_device_scanning == TRUE)
 		return -EINPROGRESS;
 
-	wifi_tech_state = netconfig_wifi_state_get_technology_state();
+	wifi_tech_state = wifi_state_get_technology_state();
 	if (wifi_tech_state <= NETCONFIG_WIFI_TECH_OFF)
-		err = netconfig_wifi_driver_and_supplicant(TRUE);
+		err = wifi_power_driver_and_supplicant(TRUE);
 
 	if (err < 0 && err != -EALREADY)
 		return err;
@@ -479,7 +483,7 @@ static int __netconfig_wifi_wps_scan(void)
 gboolean handle_request_wps_scan(Wifi *wifi, GDBusMethodInvocation *context)
 {
 	int err, enabled = 0;
-	enum netconfig_wifi_tech_state wifi_tech_state;
+	wifi_tech_state_e tech_state;
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
@@ -497,11 +501,14 @@ gboolean handle_request_wps_scan(Wifi *wifi, GDBusMethodInvocation *context)
 	}
 #endif
 
-	wifi_tech_state = netconfig_wifi_state_get_technology_state();
-	if (wifi_tech_state <= NETCONFIG_WIFI_TECH_OFF) {
+	tech_state = wifi_state_get_technology_state();
+	if (tech_state <= NETCONFIG_WIFI_TECH_OFF) {
 #if !defined TIZEN_WEARABLE
 		vconf_get_int(VCONF_WIFI_ALWAYS_ALLOW_SCANNING, &enabled);
+#else
+		enabled = 0;
 #endif
+
 		if (enabled == 0) {
 			netconfig_error_permission_denied(context);
 			return FALSE;

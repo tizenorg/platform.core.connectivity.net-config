@@ -28,9 +28,11 @@ extern "C" {
 
 #include "wifi-state.h"
 
-void netconfig_network_statistics_create_and_init(void);
-gboolean netconfig_wifi_get_bytes_statistics(guint64 *tx, guint64 *rx);
-void netconfig_wifi_statistics_update_powered_off(void);
+gboolean	netconfig_wifi_get_bytes_statistics(guint64 *tx, guint64 *rx);
+void		netconfig_wifi_statistics_update_powered_off(void);
+
+void statistics_object_create_and_init(void);
+void statistics_object_deinit(void);
 
 #ifdef __cplusplus
 }

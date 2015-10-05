@@ -67,7 +67,7 @@ typedef enum {
 } SuppSigArrayIndex;
 
 static int conn_subscription_ids[TOTAL_CONN_SIGNALS] = {0};
-static const char supp_signals[SIG_MAX][MAX_SIG_LEN] = {
+static const char supplicant_signals[SIG_MAX][MAX_SIG_LEN] = {
 		SIGNAL_INTERFACE_REMOVED,
 		SIGNAL_PROPERTIES_CHANGED,
 		SIGNAL_BSS_ADDED,
@@ -79,20 +79,20 @@ static const char supp_signals[SIG_MAX][MAX_SIG_LEN] = {
 static int supp_subscription_ids[SIG_MAX] = {0};
 static int dumpservice_subscription_id = 0;
 
-typedef void (*netconfig_supplicant_signal_handler)(GDBusConnection *conn,
+typedef void (*supplicant_signal_cb)(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data);
-typedef void (*netconfig_connman_signal_handler)(GDBusConnection *conn,
+typedef void (*connman_signal_cb)(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data);
 
-static void __netconfig_technology_signal_handler(GDBusConnection *conn,
+static void _technology_signal_cb(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
-	const char *key = NULL;
+	gchar *key = NULL;
 	gboolean value = FALSE;
-	GVariant *var;
+	GVariant *var = NULL;
 
 	if (param == NULL)
 		return;
@@ -103,23 +103,25 @@ static void __netconfig_technology_signal_handler(GDBusConnection *conn,
 			/* Power state */
 			value = g_variant_get_boolean(var);
 			if (value == TRUE) {
-				netconfig_wifi_update_power_state(TRUE);
+				wifi_state_update_power_state(TRUE);
 			} else {
-				netconfig_wifi_update_power_state(FALSE);
+				wifi_state_update_power_state(FALSE);
 			}
 		} else if (g_strcmp0(key, "Connected") == 0) {
 			/* Connection state */
-			netconfig_wifi_state_set_technology_state(
-					NETCONFIG_WIFI_TECH_CONNECTED);
+			wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_CONNECTED);
 		} else if (g_strcmp0(key, "Tethering") == 0) {
 			/* Tethering state */
-			netconfig_wifi_state_set_technology_state(
-					NETCONFIG_WIFI_TECH_TETHERED);
+			wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_TETHERED);
 		}
+		if (key)
+			g_free(key);
+		if (var)
+			g_variant_unref(var);
 	}
 }
 
-static void __netconfig_service_signal_handler(GDBusConnection *conn,
+static void _service_signal_cb(GDBusConnection *conn,
 		const gchar *name, const gchar *path,
 		const gchar *interface, const gchar *sig, GVariant *param, gpointer user_data)
 {
@@ -157,18 +159,16 @@ static void __netconfig_service_signal_handler(GDBusConnection *conn,
 
 				netconfig_update_default_profile(path);
 
-				netconfig_wifi_state_set_service_state(NETCONFIG_WIFI_CONNECTED);
+				wifi_state_set_service_state(NETCONFIG_WIFI_CONNECTED);
 
 			} else if (g_strcmp0(property, "failure") == 0 || g_strcmp0(property, "disconnect") == 0 || g_strcmp0(property, "idle") == 0) {
 				if (netconfig_get_default_profile() == NULL ||
 						netconfig_is_wifi_profile(netconfig_get_default_profile())
 						!= TRUE) {
 					if (g_strcmp0(property, "failure") == 0)
-						netconfig_wifi_state_set_service_state(
-											NETCONFIG_WIFI_FAILURE);
+						wifi_state_set_service_state(NETCONFIG_WIFI_FAILURE);
 					else
-						netconfig_wifi_state_set_service_state(
-											NETCONFIG_WIFI_IDLE);
+						wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
 					goto done;
 				}
 
@@ -178,21 +178,17 @@ static void __netconfig_service_signal_handler(GDBusConnection *conn,
 				netconfig_update_default_profile(NULL);
 
 				if (g_strcmp0(property, "failure") == 0)
-					netconfig_wifi_state_set_service_state(
-										NETCONFIG_WIFI_FAILURE);
+					wifi_state_set_service_state(NETCONFIG_WIFI_FAILURE);
 				else
-					netconfig_wifi_state_set_service_state(
-										NETCONFIG_WIFI_IDLE);
+					wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
 
-			} else if (g_strcmp0(property, "association") == 0 || 	g_strcmp0(property, "configuration") == 0) {
+			} else if (g_strcmp0(property, "association") == 0 || g_strcmp0(property, "configuration") == 0) {
 				if (netconfig_get_default_profile() == NULL ||
 						netconfig_is_wifi_profile(netconfig_get_default_profile()) != TRUE) {
 					if (g_strcmp0(property, "association") == 0)
-						netconfig_wifi_state_set_service_state(
-											NETCONFIG_WIFI_ASSOCIATION);
+						wifi_state_set_service_state(NETCONFIG_WIFI_ASSOCIATION);
 					else
-						netconfig_wifi_state_set_service_state(
-											NETCONFIG_WIFI_CONFIGURATION);
+						wifi_state_set_service_state(NETCONFIG_WIFI_CONFIGURATION);
 					goto done;
 				}
 
@@ -202,11 +198,9 @@ static void __netconfig_service_signal_handler(GDBusConnection *conn,
 				netconfig_update_default_profile(NULL);
 
 				if (g_strcmp0(property, "association") == 0)
-					netconfig_wifi_state_set_service_state(
-										NETCONFIG_WIFI_ASSOCIATION);
+					wifi_state_set_service_state(NETCONFIG_WIFI_ASSOCIATION);
 				else
-					netconfig_wifi_state_set_service_state(
-										NETCONFIG_WIFI_CONFIGURATION);
+					wifi_state_set_service_state(NETCONFIG_WIFI_CONFIGURATION);
 
 			}
 		} else {
@@ -217,16 +211,19 @@ static void __netconfig_service_signal_handler(GDBusConnection *conn,
 					} else {
 						if (netconfig_is_cellular_internet_profile(path)) {
 							netconfig_update_default_profile(path);
-							netconfig_cellular_state_set_service_state(NETCONFIG_CELLULAR_ONLINE);
 						}
 					}
 				}
+
+				if (netconfig_is_cellular_profile(path) && netconfig_is_cellular_internet_profile(path))
+					cellular_state_set_service_state(NETCONFIG_CELLULAR_ONLINE);
+
 			} else if (g_strcmp0(property, "failure") == 0 || g_strcmp0(property, "disconnect") == 0 || g_strcmp0(property, "idle") == 0) {
 				if (netconfig_get_default_profile() == NULL)
 					goto done;
 
-				if (netconfig_is_cellular_profile(path) == TRUE)
-					netconfig_cellular_state_set_service_state(NETCONFIG_CELLULAR_IDLE);
+				if (netconfig_is_cellular_profile(path) && netconfig_is_cellular_internet_profile(path))
+					cellular_state_set_service_state(NETCONFIG_CELLULAR_IDLE);
 
 				if (g_strcmp0(path, netconfig_get_default_profile()) != 0)
 					goto done;
@@ -236,8 +233,8 @@ static void __netconfig_service_signal_handler(GDBusConnection *conn,
 				if (netconfig_get_default_profile() == NULL)
 					goto done;
 
-				if (netconfig_is_cellular_profile(path) == TRUE)
-					netconfig_cellular_state_set_service_state(NETCONFIG_CELLULAR_CONNECTING);
+				if (netconfig_is_cellular_profile(path) && netconfig_is_cellular_internet_profile(path))
+					cellular_state_set_service_state(NETCONFIG_CELLULAR_CONNECTING);
 
 				if (g_strcmp0(path, netconfig_get_default_profile()) != 0)
 					goto done;
@@ -295,11 +292,13 @@ done:
 	return;
 }
 
-static void __netconfig_dbus_name_changed_signal_handler(GDBusConnection *conn,
+static void _dbus_name_changed_cb(GDBusConnection *conn,
 		const gchar *Name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
-	char *name, *old, *new;
+	gchar *name = NULL;
+	gchar *old = NULL;
+	gchar *new = NULL;
 
 	if (param == NULL)
 		return;
@@ -309,13 +308,19 @@ static void __netconfig_dbus_name_changed_signal_handler(GDBusConnection *conn,
 	if (g_strcmp0(name, CONNMAN_SERVICE) == 0 && *new == '\0') {
 		DBG("ConnMan destroyed: name %s, old %s, new %s", name, old, new);
 
-		netconfig_agent_register();
+		connman_register_agent();
 	}
+	if (name)
+		g_free(name);
+	if (old)
+		g_free(old);
+	if (new)
+		g_free(new);
 
 	return;
 }
 
-static void __netconfig_supplicant_interface_removed(GDBusConnection *conn,
+static void _supplicant_interface_removed(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
@@ -326,7 +331,7 @@ static void __netconfig_supplicant_interface_removed(GDBusConnection *conn,
 	return;
 }
 
-static void __netconfig_supplicant_properties_changed(GDBusConnection *conn,
+static void _supplicant_properties_changed(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
@@ -357,20 +362,20 @@ static void __netconfig_supplicant_properties_changed(GDBusConnection *conn,
 	return;
 }
 
-static void __netconfig_supplicant_bss_added(GDBusConnection *conn,
+static void _supplicant_bss_added(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
 	DBG("BSS added handling!");
-	if (netconfig_wifi_get_ssid_scan_state() == TRUE)
-		netconfig_wifi_bss_added(param);
+	if (wifi_ssid_scan_get_state() == TRUE)
+		wifi_ssid_scan_add_bss(param);
 	else
-		netconfig_wifi_set_bss_found(TRUE);
+		wifi_state_set_bss_found(TRUE);
 
 	return;
 }
 
-static void __netconfig_supplicant_scan_done(GDBusConnection *conn,
+static void _supplicant_scan_done(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
@@ -379,40 +384,39 @@ static void __netconfig_supplicant_scan_done(GDBusConnection *conn,
 
 	if (netconfig_wifi_is_wps_enabled() == TRUE) {
 		netconfig_wifi_wps_signal_scandone();
-		if (netconfig_wifi_state_get_technology_state() <
-				NETCONFIG_WIFI_TECH_POWERED)
+		if (wifi_state_get_technology_state() < NETCONFIG_WIFI_TECH_POWERED)
 			return;
 	}
 
 	if (netconfig_wifi_get_bgscan_state() != TRUE) {
-		if (netconfig_wifi_get_ssid_scan_state() == TRUE)
-			netconfig_wifi_notify_ssid_scan_done();
+		if (wifi_ssid_scan_get_state() == TRUE)
+			wifi_ssid_scan_emit_scan_completed();
 		else
-			netconfig_wifi_ssid_scan(NULL);
+			wifi_ssid_scan(NULL);
 	} else {
-		if (netconfig_wifi_state_get_technology_state() >=
+		if (wifi_state_get_technology_state() >=
 				NETCONFIG_WIFI_TECH_POWERED)
 			netconfig_wifi_bgscan_start(FALSE);
 
-		netconfig_wifi_start_timer_network_notification();
+		wifi_start_timer_network_notification();
 	}
 
 	return;
 }
 
-static void __netconfig_supplicant_driver_hanged(GDBusConnection *conn,
+static void _supplicant_driver_hanged(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
 	DBG("Driver Hanged handling!");
 	ERR("Critical. Wi-Fi firmware crashed");
 
-	netconfig_wifi_recover_firmware();
+	wifi_power_recover_firmware();
 
 	return;
 }
 
-static void __netconfig_supplicant_session_overlapped(GDBusConnection *conn,
+static void _supplicant_session_overlapped(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
 {
@@ -426,13 +430,13 @@ static void __netconfig_supplicant_session_overlapped(GDBusConnection *conn,
 #endif
 }
 
-static netconfig_supplicant_signal_handler supp_handlers[SIG_MAX] = {
-		__netconfig_supplicant_interface_removed,
-		__netconfig_supplicant_properties_changed,
-		__netconfig_supplicant_bss_added,
-		__netconfig_supplicant_scan_done,
-		__netconfig_supplicant_driver_hanged,
-		__netconfig_supplicant_session_overlapped
+static supplicant_signal_cb supplicant_cbs[SIG_MAX] = {
+		_supplicant_interface_removed,
+		_supplicant_properties_changed,
+		_supplicant_bss_added,
+		_supplicant_scan_done,
+		_supplicant_driver_hanged,
+		_supplicant_session_overlapped
 };
 
 #if defined TIZEN_DEBUG_DISABLE
@@ -449,17 +453,19 @@ static void __netconfig_dumpservice_handler(GDBusConnection *conn,
 	g_variant_get(param, "(io)", &mode, &signal_path);
 	DBG("Path: %s and mode: %d", signal_path, mode);
 	netconfig_dump_log(path);
+	if (signal_path)
+		g_free(signal_path);
 
 	return;
 }
 #endif
 
-void netconfig_register_signal(void)
+void register_gdbus_signal(void)
 {
 	GDBusConnection *connection = NULL;
 	const char *interface = NULL;
 	SuppSigArrayIndex sig;
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 
 	if (connection == NULL) {
 		ERR("Failed to get GDbus Connection");
@@ -476,7 +482,7 @@ void netconfig_register_signal(void)
 			NULL,
 			NULL,
 			G_DBUS_SIGNAL_FLAGS_NONE,
-			__netconfig_technology_signal_handler,
+			_technology_signal_cb,
 			NULL,
 			NULL);
 
@@ -488,7 +494,7 @@ void netconfig_register_signal(void)
 			NULL,
 			NULL,
 			G_DBUS_SIGNAL_FLAGS_NONE,
-			__netconfig_service_signal_handler,
+			_service_signal_cb,
 			NULL,
 			NULL);
 
@@ -500,7 +506,7 @@ void netconfig_register_signal(void)
 			NULL,
 			CONNMAN_SERVICE,
 			G_DBUS_SIGNAL_FLAGS_NONE,
-			__netconfig_dbus_name_changed_signal_handler,
+			_dbus_name_changed_cb,
 			NULL,
 			NULL);
 
@@ -517,11 +523,11 @@ void netconfig_register_signal(void)
 				connection,
 				SUPPLICANT_SERVICE,
 				interface,
-				supp_signals[sig],
+				supplicant_signals[sig],
 				NULL,
 				NULL,
 				G_DBUS_SIGNAL_FLAGS_NONE,
-				supp_handlers[sig],
+				supplicant_cbs[sig],
 				NULL,
 				NULL);
 	}
@@ -553,12 +559,12 @@ void netconfig_register_signal(void)
 	netconfig_update_default();
 }
 
-void netconfig_deregister_signal(void)
+void deregister_gdbus_signal(void)
 {
 	GDBusConnection *connection = NULL;
 	int signal;
 	SuppSigArrayIndex sig;
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (!connection) {
 		ERR("Already de-registered. Nothing to be done");
 		return;

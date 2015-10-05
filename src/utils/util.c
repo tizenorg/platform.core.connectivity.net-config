@@ -42,7 +42,9 @@
 #include "neterror.h"
 #include "wifi-state.h"
 
-#define WC_POPUP_EXTRA_DATA_KEY	"http://samsung.com/appcontrol/data/connection_type"
+#define WC_POPUP_EXTRA_DATA_KEY	"http://tizen.org/appcontrol/data/connection_type"
+#define MAC_INFO_FILEPATH		"/opt/etc/.mac.info"
+#define MAC_ADDRESS_MAX_LEN		18
 
 static gboolean netconfig_device_picker_test = FALSE;
 
@@ -99,8 +101,6 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 	chmod(pathname, S_IRUSR | S_IWUSR);
 
 	g_free(keydata);
-
-	g_key_file_free(keyfile);
 }
 
 void netconfig_start_timer_seconds(guint secs,
@@ -174,8 +174,9 @@ static gboolean __netconfig_test_device_picker()
 {
 	char *favorite_wifi_service = NULL;
 
-	favorite_wifi_service = netconfig_wifi_get_favorite_service();
+	favorite_wifi_service = wifi_get_favorite_service();
 	if (favorite_wifi_service != NULL) {
+		ERR("favorite_wifi_service is existed[%s] : Donot launch device picker", favorite_wifi_service);
 		g_free(favorite_wifi_service);
 		return FALSE;
 	}
@@ -228,8 +229,7 @@ static gboolean __netconfig_wifi_try_device_picker(gpointer data)
 	return FALSE;
 }
 
-static guint __netconfig_wifi_device_picker_timer_id(gboolean is_set_method,
-		guint timer_id)
+static guint __netconfig_wifi_device_picker_timer_id(gboolean is_set_method, guint timer_id)
 {
 	static guint netconfig_wifi_device_picker_service_timer = 0;
 
@@ -275,21 +275,13 @@ void netconfig_wifi_device_picker_service_start(void)
 #else
 	int wifi_ug_state;
 
-	if (netconfig_device_picker_test == TRUE)
-		netconfig_device_picker_test = FALSE;
-	else
-		return;
-
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 #endif
 
-	DBG("Register device picker timer with %d milliseconds",
-			NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL);
-
-	netconfig_start_timer(NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL,
-			__netconfig_wifi_try_device_picker, NULL, &timer_id);
+	DBG("Register device picker timer with %d milliseconds", NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL);
+	netconfig_start_timer(NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL, __netconfig_wifi_try_device_picker, NULL, &timer_id);
 
 	__netconfig_wifi_device_picker_set_timer_id(timer_id);
 }
@@ -493,6 +485,140 @@ int netconfig_execute_clatd(const char *file_path, char *const args[])
 	return -EIO;
 }
 
+int __netconfig_get_interface_index(const char *interface_name)
+{
+	struct ifreq ifr;
+	int sock = 0;
+	int result = 0;
+
+	if (interface_name == NULL) {
+		DBG("Inteface name is NULL");
+		return -1;
+	}
+
+	errno = 0;
+	sock = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+	if (sock < 0) {
+		DBG("Failed to create socket : %s", strerror(errno));
+		return -1;
+	}
+
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, interface_name, sizeof(ifr.ifr_name) - 1);
+	result = ioctl(sock, SIOCGIFINDEX, &ifr);
+	close(sock);
+
+	if (result < 0) {
+		DBG("Failed to get ifr index: %s", strerror(errno));
+		return -1;
+	}
+
+	return ifr.ifr_ifindex;
+}
+
+int netconfig_add_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gint address_family)
+{
+	struct ifreq ifr;
+	struct rtentry rt;
+	struct sockaddr_in addr_in;
+	int sock;
+
+	memset(&ifr, 0, sizeof(ifr));
+
+	ifr.ifr_ifindex = __netconfig_get_interface_index(interface);
+
+	if (ifr.ifr_ifindex < 0)
+		return -1;
+
+	strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
+
+	memset(&rt, 0, sizeof(rt));
+
+	rt.rt_flags = RTF_UP | RTF_HOST;
+	memset(&addr_in, 0, sizeof(struct sockaddr_in));
+	addr_in.sin_family = address_family;
+	addr_in.sin_addr.s_addr = inet_addr(ip_addr);
+	memcpy(&rt.rt_dst, &addr_in, sizeof(rt.rt_dst));
+
+	memset(&addr_in, 0, sizeof(struct sockaddr_in));
+	addr_in.sin_family = address_family;
+	addr_in.sin_addr.s_addr = INADDR_ANY;
+	memcpy(&rt.rt_gateway, &addr_in, sizeof(rt.rt_gateway));
+
+	memset(&addr_in, 0, sizeof(struct sockaddr_in));
+	addr_in.sin_family = AF_INET;
+	addr_in.sin_addr.s_addr = inet_addr(subnet);
+	memcpy(&rt.rt_genmask, &addr_in, sizeof(rt.rt_genmask));
+
+	rt.rt_dev = ifr.ifr_name;
+
+	errno = 0;
+	sock = socket(PF_INET, SOCK_DGRAM, 0);
+
+	if (sock < 0) {
+		DBG("Failed to create socket : %s", strerror(errno));
+		return -1;
+	}
+
+	if (ioctl(sock, SIOCADDRT, &rt) < 0) {
+		DBG("Failed to set route address : %s", strerror(errno));
+		close(sock);
+		return -1;
+	}
+
+	close(sock);
+
+	return 1;
+}
+
+int netconfig_del_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gint address_family)
+{
+	struct ifreq ifr;
+	struct rtentry rt;
+	struct sockaddr_in addr_in;
+	int sock;
+
+	memset(&ifr, 0, sizeof(ifr));
+	ifr.ifr_ifindex = __netconfig_get_interface_index(interface);
+
+	if (ifr.ifr_ifindex < 0)
+		return -1;
+
+	strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
+
+	memset(&rt, 0, sizeof(rt));
+
+	rt.rt_flags = RTF_UP;
+	memset(&addr_in, 0, sizeof(struct sockaddr_in));
+	addr_in.sin_family = address_family;
+	addr_in.sin_addr.s_addr = inet_addr(ip_addr);
+	memcpy(&rt.rt_dst, &addr_in, sizeof(rt.rt_dst));
+
+	memset(&addr_in, 0, sizeof(struct sockaddr_in));
+	addr_in.sin_family = address_family;
+	addr_in.sin_addr.s_addr = inet_addr(subnet);
+	memcpy(&rt.rt_genmask, &addr_in, sizeof(rt.rt_genmask));
+	rt.rt_dev = ifr.ifr_name;
+
+	errno = 0;
+	sock = socket(PF_INET, SOCK_DGRAM, 0);
+
+	if (sock < 0) {
+		DBG("Failed to create socket : %s", strerror(errno));
+		return -1;
+	}
+
+	if (ioctl(sock, SIOCDELRT, &rt) < 0) {
+		DBG("Failed to set route address : %s", strerror(errno));
+		close(sock);
+		return -1;
+	}
+
+	close(sock);
+
+	return 1;
+}
+
 int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len)
 {
 	struct in6_rtmsg rt;
@@ -505,24 +631,27 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 
 	rt.rtmsg_flags = RTF_UP | RTF_HOST;
 
+	errno = 0;
 	if (inet_pton(AF_INET6, ip_addr, &rt.rtmsg_dst) < 0) {
-		err = -errno;
-		return err;
+		DBG("inet_pton failed : %s", strerror(errno));
+		return -1;
 	}
 
 	if (gateway != NULL) {
 		rt.rtmsg_flags |= RTF_GATEWAY;
 		if (inet_pton(AF_INET6, gateway, &rt.rtmsg_gateway) < 0) {
-			err = -errno;
-			return err;
+			DBG("inet_pton failed : %s", strerror(errno));
+			return -1;
 		}
 	}
 
 	rt.rtmsg_metric = 1;
 
 	fd = socket(AF_INET6, SOCK_DGRAM, 0);
-	if (fd < 0)
+	if (fd < 0) {
+		DBG("Failed to create socket : %s", strerror(errno));
 		return -1;
+	}
 
 	rt.rtmsg_ifindex = 0;
 
@@ -535,7 +664,7 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	}
 
 	if ((err = ioctl(fd, SIOCADDRT, &rt)) < 0) {
-		DBG("Failed to add route: %d\n", err);
+		DBG("Failed to add route: %s", strerror(errno));
 		close(fd);
 		return -1;
 	}
@@ -587,7 +716,7 @@ int netconfig_del_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	}
 
 	if ((err = ioctl(fd, SIOCDELRT, &rt)) < 0) {
-		DBG("Failed to add route: %d\n", err);
+		DBG("Failed to del route: %d\n", err);
 		close(fd);
 		return -1;
 	}
@@ -844,4 +973,36 @@ char* netconfig_get_env(const char *key)
 
 	fclose(fp);
 	return value;
+}
+
+void netconfig_set_mac_address_from_file(void)
+{
+	FILE *file = NULL;
+	char mac_str[MAC_ADDRESS_MAX_LEN];
+	gchar *mac_lower_str = NULL;
+	int mac_len = 0;
+
+	file = fopen(MAC_INFO_FILEPATH, "r");
+	if (file == NULL) {
+		ERR("Fail to open %s", MAC_INFO_FILEPATH);
+		return;
+	}
+	if (fgets(mac_str, sizeof(mac_str), file) == NULL ) {
+		ERR("Fail to read mac address");
+		fclose(file);
+		return;
+	}
+
+	mac_len = strlen(mac_str);
+	if (mac_len < 17) {
+		ERR("mac.info is empty");
+		fclose(file);
+		return;
+	}
+
+	mac_lower_str = g_ascii_strup(mac_str, (gssize)mac_len);
+	netconfig_set_vconf_str(VCONFKEY_WIFI_BSSID_ADDRESS, mac_lower_str);
+
+	g_free(mac_lower_str);
+	fclose(file);
 }

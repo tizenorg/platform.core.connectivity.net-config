@@ -27,6 +27,7 @@
 #include "netdbus.h"
 #include "wifi-agent.h"
 #include "wifi-state.h"
+#include "wifi-config.h"
 #include "wifi-eap-config.h"
 #include "neterror.h"
 
@@ -41,6 +42,7 @@
 #define CONNMAN_CONFIG_FIELD_CLIENT_CERT_FILE		"ClientCertFile"
 #define CONNMAN_CONFIG_FIELD_PVT_KEY_FILE			"PrivateKeyFile"
 #define CONNMAN_CONFIG_FIELD_PVT_KEY_PASSPHRASE		"PrivateKeyPassphrase"
+#define CONNMAN_CONFIG_FIELD_KEYMGMT_TYPE			"KeymgmtType"
 
 static char *__get_encoded_ssid(const char *name)
 {
@@ -271,7 +273,8 @@ static gboolean __netconfig_create_config(GVariant *fields)
 	while (g_variant_iter_loop(iter, "{ss}", &field, &value)) {
 		if (g_strcmp0(field, CONNMAN_CONFIG_FIELD_SSID) == 0 ||
 				g_strcmp0(field, CONNMAN_CONFIG_FIELD_EAP_METHOD) == 0 ||
-				g_strcmp0(field, CONNMAN_CONFIG_FIELD_PHASE2) == 0) {
+				g_strcmp0(field, CONNMAN_CONFIG_FIELD_PHASE2) ||
+				g_strcmp0(field, CONNMAN_CONFIG_FIELD_KEYMGMT_TYPE) == 0) {
 			DBG("field: %s, value: %s", field, value);
 
 			if (value != NULL)
@@ -323,8 +326,7 @@ static gboolean __netconfig_create_config(GVariant *fields)
 				g_free(cert_path);
 			}
 		} else {
-			//DBG("field: %s, value:", field);
-			DBG("Temporal field: %s, value: %s", field, value);
+			DBG("field: %s, value: %s", field, value);
 
 			if (value != NULL)
 				g_key_file_set_string(keyfile, group_name, field, value);
@@ -357,6 +359,30 @@ out:
 	return updated;
 }
 
+static gboolean _delete_configuration(const gchar *profile)
+{
+	gboolean ret = FALSE;
+	gchar *config_id = NULL;
+
+	ret = wifi_config_get_config_id(profile, &config_id);
+	if (ret != TRUE) {
+		ERR("Fail to get config_id from [%s]", profile);
+		return ret;
+	}
+	ERR("get config_id [%s] from [%s]", config_id, profile);
+
+	ret = wifi_config_remove_configuration(config_id);
+	if (ret != TRUE) {
+		ERR("Fail to wifi_config_remove_configuration [%s]", config_id);
+	}
+
+	if (config_id != NULL) {
+		g_free(config_id);
+	}
+
+	return ret;
+}
+
 static gboolean __netconfig_delete_config(const char *profile)
 {
 	char *wifi_ident = NULL;
@@ -369,6 +395,10 @@ static gboolean __netconfig_delete_config(const char *profile)
 	if (NULL == profile) {
 		ERR("Invalid profile name");
 		return FALSE;
+	}
+
+	if (_delete_configuration(profile) != TRUE) {
+		ERR("Fail to delete configuration [%s]", profile);
 	}
 
 	wifi_ident = strstr(profile, "wifi_");
@@ -409,20 +439,20 @@ static gboolean __netconfig_delete_config(const char *profile)
 }
 
 static void __netconfig_eap_state(
-		enum netconfig_wifi_service_state state, void *user_data);
+		wifi_service_state_e state, void *user_data);
 
-static struct netconfig_wifi_state_notifier netconfig_eap_notifier = {
-		.netconfig_wifi_state_changed = __netconfig_eap_state,
+static wifi_state_notifier netconfig_eap_notifier = {
+		.wifi_state_changed = __netconfig_eap_state,
 		.user_data = NULL,
 };
 
 static void __netconfig_eap_state(
-		enum netconfig_wifi_service_state state, void *user_data)
+		wifi_service_state_e state, void *user_data)
 {
 	const char *wifi_profile = (const char *)user_data;
 
 	if (wifi_profile == NULL) {
-		netconfig_wifi_state_notifier_unregister(&netconfig_eap_notifier);
+		wifi_state_notifier_unregister(&netconfig_eap_notifier);
 		return;
 	}
 
@@ -435,7 +465,7 @@ static void __netconfig_eap_state(
 	g_free(netconfig_eap_notifier.user_data);
 	netconfig_eap_notifier.user_data = NULL;
 
-	netconfig_wifi_state_notifier_unregister(&netconfig_eap_notifier);
+	wifi_state_notifier_unregister(&netconfig_eap_notifier);
 }
 
 gboolean handle_create_eap_config(Wifi *wifi, GDBusMethodInvocation *context,
@@ -491,11 +521,11 @@ gboolean handle_create_eap_config(Wifi *wifi, GDBusMethodInvocation *context,
 			g_free(netconfig_eap_notifier.user_data);
 			netconfig_eap_notifier.user_data = NULL;
 
-			netconfig_wifi_state_notifier_unregister(&netconfig_eap_notifier);
+			wifi_state_notifier_unregister(&netconfig_eap_notifier);
 		}
 
 		netconfig_eap_notifier.user_data = g_strdup(service);
-		netconfig_wifi_state_notifier_register(&netconfig_eap_notifier);
+		wifi_state_notifier_register(&netconfig_eap_notifier);
 	} else {
 		netconfig_error_dbus_method_return(context, NETCONFIG_ERROR_INVALID_PARAMETER, "InvalidArguments");
 	}

@@ -40,6 +40,7 @@ static void __netconfig_clock_clear_timeserver(void)
 	g_key_file_remove_key(keyfile, "global", "Timeservers", NULL);
 
 	netconfig_keyfile_save(keyfile, CONNMAN_GLOBAL_SETTING);
+	g_key_file_free(keyfile);
 }
 
 static gboolean __netconfig_clock_clear_timeserver_timer(gpointer data)
@@ -87,7 +88,7 @@ static void __netconfig_set_timeserver(void)
 }
 
 static void __netconfig_clock(
-		enum netconfig_wifi_service_state state, void *user_data)
+		wifi_service_state_e state, void *user_data)
 {
 	gboolean automatic_time_update = 0;
 
@@ -106,15 +107,15 @@ static void __netconfig_clock(
 	__netconfig_set_timeserver();
 }
 
-static struct netconfig_wifi_state_notifier netconfig_clock_notifier = {
-		.netconfig_wifi_state_changed = __netconfig_clock,
+static wifi_state_notifier netconfig_clock_notifier = {
+		.wifi_state_changed = __netconfig_clock,
 		.user_data = NULL,
 };
 
 static void __automatic_time_update_changed_cb(keynode_t *node, void *user_data)
 {
 	gboolean automatic_time_update = FALSE;
-	enum netconfig_wifi_service_state wifi_state = NETCONFIG_WIFI_UNKNOWN;
+	wifi_service_state_e wifi_state = NETCONFIG_WIFI_UNKNOWN;
 
 	if (node != NULL) {
 		automatic_time_update = vconf_keynode_get_bool(node);
@@ -127,7 +128,7 @@ static void __automatic_time_update_changed_cb(keynode_t *node, void *user_data)
 		return;
 	}
 
-	 wifi_state = netconfig_wifi_state_get_service_state();
+	 wifi_state = wifi_state_get_service_state();
 
 	 if (wifi_state != NETCONFIG_WIFI_CONNECTED) {
 		INFO("WiFi state is not NETCONFIG_WIFI_CONNECTED");
@@ -143,10 +144,10 @@ void netconfig_clock_init(void)
 	vconf_notify_key_changed(VCONFKEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL,
 			__automatic_time_update_changed_cb, NULL);
 
-	netconfig_wifi_state_notifier_register(&netconfig_clock_notifier);
+	wifi_state_notifier_register(&netconfig_clock_notifier);
 }
 
 void netconfig_clock_deinit(void)
 {
-	netconfig_wifi_state_notifier_unregister(&netconfig_clock_notifier);
+	wifi_state_notifier_unregister(&netconfig_clock_notifier);
 }

@@ -38,7 +38,11 @@
 
 #define VCONFKEY_WIFI_SNR_MIN	-89
 
-#define NETCONFIG_WIFI_INDICATOR_INTERVAL	1
+#if !defined TIZEN_WEARABLE
+#define WIFI_INDICATOR_INTERVAL	1
+#else
+#define WIFI_INDICATOR_INTERVAL	10
+#endif
 
 #if defined TIZEN_WEARABLE
 #define NETCONFIG_WIFI_DATA_ACTIVITY_BOOSTER_LEVEL1	(19200 * 1024)
@@ -272,8 +276,7 @@ static void __netconfig_wifi_update_indicator(void)
 		}
 
 		if (transfer_state != last_transfer_state) {
-			netconfig_set_vconf_int(VCONFKEY_WIFI_TRANSFER_STATE,
-										transfer_state);
+			netconfig_set_vconf_int(VCONFKEY_WIFI_TRANSFER_STATE, transfer_state);
 			last_transfer_state = transfer_state;
 		}
 
@@ -310,13 +313,13 @@ static void __netconfig_wifi_update_indicator(void)
 	}
 }
 
-static gboolean __netconfig_wifi_indicator_monitor(gpointer data)
+static gboolean __wifi_indicator_monitor(gpointer data)
 {
 	int rssi_dbm = 0;
 	int snr_level = 0;
 	int pm_state = VCONFKEY_PM_STATE_NORMAL;
 
-	if (netconfig_wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED)
+	if (wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED)
 		return FALSE;
 
 	/* In case of LCD off, we don't need to update Wi-Fi indicator */
@@ -339,12 +342,7 @@ void netconfig_wifi_indicator_start(void)
 	INFO("Start Wi-Fi indicator");
 
 	netconfig_set_vconf_int(VCONFKEY_WIFI_STRENGTH, VCONFKEY_WIFI_STRENGTH_MAX);
-
-	netconfig_start_timer_seconds(
-			NETCONFIG_WIFI_INDICATOR_INTERVAL,
-			__netconfig_wifi_indicator_monitor,
-			NULL,
-			&netconfig_wifi_indicator_timer);
+	netconfig_start_timer_seconds(WIFI_INDICATOR_INTERVAL, __wifi_indicator_monitor, NULL, &netconfig_wifi_indicator_timer);
 }
 
 void netconfig_wifi_indicator_stop(void)

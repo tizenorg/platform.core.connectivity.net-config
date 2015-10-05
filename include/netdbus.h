@@ -70,13 +70,14 @@ typedef enum {
 	NETCONFIG_DBUS_RESULT_DEFAULT_TECHNOLOGY,
 } netconfig_dbus_result_type;
 
-typedef void (*netconfig_got_name_cb)(void);
+typedef void (*got_name_cb)(void);
 
-GDBusObjectManagerServer *netconfig_get_wifi_manager(void);
-GDBusObjectManagerServer *netconfig_get_state_manager(void);
-GDBusObjectManagerServer *netconfig_get_statistics_manager(void);
-GDBusConnection *netconfig_gdbus_get_connection(void);
-GCancellable *netconfig_gdbus_get_gdbus_cancellable(void);
+GDBusObjectManagerServer	*netdbus_get_wifi_manager(void);
+GDBusObjectManagerServer	*netdbus_get_state_manager(void);
+GDBusObjectManagerServer	*netdbus_get_statistics_manager(void);
+
+GDBusConnection				*netdbus_get_connection(void);
+GCancellable				*netdbus_get_cancellable(void);
 void netconfig_gdbus_pending_call_ref(void);
 void netconfig_gdbus_pending_call_unref(void);
 int netconfig_create_gdbus_call(GDBusConnection *conn);
@@ -94,8 +95,8 @@ GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
 		const char *interface_name, const char *method,
 		GVariant *params);
 
-int netconfig_setup_gdbus(netconfig_got_name_cb cb);
-void netconfig_cleanup_gdbus(void);
+int		setup_gdbus(got_name_cb cb);
+void	cleanup_gdbus(void);
 
 #ifdef __cplusplus
 }

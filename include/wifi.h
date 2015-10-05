@@ -34,9 +34,10 @@ extern "C" {
 #define WIFI_CERT_STORAGEDIR	"/var/lib/wifi/cert"
 #define CONNMAN_STORAGEDIR		"/var/lib/connman"
 
-void netconfig_wifi_create_and_init(void);
-void netconfig_wifi_init(void);
-Wifi *get_netconfig_wifi_object(void);
+void wifi_object_create_and_init(void);
+void wifi_object_deinit(void);
+
+Wifi *get_wifi_object(void);
 
 #ifdef __cplusplus
 }

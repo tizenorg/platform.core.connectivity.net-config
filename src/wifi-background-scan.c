@@ -88,7 +88,7 @@ static guint __netconfig_wifi_bgscan_get_mode(void)
 static gboolean __netconfig_wifi_bgscan_request_connman_scan(int retries)
 {
 	gboolean reply = FALSE;
-	guint state = netconfig_wifi_state_get_service_state();
+	guint state = wifi_state_get_service_state();
 
 	if (state == NETCONFIG_WIFI_CONNECTED)
 		if (__netconfig_wifi_bgscan_get_mode() == WIFI_BGSCAN_MODE_EXPONENTIAL)
@@ -221,14 +221,14 @@ gboolean netconfig_wifi_is_bgscan_paused(void)
 
 void netconfig_wifi_bgscan_start(gboolean immediate_scan)
 {
-	enum netconfig_wifi_tech_state wifi_tech_state;
+	wifi_tech_state_e wifi_tech_state;
 	struct bgscan_timer_data *timer_data =
 			__netconfig_wifi_bgscan_get_bgscan_data();
 
 	if (timer_data == NULL)
 		return;
 
-	wifi_tech_state = netconfig_wifi_state_get_technology_state();
+	wifi_tech_state = wifi_state_get_technology_state();
 	if (wifi_tech_state < NETCONFIG_WIFI_TECH_POWERED)
 		return;
 
@@ -271,8 +271,7 @@ void netconfig_wifi_set_scanning(gboolean scanning)
 		netconfig_wifi_scanning = scanning;
 }
 
-gboolean handle_set_bgscan(Wifi *wifi, GDBusMethodInvocation *context,
-		guint scan_mode)
+gboolean handle_set_bgscan(Wifi *wifi, GDBusMethodInvocation *context, guint scan_mode)
 {
 	gint old_mode = 0;
 	int pm_state = VCONFKEY_PM_STATE_NORMAL;

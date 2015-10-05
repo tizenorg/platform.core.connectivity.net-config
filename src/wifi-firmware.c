@@ -178,7 +178,7 @@ static int __netconfig_softap_firmware_stop(void)
 
 static int __netconfig_wifi_firmware_start(enum netconfig_wifi_firmware type)
 {
-	if (netconfig_emulator_is_emulated() == TRUE)
+	if (emulator_is_emulated() == TRUE)
 		return -EIO;
 
 	switch (type) {
@@ -197,7 +197,7 @@ static int __netconfig_wifi_firmware_start(enum netconfig_wifi_firmware type)
 
 static int __netconfig_wifi_firmware_stop(enum netconfig_wifi_firmware type)
 {
-	if (netconfig_emulator_is_emulated() == TRUE)
+	if (emulator_is_emulated() == TRUE)
 		return -EIO;
 
 	switch (type) {
@@ -235,10 +235,8 @@ int netconfig_wifi_firmware(enum netconfig_wifi_firmware type, gboolean enable)
 			return -EALREADY;
 		} else if (current_driver == alias) {
 #if defined WLAN_CHECK_POWERSAVE
-			if (type == NETCONFIG_WIFI_STA &&
-					netconfig_wifi_is_powersave_mode() == TRUE) {
+			if (type == NETCONFIG_WIFI_STA && netconfig_wifi_is_powersave_mode() == TRUE) {
 				netconfig_interface_down(WIFI_IFNAME);
-
 				return -EALREADY;
 			}
 #endif
@@ -254,9 +252,7 @@ int netconfig_wifi_firmware(enum netconfig_wifi_firmware type, gboolean enable)
 				return -EALREADY;
 			}
 
-			if (type == NETCONFIG_WIFI_P2P &&
-					netconfig_wifi_state_get_technology_state() >
-						NETCONFIG_WIFI_TECH_OFF) {
+			if (type == NETCONFIG_WIFI_P2P && wifi_state_get_technology_state() > NETCONFIG_WIFI_TECH_OFF) {
 				netconfig_interface_down(WLAN_P2P_IFACE_NAME);
 
 				return -EALREADY;
@@ -277,8 +273,7 @@ int netconfig_wifi_firmware(enum netconfig_wifi_firmware type, gboolean enable)
 	if (current_driver > NETCONFIG_WIFI_OFF) {
 		if (current_driver == alias) {
 #if defined WLAN_CHECK_POWERSAVE
-			if (type == NETCONFIG_WIFI_STA &&
-					netconfig_wifi_is_powersave_mode() == TRUE) {
+			if (type == NETCONFIG_WIFI_STA && netconfig_wifi_is_powersave_mode() == TRUE) {
 				netconfig_interface_up(WIFI_IFNAME);
 
 				return -EALREADY;
@@ -326,10 +321,16 @@ gboolean handle_start(WifiFirmware *firmware, GDBusMethodInvocation *context, co
 	if (err < 0) {
 		if (err == -EALREADY)
 			netconfig_error_already_exists(context);
+		else if (g_strcmp0("softap", device) == 0 && err == -EIO && netconfig_is_wifi_direct_on() == FALSE) {
+			if (netconfig_wifi_firmware(NETCONFIG_WIFI_P2P, FALSE) == 0 && netconfig_wifi_firmware(NETCONFIG_WIFI_SOFTAP, TRUE) == 0) {
+				wifi_firmware_complete_start(firmware, context);
+				return TRUE;
+			} else
+				netconfig_error_wifi_driver_failed(context);
+		}
 		else
 			netconfig_error_wifi_driver_failed(context);
 
-		wifi_firmware_complete_start(firmware, context);
 		return FALSE;
 	}
 
@@ -358,10 +359,9 @@ gboolean handle_stop(WifiFirmware *firmware, GDBusMethodInvocation *context, con
 		else
 			netconfig_error_wifi_driver_failed(context);
 
-		wifi_firmware_complete_start(firmware, context);
 		return FALSE;
 	}
 
-	wifi_firmware_complete_start(firmware, context);
+	wifi_firmware_complete_stop(firmware, context);
 	return TRUE;
 }

@@ -50,18 +50,26 @@ gboolean __net_ethernet_cable_status_polling_callback(gpointer data)
 	return TRUE;
 }
 
-void __netconfig_got_name_cb(void)
+void _got_name_cb(void)
 {
-	netconfig_wifi_create_and_init();
-	netconfig_network_state_create_and_init();
-	netconfig_network_statistics_create_and_init();
+	wifi_object_create_and_init();
+	state_object_create_and_init();
+	statistics_object_create_and_init();
 
-	netconfig_register_signal();
-	netconfig_agent_register();
+	register_gdbus_signal();
+	connman_register_agent();
 
 #if defined TIZEN_TV
 	__netconfig_set_ether_macaddr();
 #endif
+}
+
+static void _objects_deinit(void)
+{
+	cleanup_gdbus();
+	wifi_object_deinit();
+	state_object_deinit();
+	statistics_object_deinit();
 }
 
 int main(int argc, char *argv[])
@@ -98,7 +106,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	ret = netconfig_setup_gdbus(__netconfig_got_name_cb);
+	ret = setup_gdbus(_got_name_cb);
 	if (ret > 0) {
 		ERR("_netconfig_setup_gdbus is failed\n");
 		return 0;
@@ -111,11 +119,12 @@ int main(int argc, char *argv[])
 #endif
 
 	/* If its environment uses Emulator, network configuration is set by emulator default */
-	netconfig_emulator_test_and_start();
+	emulator_test_and_start();
+
 
 	/*In case no emulator, set the ETH0 Mac address*/
 #if defined TIZEN_TV
-	if (netconfig_emulator_is_emulated() == FALSE)
+	if (emulator_is_emulated() == FALSE)
 		__netconfig_set_ether_macaddr();
 #endif
 
@@ -132,20 +141,25 @@ int main(int argc, char *argv[])
 
 	g_main_loop_run(main_loop);
 
-	netconfig_cleanup_gdbus();
+	_objects_deinit();
 
-	netconfig_deregister_signal();
+	log_cleanup();
 
-	netconfig_wifi_power_deinitialize();
+	deregister_gdbus_signal();
 
-	netconfig_wifi_state_notifier_cleanup();
+#if !defined TIZEN_TELEPHONY_ENABLE
+	netconfig_clock_deinit();
+#endif
+
 
 	/*remove the Timer*/
 	if(check_ethernet_monitor_timer >0)
 		g_source_remove(check_ethernet_monitor_timer);
 
+	wifi_state_notifier_cleanup();
+
 	/* Unregistering the agent */
-	netconfig_agent_unregister();
+	connman_unregister_agent();
 
 	return 0;
 }

@@ -219,7 +219,7 @@ static void __netconfig_get_default_connection_info(const char *profile)
 				GVariantIter *iter_sub = NULL;
 
 				if (g_strcmp0(key2, "Servers") == 0) {
-					if (!g_variant_is_of_type(next, G_VARIANT_TYPE_STRING_ARRAY)) {
+					if (!g_variant_is_of_type(variant2, G_VARIANT_TYPE_STRING_ARRAY)) {
 						g_free(key2);
 						g_variant_unref(variant2);
 						break;
@@ -416,7 +416,7 @@ static void __netconfig_update_default_connection_info(void)
 	const char *proxy_addr = netconfig_get_default_proxy();
 	unsigned int freq = netconfig_get_default_frequency();
 
-	if (netconfig_emulator_is_emulated() == TRUE)
+	if (emulator_is_emulated() == TRUE)
 		return;
 
 	if (profile == NULL)
@@ -623,7 +623,7 @@ static void __netconfig_network_notify_result(const char *sig_name, const char *
 
 	INFO("[Signal] %s %s", sig_name, key);
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		ERR("Failed to get GDBus Connection");
 		return;
@@ -778,8 +778,7 @@ void netconfig_update_default_profile(const char *profile)
 
 		netconfig_default_connection_info.freq = 0;
 
-		if (netconfig_wifi_state_get_service_state()
-				!= NETCONFIG_WIFI_CONNECTED) {
+		if (wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED) {
 			g_free(netconfig_default_connection_info.essid);
 			netconfig_default_connection_info.essid = NULL;
 		}
@@ -815,7 +814,7 @@ void netconfig_update_default(void)
 		__netconfig_adjust_tcp_buffer_size();
 }
 
-char *netconfig_network_get_ifname(const char *profile)
+char *netconfig_get_ifname(const char *profile)
 {
 	GVariant *message = NULL, *variant;
 	GVariantIter *iter, *next;
@@ -1007,7 +1006,7 @@ static gboolean handle_check_profile_privilege(Network *object,
 }
 
 gboolean handle_ethernet_cable_state(Network *object,
-		GDBusMethodInvocation *context)
+	GDBusMethodInvocation *context)
 {
 	int ret = 0;
 	int state = 0;
@@ -1024,22 +1023,22 @@ gboolean handle_ethernet_cable_state(Network *object,
 	return TRUE;
 }
 
-void netconfig_network_state_create_and_init(void)
+void state_object_create_and_init(void)
 {
 	DBG("Creating network state object");
-	GDBusInterfaceSkeleton *interface = NULL;
+	GDBusInterfaceSkeleton *interface_network = NULL;
 	GDBusConnection *connection = NULL;
-	GDBusObjectManagerServer *server = netconfig_get_state_manager();
+	GDBusObjectManagerServer *server = netdbus_get_state_manager();
 	if (server == NULL)
 		return;
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	g_dbus_object_manager_server_set_connection(server, connection);
 
-	/*Interface 1*/
+	/*Interface netconfig.network*/
 	netconfigstate = network_skeleton_new();
 
-	interface = G_DBUS_INTERFACE_SKELETON(netconfigstate);
+	interface_network = G_DBUS_INTERFACE_SKELETON(netconfigstate);
 	g_signal_connect(netconfigstate, "handle-add-route",
 				G_CALLBACK(handle_add_route), NULL);
 	g_signal_connect(netconfigstate, "handle-check-get-privilege",
@@ -1048,11 +1047,14 @@ void netconfig_network_state_create_and_init(void)
 				G_CALLBACK(handle_check_profile_privilege), NULL);
 	g_signal_connect(netconfigstate, "handle-remove-route",
 				G_CALLBACK(handle_remove_route), NULL);
-	g_signal_connect(netconfigstate, "handle-ethernet-cable-state",
-				G_CALLBACK(handle_ethernet_cable_state), NULL);
 
-	if (!g_dbus_interface_skeleton_export(interface, connection,
+	if (!g_dbus_interface_skeleton_export(interface_network, connection,
 			NETCONFIG_NETWORK_STATE_PATH, NULL)) {
 		ERR("Export with path failed");
 	}
+}
+
+void state_object_deinit(void)
+{
+	g_object_unref(netconfigstate);
 }

@@ -68,6 +68,8 @@ int netconfig_execute_file(const char *file_path, char *const args[], char *cons
 int netconfig_execute_clatd(const char *file_path, char *const args[]);
 int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len);
 int netconfig_del_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, unsigned char prefix_len);
+int netconfig_add_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gint address_family);
+int netconfig_del_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gint address_family);
 
 gboolean handle_launch_direct(Wifi *wifi, GDBusMethodInvocation *context);
 
@@ -82,6 +84,7 @@ int wc_launch_popup(netconfig_wcpopup_type_e type);
 void netconfig_set_vconf_int(const char * key, int value);
 void netconfig_set_vconf_str(const char * key, const char * value);
 char* netconfig_get_env(const char *key);
+void netconfig_set_mac_address_from_file(void);
 
 #ifdef __cplusplus
 }

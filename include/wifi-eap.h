@@ -27,10 +27,8 @@ extern "C" {
 #include "wifi.h"
 
 gboolean handle_get_sim_imsi(Wifi *wifi, GDBusMethodInvocation *context);
-gboolean handle_req_sim_auth(Wifi *wifi, GDBusMethodInvocation *context,
-		const gchar *rand_data);
-gboolean handle_req_aka_auth(Wifi *wifi, GDBusMethodInvocation *context,
-		const gchar *rand_data, const gchar *autn_data);
+gboolean handle_req_sim_auth(Wifi *wifi, GDBusMethodInvocation *context, GVariant *rand_data);
+gboolean handle_req_aka_auth(Wifi *wifi, GDBusMethodInvocation *context, GVariant *rand_data, GVariant *autn_data);
 gboolean handle_get_sim_auth(Wifi *wifi, GDBusMethodInvocation *context);
 gboolean handle_get_aka_auth(Wifi *wifi, GDBusMethodInvocation *context);
 

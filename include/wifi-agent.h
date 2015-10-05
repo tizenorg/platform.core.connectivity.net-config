@@ -26,8 +26,8 @@ extern "C" {
 
 #include "wifi.h"
 
-gboolean netconfig_agent_register(void);
-gboolean netconfig_agent_unregister(void);
+gboolean connman_register_agent(void);
+gboolean connman_unregister_agent(void);
 
 gboolean netconfig_wifi_set_agent_field_for_eap_network(
 		const char *name, const char *identity, const char *passphrase);

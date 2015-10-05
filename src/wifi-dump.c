@@ -49,7 +49,7 @@ static void _send_dump_signal(const gchar *sig_name)
 	GDBusConnection *connection = NULL;
 	GError *error = NULL;
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		DBG("GDBusconnection is NULL");
 		return;

@@ -71,14 +71,14 @@ static void __netconfig_agent_clear_fields(void)
 	agent.wps_pbc = FALSE;
 }
 
-int netconfig_agent_register(void)
+int connman_register_agent(void)
 {
 	GVariant *reply = NULL;
 	GVariant *params = NULL;
 	GError *error;
 	GDBusConnection *connection = NULL;
 
-	connection = netconfig_gdbus_get_connection();
+	connection = netdbus_get_connection();
 	if (connection == NULL) {
 		ERR("GDBusconnection is NULL");
 		return -1;
@@ -98,7 +98,7 @@ int netconfig_agent_register(void)
 				NULL,
 				G_DBUS_CALL_FLAGS_NONE,
 				DBUS_REPLY_TIMEOUT,
-				netconfig_gdbus_get_gdbus_cancellable(),
+				netdbus_get_cancellable(),
 				&error);
 
 		if (reply == NULL) {
@@ -125,7 +125,7 @@ int netconfig_agent_register(void)
 	return 0;
 }
 
-int netconfig_agent_unregister(void)
+int connman_unregister_agent(void)
 {
 	gboolean reply = FALSE;
 	GVariant *param = NULL;
@@ -486,15 +486,15 @@ static gboolean __check_ignore_portal_list(const char * ssid)
 	return FALSE;
 }
 
-static void __wifi_state_monitor(enum netconfig_wifi_service_state state,
+static void __wifi_state_monitor(wifi_service_state_e state,
 		void *user_data);
 
-static struct netconfig_wifi_state_notifier wifi_state_monitor_notifier = {
-		.netconfig_wifi_state_changed = __wifi_state_monitor,
+static wifi_state_notifier wifi_state_monitor_notifier = {
+		.wifi_state_changed = __wifi_state_monitor,
 		.user_data = NULL,
 };
 
-static void __wifi_state_monitor(enum netconfig_wifi_service_state state,
+static void __wifi_state_monitor(wifi_service_state_e state,
 		void *user_data)
 {
 	DBG("Wi-Fi state: %x", state);
@@ -503,7 +503,7 @@ static void __wifi_state_monitor(enum netconfig_wifi_service_state state,
 		return;
 
 	if (is_monitor_notifier_registered == TRUE) {
-		netconfig_wifi_state_notifier_unregister(&wifi_state_monitor_notifier);
+		wifi_state_notifier_unregister(&wifi_state_monitor_notifier);
 		is_monitor_notifier_registered = FALSE;
 	}
 
@@ -534,8 +534,7 @@ static gboolean __netconfig_wifi_portal_login_timeout(gpointer data)
 
 	if (TRUE == netconfig_get_internet_status()) {
 		if (is_monitor_notifier_registered == TRUE) {
-			netconfig_wifi_state_notifier_unregister(
-							&wifi_state_monitor_notifier);
+			wifi_state_notifier_unregister(&wifi_state_monitor_notifier);
 			is_monitor_notifier_registered = FALSE;
 		}
 
@@ -546,8 +545,7 @@ static gboolean __netconfig_wifi_portal_login_timeout(gpointer data)
 			DBG("Login failed, update ConnMan");
 
 			if (is_monitor_notifier_registered == TRUE) {
-				netconfig_wifi_state_notifier_unregister(
-						&wifi_state_monitor_notifier);
+				wifi_state_notifier_unregister(&wifi_state_monitor_notifier);
 				is_monitor_notifier_registered = FALSE;
 			}
 
@@ -566,7 +564,7 @@ static gboolean __netconfig_wifi_portal_login_timeout(gpointer data)
 			}
 		} else {
 			if (NETCONFIG_WIFI_CONNECTED ==
-					netconfig_wifi_state_get_service_state()) {
+					wifi_state_get_service_state()) {
 				/* check Internet availability by sending and receiving data*/
 				netconfig_check_internet_accessibility();
 				/* Returning TRUE itself is enough to restart the timer */
@@ -639,7 +637,7 @@ gboolean handle_request_browser(NetConnmanAgent *connman_agent,
 	}
 	/* Register for Wifi state change notifier*/
 	if (is_monitor_notifier_registered == FALSE) {
-		netconfig_wifi_state_notifier_register(&wifi_state_monitor_notifier);
+		wifi_state_notifier_register(&wifi_state_monitor_notifier);
 		is_monitor_notifier_registered = TRUE;
 	}
 

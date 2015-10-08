@@ -921,7 +921,7 @@ void netconfig_wifi_power_initialize(void)
 				vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY,
 						__netconfig_tapi_state_changed_cb, NULL);
 
-				goto done;
+					goto done;
 			} else {
 				if (netconfig_tapi_check_sim_state() == FALSE) {
 					DBG("SIM is not initialized yet");

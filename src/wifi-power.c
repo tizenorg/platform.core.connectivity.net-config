@@ -1074,14 +1074,9 @@ void wifi_power_initialize(void)
 			DBG("Telephony API is not initialized yet");
 			vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY,
 					__netconfig_telephony_ready_changed_cb, NULL);
-
-			goto done;
 		} else {
-			if (netconfig_tapi_check_sim_state() == FALSE) {
+			if (netconfig_tapi_check_sim_state() == FALSE)
 				DBG("SIM is not initialized yet");
-
-				goto done;
-			}
 		}
 #endif
 		DBG("Turn Wi-Fi on automatically");
@@ -1091,10 +1086,6 @@ void wifi_power_initialize(void)
 		wifi_power_on();
 #endif
 	}
-
-#if defined TIZEN_TELEPHONY_ENABLE
-done:
-#endif
 
 #if defined TIZEN_WEARABLE
 	_weconn_set_state_changed_cb(W_SERVICE_TYPE_BT, NULL);

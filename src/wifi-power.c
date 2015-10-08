@@ -915,20 +915,15 @@ void netconfig_wifi_power_initialize(void)
 	if (wifi_last_power_state > VCONFKEY_WIFI_OFF && airplane_mode == 0) {
 #if defined TIZEN_TELEPHONY_ENABLE
 		int tapi_state = 0;
-			vconf_get_bool(VCONFKEY_TELEPHONY_READY, &tapi_state);
-			if (tapi_state == FALSE) {
-				DBG("Telephony API is not initialized yet");
-				vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY,
-						__netconfig_tapi_state_changed_cb, NULL);
-
-				goto done;
-			} else {
-				if (netconfig_tapi_check_sim_state() == FALSE) {
-					DBG("SIM is not initialized yet");
-
-					goto done;
-				}
-			}
+		vconf_get_bool(VCONFKEY_TELEPHONY_READY, &tapi_state);
+		if (tapi_state == FALSE) {
+			DBG("Telephony API is not initialized yet");
+			vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY,
+					__netconfig_tapi_state_changed_cb, NULL);
+		} else {
+			if (netconfig_tapi_check_sim_state() == FALSE)
+				DBG("SIM is not initialized yet");
+		}
 #endif
 		DBG("Turn Wi-Fi on automatically");
 #if defined TIZEN_WEARABLE
@@ -937,10 +932,6 @@ void netconfig_wifi_power_initialize(void)
 		netconfig_wifi_on();
 #endif
 	}
-
-#if defined TIZEN_TELEPHONY_ENABLE
-done:
-#endif
 
 #if defined TIZEN_WEARABLE
 	__netconfig_wifi_wearable_set_state_changed_cb(W_SERVICE_TYPE_BT, NULL);

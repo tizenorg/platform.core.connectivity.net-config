@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.41
+Version:	1.1.42
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -118,39 +118,6 @@ mkdir -p %{buildroot}%{_datadir}/license
 cp LICENSE %{buildroot}%{_datadir}/license/net-config
 
 %post
-
-%if "%{profile}" == "tv"
-vconftool set -t string db/dnet/mac_address "" -s system::vconf_network
-%endif
-
-#Wi-Fi statistics
-vconftool set -t int db/dnet/statistics/wifi/totalsnt 0 -s tizen::vconf::network
-vconftool set -t int db/dnet/statistics/wifi/totalrcv 0 -s tizen::vconf::network
-vconftool set -t int db/dnet/statistics/wifi/lastsnt 0 -s tizen::vconf::network
-vconftool set -t int db/dnet/statistics/wifi/lastrcv 0 -s tizen::vconf::network
-
-#Wi-Fi last power state
-vconftool set -t int file/private/wifi/last_power_state 0 -s system::vconf_network
-
-#Wi-Fi power state due to airplane mode
-vconftool set -t int file/private/wifi/wifi_off_by_airplane 0 -s system::vconf_network
-
-#Wi-Fi power state due to restricted mode
-vconftool set -t int file/private/wifi/wifi_off_by_restricted 0 -s system::vconf_network
-
-#Wi-Fi power state due to emergency mode
-vconftool set -t int file/private/wifi/wifi_off_by_emergency 0 -s system::vconf_network
-
-#Wi-Fi sleep policy
-vconftool set -t int file/private/wifi/sleep_policy 0 -g 6519 -s system::vconf_setting
-
-%if 0%{?model_build_feature_wlan_wearable} == 1
-#Wearable use Wi-Fi
-vconftool set -t int db/private/wifi/wearable_wifi_use 0 -g 6519 -s net-config
-%endif
-
-#Wi-Fi Network Frequency for Wi-Fi Direct
-vconftool set -t int memory/private/wifi/frequency 0 -i -s tizen::vconf::platform::r
 
 #Network logs
 mkdir -p /opt/usr/data/network

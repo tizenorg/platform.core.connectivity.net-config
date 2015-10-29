@@ -616,6 +616,7 @@ done:
 static void __netconfig_network_notify_result(const char *sig_name, const char *key)
 {
 	gboolean reply;
+	GVariant *params;
 	GVariantBuilder *builder = NULL;
 	GDBusConnection *connection = NULL;
 	GError *error = NULL;
@@ -630,18 +631,18 @@ static void __netconfig_network_notify_result(const char *sig_name, const char *
 	}
 
 	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
-	g_variant_builder_add(builder, "{sv}", prop_key, g_variant_new("(s)", key));
+	g_variant_builder_add(builder, "{sv}", prop_key, g_variant_new_string(key));
+	params = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
+
+	g_variant_builder_unref(builder);
 
 	reply = g_dbus_connection_emit_signal(connection,
 			NULL,
 			NETCONFIG_NETWORK_PATH,
 			NETCONFIG_NETWORK_INTERFACE,
 			sig_name,
-			g_variant_builder_end(builder),
+			params,
 			&error);
-
-	if (builder)
-		g_variant_builder_unref(builder);
 
 	if (reply != TRUE) {
 		if (error != NULL) {

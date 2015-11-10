@@ -1,10 +1,11 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.44
+Version:	1.1.45
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
 Source0:	%{name}-%{version}.tar.gz
+BuildRequires:	pkgconfig(aul)
 BuildRequires:	pkgconfig(dlog)
 BuildRequires:	pkgconfig(tapi)
 BuildRequires:	pkgconfig(vconf)

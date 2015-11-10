@@ -17,7 +17,9 @@
  *
  */
 
+#if defined TIZEN_WEARABLE
 #include <aul.h>
+#endif
 #include <app.h>
 #include <errno.h>
 #include <vconf.h>
@@ -792,7 +794,7 @@ gboolean netconfig_send_notification_to_net_popup(const char * noti, const char 
 		bundle_add(b, "_AP_NAME_", ssid);
 	}
 
-	ret = aul_launch_app("net.netpopup", b);
+	ret = syspopup_launch("net.netpopup", b);
 
 	bundle_free(b);
 
@@ -816,7 +818,7 @@ int netconfig_send_message_to_net_popup(const char *title,
 	bundle_add(b, "_SYSPOPUP_TYPE_", type);
 	bundle_add(b, "_AP_NAME_", ssid);
 
-	ret = aul_launch_app("net.netpopup", b);
+	ret = syspopup_launch("net.netpopup", b);
 
 	bundle_free(b);
 

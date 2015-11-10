@@ -22,7 +22,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <aul.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>

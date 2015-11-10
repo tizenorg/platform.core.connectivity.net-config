@@ -17,7 +17,6 @@
  *
  */
 
-#include <aul.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 #include <bundle.h>
@@ -61,7 +60,7 @@ static void __netconfig_pop_wifi_connected_poppup(const char *ssid)
 	bundle_add(b, "_AP_NAME_", ssid);
 
 	DBG("Launch Wi-Fi connected alert network popup");
-	aul_launch_app("net.netpopup", b);
+	syspopup_launch("net.netpopup", b);
 
 	bundle_free(b);
 }
@@ -178,11 +177,6 @@ static gboolean __is_favorited(GVariantIter *array)
 static void _wifi_state_connected_activation(void)
 {
 	/* Add activation of services when Wi-Fi is connected */
-	bundle *b = NULL;
-
-	b = bundle_create();
-	aul_launch_app("com.samsung.keepit-service-standby", b);
-	bundle_free(b);
 }
 
 static void _wifi_state_changed(wifi_service_state_e state)

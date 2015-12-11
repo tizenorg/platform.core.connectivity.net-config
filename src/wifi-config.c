@@ -485,7 +485,8 @@ static gboolean _get_field(const gchar *config_id, const gchar *key, gchar **val
 static GSList *_get_list(void)
 {
 	GSList *list = NULL;
-	struct dirent *d;
+	struct dirent ent_struct;
+	struct dirent *dp = NULL;
 	DIR *dir;
 
 	dir = opendir(CONNMAN_STORAGE);
@@ -494,12 +495,12 @@ static GSList *_get_list(void)
 		return NULL;
 	}
 
-	while ((d = readdir(dir))) {
-		if (g_strcmp0(d->d_name, ".") == 0 || g_strcmp0(d->d_name, "..") == 0 ||
-				strncmp(d->d_name, WIFI_CONFIG_PREFIX, strlen(WIFI_CONFIG_PREFIX)) != 0) {
+	while ((readdir_r(dir, &ent_struct, &dp) == 0) && dp) {
+		if (g_strcmp0(dp->d_name, ".") == 0 || g_strcmp0(dp->d_name, "..") == 0 ||
+				strncmp(dp->d_name, WIFI_CONFIG_PREFIX, strlen(WIFI_CONFIG_PREFIX)) != 0) {
 			continue;
 		}
-		gchar *config_id = g_strdup(d->d_name + WIFI_PREFIX_LENGTH);
+		gchar *config_id = g_strdup(dp->d_name + WIFI_PREFIX_LENGTH);
 		list = g_slist_append(list, g_strdup(config_id));
 		g_free(config_id);
 	}

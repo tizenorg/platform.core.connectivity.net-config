@@ -100,16 +100,17 @@ static int __netconfig_wifi_update_and_get_rssi(void)
 			continue;
 
 		/* read wireless status */
-		p_entry = strtok(p_entry, " .");	// status			"%x"
+		char *saveptr;
+		p_entry = strtok_r(p_entry, " .", &saveptr);	// status			"%x"
 		if (p_entry != NULL)
 			sscanf(p_entry, "%x", &status);
-		p_entry = strtok(NULL, " .");		// Quality link		"%d"
+		p_entry = strtok_r(NULL, " .", &saveptr);		// Quality link		"%d"
 		if (p_entry != NULL)
 			sscanf(p_entry, "%d", &link);
-		p_entry = strtok(NULL, " .");		// Quality level	"%d"
+		p_entry = strtok_r(NULL, " .", &saveptr);		// Quality level	"%d"
 		if (p_entry != NULL)
 			sscanf(p_entry, "%d", &rssi_dbm);
-		p_entry = strtok(NULL, " .");		// Quality noise	"%d"
+		p_entry = strtok_r(NULL, " .", &saveptr);		// Quality noise	"%d"
 		if (p_entry != NULL)
 			sscanf(p_entry, "%d", &noise);
 

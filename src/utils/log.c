@@ -74,17 +74,16 @@ static inline void __netconfig_log_make_backup(void)
 
 static inline void __netconfig_log_get_local_time(char *strtime, const int size)
 {
-	struct timeval tv;
+	time_t buf;
 	struct tm *local_ptm;
-	char buf[32];
+	struct tm result = {0, };
 
-	gettimeofday(&tv, NULL);
-	local_ptm = localtime(&tv.tv_sec);
+	time(&buf);
+	buf = time(NULL);
+	local_ptm = localtime_r(&buf, &result);
 
-	if(local_ptm)
-		strftime(buf, sizeof(buf), "%m/%d %H:%M:%S", local_ptm);
-
-	snprintf(strtime, size, "%s.%03ld", buf, tv.tv_usec / 1000);
+	if (local_ptm)
+		strftime(strtime, size, "%m/%d %H:%M:%S", local_ptm);
 }
 
 void netconfig_log(const char *format, ...)

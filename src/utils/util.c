@@ -397,6 +397,7 @@ int netconfig_execute_file(const char *file_path,
 	int rv = 0;
 	errno = 0;
 	register unsigned int index = 0;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
 
 	while (args[index] != NULL) {
 		DBG("%s", args[index]);
@@ -409,7 +410,8 @@ int netconfig_execute_file(const char *file_path,
 
 		errno = 0;
 		if (execve(file_path, args, envs) == -1) {
-			DBG("Fail to execute command (%s)", strerror(errno));
+			strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+			DBG("Fail to execute command (%s)", error_buf);
 			exit(1);
 		}
 	} else if (pid > 0) {
@@ -430,7 +432,8 @@ int netconfig_execute_file(const char *file_path,
 		return rv;
 	}
 
-	DBG("failed to fork(%s)", strerror(errno));
+	strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+	DBG("failed to fork(%s)", error_buf);
 	return -EIO;
 }
 
@@ -450,6 +453,7 @@ int netconfig_execute_clatd(const char *file_path, char *const args[])
 	int rv = 0;
 	errno = 0;
 	register unsigned int index = 0;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
 
 	struct sigaction act;
 	int state = 0;
@@ -475,7 +479,8 @@ int netconfig_execute_clatd(const char *file_path, char *const args[])
 
 		errno = 0;
 		if (execvp(file_path, args) == -1) {
-			ERR("Fail to execute command (%s)", strerror(errno));
+			strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+			ERR("Fail to execute command (%s)", error_buf);
 			return -1;
 		}
 	} else if (pid > 0) {
@@ -483,7 +488,8 @@ int netconfig_execute_clatd(const char *file_path, char *const args[])
 		return rv;
 	}
 
-	DBG("failed to fork(%s)", strerror(errno));
+	strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+	DBG("failed to fork(%s)", error_buf);
 	return -EIO;
 }
 
@@ -492,6 +498,7 @@ int __netconfig_get_interface_index(const char *interface_name)
 	struct ifreq ifr;
 	int sock = 0;
 	int result = 0;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
 
 	if (interface_name == NULL) {
 		DBG("Inteface name is NULL");
@@ -501,7 +508,8 @@ int __netconfig_get_interface_index(const char *interface_name)
 	errno = 0;
 	sock = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 	if (sock < 0) {
-		DBG("Failed to create socket : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to create socket : %s", error_buf);
 		return -1;
 	}
 
@@ -511,7 +519,7 @@ int __netconfig_get_interface_index(const char *interface_name)
 	close(sock);
 
 	if (result < 0) {
-		DBG("Failed to get ifr index: %s", strerror(errno));
+		DBG("Failed to get ifr index: %s", error_buf);
 		return -1;
 	}
 
@@ -524,6 +532,7 @@ int netconfig_add_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gi
 	struct rtentry rt;
 	struct sockaddr_in addr_in;
 	int sock;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
 
 	memset(&ifr, 0, sizeof(ifr));
 
@@ -558,12 +567,14 @@ int netconfig_add_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gi
 	sock = socket(PF_INET, SOCK_DGRAM, 0);
 
 	if (sock < 0) {
-		DBG("Failed to create socket : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to create socket : %s", error_buf);
 		return -1;
 	}
 
 	if (ioctl(sock, SIOCADDRT, &rt) < 0) {
-		DBG("Failed to set route address : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to set route address : %s", error_buf);
 		close(sock);
 		return -1;
 	}
@@ -579,6 +590,7 @@ int netconfig_del_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gi
 	struct rtentry rt;
 	struct sockaddr_in addr_in;
 	int sock;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
 
 	memset(&ifr, 0, sizeof(ifr));
 	ifr.ifr_ifindex = __netconfig_get_interface_index(interface);
@@ -606,12 +618,14 @@ int netconfig_del_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gi
 	sock = socket(PF_INET, SOCK_DGRAM, 0);
 
 	if (sock < 0) {
-		DBG("Failed to create socket : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to create socket : %s", error_buf);
 		return -1;
 	}
 
 	if (ioctl(sock, SIOCDELRT, &rt) < 0) {
-		DBG("Failed to set route address : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to set route address : %s", error_buf);
 		close(sock);
 		return -1;
 	}
@@ -626,6 +640,7 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	struct in6_rtmsg rt;
 	int fd = 0;
 	int err = 0;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
 
 	memset(&rt, 0, sizeof(rt));
 
@@ -635,14 +650,16 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 
 	errno = 0;
 	if (inet_pton(AF_INET6, ip_addr, &rt.rtmsg_dst) < 0) {
-		DBG("inet_pton failed : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("inet_pton failed : %s", error_buf);
 		return -1;
 	}
 
 	if (gateway != NULL) {
 		rt.rtmsg_flags |= RTF_GATEWAY;
 		if (inet_pton(AF_INET6, gateway, &rt.rtmsg_gateway) < 0) {
-			DBG("inet_pton failed : %s", strerror(errno));
+			strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+			DBG("inet_pton failed : %s", error_buf);
 			return -1;
 		}
 	}
@@ -651,7 +668,8 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 
 	fd = socket(AF_INET6, SOCK_DGRAM, 0);
 	if (fd < 0) {
-		DBG("Failed to create socket : %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to create socket : %s", error_buf);
 		return -1;
 	}
 
@@ -666,7 +684,8 @@ int netconfig_add_route_ipv6(gchar *ip_addr, gchar *interface, gchar *gateway, u
 	}
 
 	if ((err = ioctl(fd, SIOCADDRT, &rt)) < 0) {
-		DBG("Failed to add route: %s", strerror(errno));
+		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
+		DBG("Failed to add route: %s", error_buf);
 		close(fd);
 		return -1;
 	}

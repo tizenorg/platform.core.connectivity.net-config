@@ -1242,7 +1242,7 @@ void __netconfig_set_ether_macaddr()
 		rand_mac_add[0] |= 0x02; /*set local assignment bit*/
 
 		/*Set the Mac address in Vconf*/
-		sprintf(mac_addr, "%x:%x:%x:%x:%x:%x",
+		sprintf_s(mac_addr, WLAN_MAC_ADDR_MAX, "%x:%x:%x:%x:%x:%x",
 				rand_mac_add[0], rand_mac_add[1],
 				rand_mac_add[2], rand_mac_add[3],
 				rand_mac_add[4], rand_mac_add[5]);

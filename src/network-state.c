@@ -1045,6 +1045,8 @@ void state_object_create_and_init(void)
 				G_CALLBACK(handle_check_get_privilege), NULL);
 	g_signal_connect(netconfigstate, "handle-check-profile-privilege",
 				G_CALLBACK(handle_check_profile_privilege), NULL);
+	g_signal_connect(netconfigstate, "handle-ethernet-cable-state",
+				G_CALLBACK(handle_ethernet_cable_state), NULL);
 	g_signal_connect(netconfigstate, "handle-remove-route",
 				G_CALLBACK(handle_remove_route), NULL);
 

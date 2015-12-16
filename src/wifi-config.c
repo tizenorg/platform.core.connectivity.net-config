@@ -44,6 +44,9 @@
 #define WIFI_PREFIX_LENGTH		MAC_ADDRESS_LENGTH + 6	// wifi_485a3f2f506a_
 #define PROFILE_PREFIX_LENGTH	WIFI_PREFIX_LENGTH + 21	// /net/connman/service/wifi_485a3f2f506a_
 
+#define WIFI_MAC_ADD_LENGTH		17
+#define WIFI_MAC_ADD_PATH		"/sys/class/net/wlan0/address"
+
 struct wifi_eap_config {
 	gchar *anonymous_identity;
 	gchar *ca_cert;
@@ -99,16 +102,43 @@ static gboolean __get_mac_address(gchar **mac_address)
 	gchar *tmp = NULL;
 	gchar mac[13] = { 0, };
 	gint i = 0, j = 0;
+#if defined TIZEN_TV
+	FILE *fp = NULL;
+	char buf[WIFI_MAC_ADD_LENGTH + 1];
+	if (0 == access(WIFI_MAC_ADD_PATH, F_OK))
+		fp = fopen(WIFI_MAC_ADD_PATH, "r");
 
+	if (fp == NULL) {
+		ERR("Failed to open file %s\n", WIFI_MAC_ADD_PATH);
+		*mac_address = NULL;
+		return FALSE;
+	}
+
+	if (fgets(buf, sizeof(buf), fp) == NULL) {
+		ERR("Failed to get MAC info from %s\n", WIFI_MAC_ADD_PATH);
+		*mac_address = NULL;
+		fclose(fp);
+		return FALSE;
+	}
+	tmp_mac = (char *)g_try_malloc0(WIFI_MAC_ADD_LENGTH + 1);
+	if (tmp_mac == NULL) {
+		ERR("malloc() failed");
+		*mac_address = NULL;
+		fclose(fp);
+		return FALSE;
+	}
+	g_strlcpy(tmp_mac, buf, WIFI_MAC_ADD_LENGTH + 1);
+	fclose(fp);
+#else
 	tmp_mac = vconf_get_str(VCONFKEY_WIFI_BSSID_ADDRESS);
 	if (tmp_mac == NULL) {
 		ERR("vconf_get_str(WIFI_BSSID_ADDRESS) Failed");
 		*mac_address = NULL;
 		return FALSE;
 	}
+#endif
 	tmp = g_ascii_strdown(tmp_mac, (gssize)strlen(tmp_mac));
 	g_free(tmp_mac);
-
 	while (tmp[i]) {
 		if (tmp[i] != ':') {
 			mac[j++] = tmp[i];

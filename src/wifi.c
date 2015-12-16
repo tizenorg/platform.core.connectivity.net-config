@@ -38,6 +38,7 @@
 #include "wifi-eap-config.h"
 #include "wifi-background-scan.h"
 #include "wifi-config.h"
+#include "wifi-tdls.h"
 
 static Wifi *wifi_object = NULL;
 static NetConnmanAgent *connman_agent_object = NULL;
@@ -164,6 +165,12 @@ void wifi_object_create_and_init(void)
 	// WIFI MDM blacklist
 	g_signal_connect(wifi_object, "handle-check-black-list",
 			G_CALLBACK(handle_check_black_list), NULL);
+
+	//TDLS methods
+	g_signal_connect(wifi_object, "handle-tdls-disconnect",
+			G_CALLBACK(handle_tdls_disconnect), NULL);
+	g_signal_connect(wifi_object, "handle-tdls-connected-peer",
+			G_CALLBACK(handle_tdls_connected_peer), NULL);
 
 	if (!g_dbus_interface_skeleton_export(interface_wifi, connection,
 			NETCONFIG_WIFI_PATH, NULL)) {

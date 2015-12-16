@@ -94,6 +94,11 @@ gboolean netconfig_invoke_dbus_method_nonblock(const char *dest, const char *pat
 GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
 		const char *interface_name, const char *method,
 		GVariant *params);
+gboolean netconfig_dbus_emit_signal(const gchar *destination_bus_name,
+		const gchar *object_path,
+		const gchar *interface_name,
+		const gchar *signal_name,
+		GVariant *params);
 
 int		setup_gdbus(got_name_cb cb);
 void	cleanup_gdbus(void);

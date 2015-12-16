@@ -9,6 +9,7 @@ SET(INTERFACES "${CMAKE_SOURCE_DIR}/interfaces")
 
 SET(SRCS
 	src/main.c
+	src/wifi-tdls.c
 	src/wifi.c
 	src/neterror.c
 	src/wifi-eap.c

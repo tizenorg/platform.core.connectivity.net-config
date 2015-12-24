@@ -36,6 +36,7 @@
 #include "signal-handler.h"
 #include "wifi-ssid-scan.h"
 #include "wifi-background-scan.h"
+#include "wifi-tdls.h"
 
 #if defined TIZEN_DEBUG_DISABLE
 #include "wifi-dump.h"
@@ -49,6 +50,9 @@
 #define SIGNAL_PROPERTIES_CHANGED		"PropertiesChanged"
 #define SIGNAL_PROPERTIES_DRIVER_HANGED		"DriverHanged"
 #define SIGNAL_PROPERTIES_SESSION_OVERLAPPED	"SessionOverlapped"
+#define SIGNAL_TDLS_CONNECTED				"TDLSConnected"
+#define SIGNAL_TDLS_DISCONNECTED			"TDLSDisconnected"
+#define SIGNAL_TDLS_PEER_FOUND				"TDLSPeerFound"
 #define CONNMAN_SIGNAL_SERVICES_CHANGED		"ServicesChanged"
 #define CONNMAN_SIGNAL_PROPERTY_CHANGED		"PropertyChanged"
 #define CONNMAN_SIGNAL_NAME_CHANGED		"NameOwnerChanged"
@@ -63,6 +67,9 @@ typedef enum {
 	SIG_SCAN_DONE,
 	SIG_DRIVER_HANGED,
 	SIG_SESSION_OVERLAPPED,
+	SIG_TDLS_CONNECTED,
+	SIG_TDLS_DISCONNECTED,
+	SIG_TDLS_PEER_FOUND,
 	SIG_MAX
 } SuppSigArrayIndex;
 
@@ -74,6 +81,9 @@ static const char supplicant_signals[SIG_MAX][MAX_SIG_LEN] = {
 		SIGNAL_SCAN_DONE,
 		SIGNAL_PROPERTIES_DRIVER_HANGED,
 		SIGNAL_PROPERTIES_SESSION_OVERLAPPED,
+		SIGNAL_TDLS_CONNECTED,
+		SIGNAL_TDLS_DISCONNECTED,
+		SIGNAL_TDLS_PEER_FOUND,
 };
 
 static int supp_subscription_ids[SIG_MAX] = {0};
@@ -430,13 +440,44 @@ static void _supplicant_session_overlapped(GDBusConnection *conn,
 #endif
 }
 
+static void _supplicant_tdls_connected(GDBusConnection *conn,
+		const gchar *name, const gchar *path, const gchar *interface,
+		const gchar *sig, GVariant *param, gpointer user_data)
+{
+	ERR("Received TDLS Connected Signal");
+	netconfig_wifi_tlds_connected_event(param);
+
+	return;
+}
+
+static void _supplicant_tdls_disconnected(GDBusConnection *conn,
+		const gchar *name, const gchar *path, const gchar *interface,
+		const gchar *sig, GVariant *param, gpointer user_data)
+{
+	ERR("Received TDLS Disconnected Signal");
+	netconfig_wifi_tlds_disconnected_event(param);
+
+	return;
+}
+
+static void _supplicant_tdls_peer_found(GDBusConnection *conn,
+		const gchar *name, const gchar *path, const gchar *interface,
+		const gchar *sig, GVariant *param, gpointer user_data)
+{
+	ERR("Received TDLS Peer Found Signal");
+	return;
+}
+
 static supplicant_signal_cb supplicant_cbs[SIG_MAX] = {
 		_supplicant_interface_removed,
 		_supplicant_properties_changed,
 		_supplicant_bss_added,
 		_supplicant_scan_done,
 		_supplicant_driver_hanged,
-		_supplicant_session_overlapped
+		_supplicant_session_overlapped,
+		_supplicant_tdls_connected,
+		_supplicant_tdls_disconnected,
+		_supplicant_tdls_peer_found
 };
 
 #if defined TIZEN_DEBUG_DISABLE

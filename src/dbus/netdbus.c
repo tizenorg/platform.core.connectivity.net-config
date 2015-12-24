@@ -238,6 +238,35 @@ GVariant *netconfig_invoke_dbus_method(const char *dest, const char *path,
 	return reply;
 }
 
+gboolean netconfig_dbus_emit_signal(const gchar *destination_bus_name,
+									const gchar *object_path,
+									const gchar *interface_name,
+									const gchar *signal_name,
+									GVariant *params)
+{
+	gboolean rv = FALSE;
+	GError *Error = NULL;
+	GDBusConnection *connection;
+
+	connection = netdbus_get_connection();
+	if (connection == NULL) {
+		ERR("[NET_DBUS] GDBusconnection is NULL");
+		return 0;
+	}
+
+	rv = g_dbus_connection_emit_signal(connection, destination_bus_name,
+		object_path, interface_name, signal_name, params, &Error);
+	if (rv != TRUE) {
+		ERR("[NET_DBUS] Failed to emit signal, Error: %s", Error->message);
+		g_clear_error(&Error);
+		return rv;
+	}
+
+	INFO("Sent signal (%s), Interface (%s)", signal_name, interface_name);
+
+	return rv;
+}
+
 static void _got_bus_cb(GDBusConnection *conn, const gchar *name,
 		gpointer user_data)
 {

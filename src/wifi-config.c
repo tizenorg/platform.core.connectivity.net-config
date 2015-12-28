@@ -593,6 +593,10 @@ gboolean handle_get_config_ids(Wifi *wifi, GDBusMethodInvocation *context)
 	g_slist_free_full(config_ids, g_free);
 
 	wifi_complete_get_config_ids(wifi, context, (const gchar * const*)result);
+
+	if (result)
+		g_free(result);
+
 	return TRUE;
 }
 

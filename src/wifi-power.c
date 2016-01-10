@@ -151,39 +151,6 @@ static int __execute_supplicant(gboolean enable)
 	return 0;
 }
 
-static int _start_supplicant(void)
-{
-	GVariant *reply = NULL;
-	GVariant *params = NULL;
-
-	params = g_variant_new("(ss)","wpasupplicant.service", "replace");
-
-	reply = netconfig_invoke_dbus_method("org.freedesktop.systemd1", "/org/freedesktop/systemd1", "org.freedesktop.systemd1.Manager", "StartUnit", params);
-	if (reply == NULL) {
-		ERR("Fail to _start_supplicant");
-		return -1;
-	} else {
-		g_variant_unref(reply);
-	}
-
-	return 0;
-}
-
-static int _stop_supplicant(void)
-{
-	GVariant *reply = NULL;
-
-	reply = netconfig_invoke_dbus_method("fi.w1.wpa_supplicant1", "/fi/w1/wpa_supplicant1", "fi.w1.wpa_supplicant1", "Terminate", NULL);
-	if (reply == NULL) {
-		ERR("Fail to _stop_supplicant");
-		return -1;
-	} else {
-		g_variant_unref(reply);
-	}
-
-	return 0;
-}
-
 #if defined TIZEN_P2P_ENABLE && defined WLAN_CONCURRENT_MODE
 static int __netconfig_p2p_supplicant(gboolean enable)
 {

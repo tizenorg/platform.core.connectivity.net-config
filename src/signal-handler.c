@@ -58,7 +58,7 @@
 #define CONNMAN_SIGNAL_NAME_CHANGED		"NameOwnerChanged"
 
 #define MAX_SIG_LEN 64
-#define TOTAL_CONN_SIGNALS 3
+#define TOTAL_CONN_SIGNALS 4
 
 typedef enum {
 	SIG_INTERFACE_REMOVED = 0,
@@ -330,6 +330,77 @@ static void _dbus_name_changed_cb(GDBusConnection *conn,
 	return;
 }
 
+static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
+		const gchar *path, const gchar *interface, const gchar *sig,
+		GVariant *param, gpointer user_data)
+{
+	gchar *property, *value;
+	gchar *service_path;
+	GVariant *variant = NULL;
+	GVariantIter *added = NULL, *removed = NULL, *next = NULL;
+
+	if (path == NULL || param == NULL)
+		return;
+
+	if (g_strcmp0(sig, CONNMAN_SIGNAL_SERVICES_CHANGED) != 0)
+		return;
+
+	if (netconfig_get_default_profile() != NULL)
+		return;
+
+	g_variant_get(param, "(a(oa{sv})ao)", &added, &removed);
+
+	while (g_variant_iter_loop(added, "(oa{sv})", &service_path, &next)) {
+		gboolean is_wifi_prof, is_cell_prof, is_cell_internet_prof;
+		is_wifi_prof = netconfig_is_wifi_profile(service_path);
+		is_cell_prof = netconfig_is_cellular_profile(service_path);
+		is_cell_internet_prof = netconfig_is_cellular_internet_profile(
+				service_path);
+		if (service_path != NULL) {
+			while (g_variant_iter_loop(next, "{sv}", &property,
+						&variant)) {
+				if (g_strcmp0(property, "State") == 0) {
+					g_variant_get(variant, "s", &value);
+					DBG("Profile %s State %s", service_path,
+							value);
+					if (g_strcmp0(value, "ready") != 0 &&
+							g_strcmp0(value,
+								"online") != 0) {
+						g_free(property);
+						g_variant_unref(variant);
+						break;
+					}
+
+					if(!is_cell_prof)
+						netconfig_update_default_profile(
+								service_path);
+					else if (is_cell_internet_prof) {
+						netconfig_update_default_profile(
+								service_path);
+					}
+					if (is_wifi_prof)
+						wifi_state_set_service_state(
+							NETCONFIG_WIFI_CONNECTED);
+					else if (is_cell_prof &&
+							is_cell_internet_prof)
+						cellular_state_set_service_state(
+							NETCONFIG_CELLULAR_ONLINE);
+					g_free(property);
+					g_variant_unref(variant);
+					break;
+				}
+			}
+		}
+	}
+	if (next)
+		g_variant_iter_free(next);
+	if (added)
+		g_variant_iter_free(added);
+	if (removed)
+		g_variant_iter_free(removed);
+	return;
+}
+
 static void _supplicant_interface_removed(GDBusConnection *conn,
 		const gchar *name, const gchar *path, const gchar *interface,
 		const gchar *sig, GVariant *param, gpointer user_data)
@@ -548,6 +619,18 @@ void register_gdbus_signal(void)
 			CONNMAN_SERVICE,
 			G_DBUS_SIGNAL_FLAGS_NONE,
 			_dbus_name_changed_cb,
+			NULL,
+			NULL);
+
+	conn_subscription_ids[3] = g_dbus_connection_signal_subscribe(
+			connection,
+			CONNMAN_SERVICE,
+			CONNMAN_MANAGER_INTERFACE,
+			CONNMAN_SIGNAL_SERVICES_CHANGED,
+			NULL,
+			NULL,
+			G_DBUS_SIGNAL_FLAGS_NONE,
+			_services_changed_cb,
 			NULL,
 			NULL);
 

@@ -34,6 +34,9 @@ extern "C" {
 #define WIFI_CERT_STORAGEDIR	"/var/lib/wifi/cert"
 #define CONNMAN_STORAGEDIR		"/var/lib/connman"
 
+void __netconfig_wifi_connect_reply(GObject *source_object, GAsyncResult *res,
+		gpointer user_data);
+
 void wifi_object_create_and_init(void);
 void wifi_object_deinit(void);
 

@@ -282,7 +282,8 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 
 	if (updated == TRUE) {
 		reply = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
-				service, CONNMAN_SERVICE_INTERFACE, "Connect", NULL, NULL);
+				service, CONNMAN_SERVICE_INTERFACE, "Connect",
+				NULL, __netconfig_wifi_connect_reply);
 		if (reply == TRUE) {
 			g_dbus_method_invocation_return_value (context, NULL);
 		} else {

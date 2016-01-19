@@ -69,6 +69,32 @@ static void _set_wifi_mac_address(void)
 	}
 }
 
+void __netconfig_wifi_connect_reply(GObject *source_object, GAsyncResult *res,
+		gpointer user_data)
+{
+	GDBusConnection *conn = NULL;
+	GError *error = NULL;
+
+	DBG("WiFi Connection Reply");
+
+	conn = G_DBUS_CONNECTION(source_object);
+	g_dbus_connection_call_finish(conn, res, &error);
+	if (error != NULL) {
+		ERR("WiFi Connection Error [%s]", error->message);
+		g_error_free(error);
+		if (netconfig_dbus_emit_signal(NULL, NETCONFIG_WIFI_PATH,
+				NETCONFIG_WIFI_INTERFACE, "WiFiConnectFail",
+				NULL) == FALSE)
+			ERR("Failed to emit WiFiConnectFail signal");
+		else
+			DBG("Successfully sent WiFiConnectFail signal");
+	} else
+		DBG("WiFi Connection has been initiated successfully");
+
+	netconfig_gdbus_pending_call_unref();
+	return;
+}
+
 void wifi_object_create_and_init(void)
 {
 	DBG("Create wifi object.");

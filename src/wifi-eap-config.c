@@ -515,7 +515,8 @@ gboolean handle_create_eap_config(Wifi *wifi, GDBusMethodInvocation *context,
 		}
 
 		result = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
-				service, CONNMAN_SERVICE_INTERFACE, "Connect", NULL, NULL);
+				service, CONNMAN_SERVICE_INTERFACE, "Connect",
+				NULL, __netconfig_wifi_connect_reply);
 
 		if (netconfig_eap_notifier.user_data != NULL) {
 			g_free(netconfig_eap_notifier.user_data);

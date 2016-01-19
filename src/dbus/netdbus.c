@@ -192,6 +192,8 @@ gboolean netconfig_invoke_dbus_method_nonblock(const char *dest, const char *pat
 			netdbus_get_cancellable(),
 			(GAsyncReadyCallback) notify_func,
 			NULL);
+	if (notify_func)
+		netconfig_gdbus_pending_call_ref();
 
 	return TRUE;
 }

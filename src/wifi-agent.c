@@ -203,17 +203,13 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 	g_variant_get(fields, "a{sv}", &iter);
 	while (g_variant_iter_loop(iter, "{sv}", &field, &value)) {
 		if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_PASSPHRASE) == 0) {
-			g_free(agent.passphrase);
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				agent.passphrase = g_strdup(g_variant_get_string(value, NULL));
 				updated = TRUE;
 
 				DBG("Field [%s] - []", field);
-			} else {
-				agent.passphrase = NULL;
 			}
 		} else if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_WPS_PBC) == 0) {
-			agent.wps_pbc = FALSE;
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING) &&
 					g_strcmp0(g_variant_get_string(value, NULL), "enable") == 0) {
 				agent.wps_pbc = TRUE;
@@ -222,25 +218,18 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 				DBG("Field [%s] - [%d]", field, agent.wps_pbc);
 			}
 		} else if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_WPS_PIN) == 0) {
-			g_free(agent.wps_pin);
-			agent.wps_pbc = FALSE;
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				agent.wps_pin = g_strdup(g_variant_get_string(value, NULL));
 				updated = TRUE;
 
 				DBG("Field [%s] - []", field);
-			} else {
-				agent.wps_pin = NULL;
 			}
 		} else if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_NAME) == 0) {
-			g_free(agent.name);
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				agent.name = g_strdup(g_variant_get_string(value, NULL));
 				updated = TRUE;
 
 				DBG("Field [%s] - []", field);
-			} else {
-				agent.name = NULL;
 			}
 		} else if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_SSID) == 0) {
 			if (agent.ssid != NULL) {
@@ -268,14 +257,11 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 				}
 			}
 		} else if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_IDENTITY) == 0) {
-			g_free(agent.identity);
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				agent.identity = g_strdup(g_variant_get_string(value, NULL));
 				updated = TRUE;
 
 				DBG("Field [%s] - []", field);
-			} else {
-				agent.identity = NULL;
 			}
 		}
 	}

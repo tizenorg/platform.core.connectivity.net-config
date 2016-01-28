@@ -700,35 +700,48 @@ void wifi_state_get_connected_essid(gchar **essid)
  *	WIFI_CONNECTION_STATE_CONFIGURATION	= 2
  *	WIFI_CONNECTION_STATE_CONNECTED		= 3
  */
+/*	connection_wifi_state_e in CAPI
+ *
+ *	CONNECTION_WIFI_STATE_DEACTIVATED	= 0
+ *	CONNECTION_WIFI_STATE_DISCONNECTED	= 1
+ *	CONNECTION_WIFI_STATE_CONNECTED		= 2
+ */
 gboolean handle_get_wifi_state(Wifi *wifi, GDBusMethodInvocation *context)
 {
 	g_return_val_if_fail(wifi != NULL, FALSE);
-	wifi_service_state_e state = NETCONFIG_WIFI_UNKNOWN;
-	gint wifi_state = 0;
-	state = wifi_state_get_service_state();
+	GVariant *param = NULL;
+	wifi_tech_state_e tech_state = NETCONFIG_WIFI_TECH_UNKNOWN;
+	wifi_service_state_e service_state = NETCONFIG_WIFI_UNKNOWN;
+	tech_state = wifi_state_get_technology_state();
+	service_state = wifi_state_get_service_state();
 
-	switch (state) {
-	case NETCONFIG_WIFI_FAILURE:
-		wifi_state = -1;
-		break;
-	case NETCONFIG_WIFI_UNKNOWN:
-	case NETCONFIG_WIFI_IDLE:
-		wifi_state = 0;
-		break;
-	case NETCONFIG_WIFI_ASSOCIATION:
-		wifi_state = 1;
-		break;
-	case NETCONFIG_WIFI_CONFIGURATION:
-		wifi_state = 2;
-		break;
-	case NETCONFIG_WIFI_CONNECTED:
-		wifi_state = 3;
-		break;
-	default:
-		wifi_state = 0;
+	if(tech_state == NETCONFIG_WIFI_TECH_UNKNOWN) {
+		param = g_variant_new("(s)", "unknown");
+	} else if(tech_state == NETCONFIG_WIFI_TECH_OFF ||
+		tech_state == NETCONFIG_WIFI_TECH_WPS_ONLY) {
+		param = g_variant_new("(s)", "deactivated");
+	} else {
+		switch (service_state) {
+		case NETCONFIG_WIFI_FAILURE:
+			param = g_variant_new("(s)", "failure");
+			break;
+		case NETCONFIG_WIFI_ASSOCIATION:
+			param = g_variant_new("(s)", "association");
+			break;
+		case NETCONFIG_WIFI_CONFIGURATION:
+			param = g_variant_new("(s)", "configuration");
+			break;
+		case NETCONFIG_WIFI_CONNECTED:
+			param = g_variant_new("(s)", "connected");
+			break;
+		case NETCONFIG_WIFI_UNKNOWN:
+		case NETCONFIG_WIFI_IDLE:
+		default:
+			param = g_variant_new("(s)", "disconnected");
+		}
 	}
 
-	g_dbus_method_invocation_return_value(context, g_variant_new("(i)", wifi_state));
+	g_dbus_method_invocation_return_value(context, param);
 
 	return TRUE;
 }

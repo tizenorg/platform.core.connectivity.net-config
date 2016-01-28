@@ -13,7 +13,7 @@
 		<method name="RemoveP2pDriver">
 		</method>
 		<method name="GetWifiState">
-			<arg type="i" name="state" direction="out"/>
+			<arg type="s" name="state" direction="out"/>
 		</method>
 		<method name="SetBgscan">
 			<arg type="u" name="ScanMode" direction="in"/>

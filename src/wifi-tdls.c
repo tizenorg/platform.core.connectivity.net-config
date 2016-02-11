@@ -119,7 +119,6 @@ gboolean handle_tdls_connected_peer(Wifi *wifi, GDBusMethodInvocation *context)
 	}
 
 	g_variant_get(message, "(&s)", &reply_str);
-	INFO("param [%s]", g_variant_print(message,TRUE));
 	INFO("TDLS reply: [%s]", reply_str);
 	INFO("TDLS :peer_mac [%s]", peer_mac);
 

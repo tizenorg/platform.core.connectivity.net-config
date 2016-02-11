@@ -402,6 +402,17 @@ static void __netconfig_wifi_interface_create_result(
 			__netconfig_wifi_wps_request_scan(path);
 			g_free(path);
 		}
+	} 
+	else if (NULL != strstr(error->message, ".InterfaceExists")) {
+		INFO("Error Message %s %s", error->message, path);
+		g_variant_get(message, "(o)", &path);
+		if (path) {
+			__netconfig_wifi_wps_request_scan(path);
+			g_free(path);
+		}
+		else {
+			__netconfig_wifi_wps_request_scan(NULL);
+		}
 	} else {
 		ERR("Failed to create interface, Error: %d[%s]", error->code, error->message);
 		__netconfig_wps_set_mode(FALSE);

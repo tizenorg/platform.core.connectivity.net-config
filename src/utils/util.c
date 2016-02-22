@@ -968,7 +968,7 @@ char* netconfig_get_env(const char *key)
 	if (!key)
 		return NULL;
 
-	fp = fopen(NETCONFIG_TIZENMOBILEENV, "r");
+	fp = fopen(NETCONFIG_TIZEN_SYSTEM_ENV, "r");
 	if (!fp)
 		return NULL;
 

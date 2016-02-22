@@ -32,7 +32,7 @@ extern "C" {
 #define NETCONFIG_DEL_FOUND_AP_NOTI		"del_found_ap_noti"
 #define NETCONFIG_ADD_PORTAL_NOTI		"add_portal_noti"
 #define NETCONFIG_DEL_PORTAL_NOTI		"del_portal_noti"
-#define NETCONFIG_TIZENMOBILEENV 		"/run/tizen-mobile-env"
+#define NETCONFIG_TIZENMOBILEENV 		"/run/tizen-system-env"
 
 #define MAX_SIZE_ERROR_BUFFER 256
 

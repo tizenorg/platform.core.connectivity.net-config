@@ -28,6 +28,9 @@
 #include <sys/ioctl.h>
 #include <ITapiSim.h>
 #include <TapiUtility.h>
+#include <bundle.h>
+#include <bundle_internal.h>
+#include <eventsystem.h>
 
 #include "log.h"
 #include "util.h"
@@ -446,6 +449,9 @@ static void __netconfig_update_default_connection_info(void)
 		if (netconfig_is_wifi_profile(profile) == TRUE) {
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_WIFI);
 			netconfig_set_vconf_int("memory/private/wifi/frequency", freq);
+
+			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
+				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_WIFI);
 		}
 		else if (netconfig_is_cellular_profile(profile) ){
 
@@ -456,18 +462,27 @@ static void __netconfig_update_default_connection_info(void)
 
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_CELLULAR);
 
+			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
+				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_CELLULAR);
+
 			/* Enable clatd if IPv6 is set and no IPv4 address */
 			if (!ip_addr && ip_addr6 )
 				netconfig_clatd_enable();
 		}
 		else if (netconfig_is_ethernet_profile(profile) == TRUE){
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_ETHERNET);
+			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
+				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_ETHERNET);
 		}
 		else if (netconfig_is_bluetooth_profile(profile) == TRUE){
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_BLUETOOTH);
+			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
+				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_BT);
 		}
 		else{
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_OFF);
+			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
+				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_DISCONNECTED);
 		}
 
 		if (g_strcmp0(old_ip, ip_addr) != 0 || old_ip == NULL) {

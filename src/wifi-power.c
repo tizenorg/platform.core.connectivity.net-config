@@ -326,7 +326,7 @@ static void __netconfig_set_wifi_bssid(void)
 	}
 
 	fseek(fp, 0L, SEEK_SET);
-	rv = fscanf(fp, "%s", bssid);
+	rv = fscanf(fp, "%17s", bssid);
 
 	if (rv < 0)
 		ERR("Fail to read bssid");

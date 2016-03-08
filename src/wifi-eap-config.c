@@ -347,12 +347,6 @@ out:
 
 	g_variant_iter_free(iter);
 
-	if (field)
-		g_free(field);
-
-	if (value)
-		g_free(value);
-
 	g_free(group_name);
 	g_free(encoded_ssid);
 

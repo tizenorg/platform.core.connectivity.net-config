@@ -38,6 +38,7 @@
 #include <bundle.h>
 #include <bundle_internal.h>
 #include <eventsystem.h>
+#include <tzplatform_config.h>
 
 #include "log.h"
 #include "util.h"
@@ -45,7 +46,7 @@
 #include "wifi-state.h"
 
 #define WC_POPUP_EXTRA_DATA_KEY	"http://tizen.org/appcontrol/data/connection_type"
-#define MAC_INFO_FILEPATH		"/opt/etc/.mac.info"
+#define MAC_INFO_FILEPATH		tzplatform_mkpath(TZ_SYS_SHARE, "/.mac.info")
 #define MAC_ADDRESS_MAX_LEN		18
 
 static gboolean netconfig_device_picker_test = FALSE;

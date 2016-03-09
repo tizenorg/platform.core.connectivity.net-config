@@ -11,7 +11,7 @@ then
 fi
 
 export DISPLAY=:0.0
-NETWORK_ORG=/opt/usr/data/network
+NETWORK_ORG=${TZ_USER_DATA}/network
 NETWORK_DEBUG=$1/network
 
 /bin/mkdir -p ${NETWORK_DEBUG}

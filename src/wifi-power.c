@@ -23,6 +23,7 @@
 #include <ITapiSim.h>
 #include <TapiUtility.h>
 #include <stdio.h>
+#include <tzplatform_config.h>
 
 #if defined TIZEN_P2P_ENABLE && !defined WLAN_CONCURRENT_MODE
 #include <wifi-direct.h>
@@ -60,7 +61,7 @@ static weconn_h weconn_handle = NULL;
 #define VCONFKEY_SETAPPL_NETWORK_PERMIT_WITH_LCD_OFF_LIMIT	"db/setting/network_with_lcd_off_limit"
 #endif
 
-#define WLAN_MAC_INFO		    "/opt/etc/.mac.info"
+#define WLAN_MAC_INFO		    tzplatform_mkpath(TZ_SYS_SHARE, "/.mac.info")
 #define WLAN_MAC_ADDR_MAX	    20
 #define VCONF_WIFI_BSSID_ADDRESS	"db/wifi/bssid_address"
 

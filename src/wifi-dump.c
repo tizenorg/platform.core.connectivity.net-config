@@ -18,6 +18,7 @@
  */
 
 #include <glib.h>
+#include <tzplatform_config.h>
 
 #include "log.h"
 
@@ -25,13 +26,13 @@
 #include "netdbus.h"
 #include "wifi-dump.h"
 
-#define NETWORK_DUMP_SCRIPT             "/opt/var/lib/net-config/network_dump.sh"
+#define NETWORK_DUMP_SCRIPT            tzplatform_mkpath(TZ_SYS_VAR, "/lib/net-config/network_dump.sh")
 
 static int _start_dump(gchar *dump_path)
 {
 	int rv = 0;
 	gchar *path = NETWORK_DUMP_SCRIPT;
-	char *const args[] = { "/opt/var/lib/net-config/network_dump.sh", dump_path, NULL };
+	char *const args[] = { path, dump_path, NULL };
 	char *const envs[] = { NULL };
 
 	rv = netconfig_execute_file(path, args, envs);

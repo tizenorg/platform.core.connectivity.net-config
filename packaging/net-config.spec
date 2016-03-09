@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.56
+Version:	1.1.57
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -20,6 +20,7 @@ BuildRequires:	pkgconfig(capi-appfw-application)
 BuildRequires:	pkgconfig(capi-network-wifi-direct)
 BuildRequires:	cmake
 BuildRequires:	pkgconfig(sqlite3)
+BuildRequires:	pkgconfig(libtzplatform-config)
 Requires:		vconf
 Requires:		connman
 Requires:		systemd
@@ -94,8 +95,8 @@ cp resources/etc/resolv.conf %{buildroot}%{_sysconfdir}/resolv.conf
 mkdir -p %{buildroot}%{_sbindir}/
 cp resources/usr/sbin/net-config.service %{buildroot}%{_sbindir}/net-config.service
 
-mkdir -p %{buildroot}/usr/dbspace
-sqlite3 %{buildroot}/usr/dbspace/.wifi_offload.db < resources/usr/share/wifi_offloading.sql
+mkdir -p %{buildroot}%{TZ_SYS_DB}
+sqlite3 %{buildroot}%{TZ_SYS_DB}/.wifi_offload.db < resources/usr/share/wifi_offloading.sql
 
 #DBus DAC (net-config.manifest enables DBus SMACK)
 mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
@@ -121,9 +122,9 @@ cp LICENSE %{buildroot}%{_datadir}/license/net-config
 %post
 
 #Network logs
-mkdir -p /opt/usr/data/network
-chmod 755 /opt/usr/data/network
-chsmack -a net-config::logging /opt/usr/data/network
+mkdir -p %{TZ_USER_DATA}/network
+chmod 755 %{TZ_USER_DATA}/network
+chsmack -a net-config::logging %{TZ_USER_DATA}/network
 
 #Add net-config.service to systemd extra default dependency ignore list
 mkdir -p %{_sysconfdir}/systemd/default-extra-dependencies/ignore-units.d/
@@ -156,11 +157,11 @@ ln -sf %{_unitdir}/net-config.service %{_sysconfdir}/systemd/default-extra-depen
 %attr(644,root,root) %{_unitdir}/multi-user.target.wants/net-config.service
 %endif
 %{_datadir}/license/net-config
-%attr(660,root,root) /usr/dbspace/.wifi_offload.db
-%attr(664,root,root) /usr/dbspace/.wifi_offload.db-journal
-%attr(500,root,root) /opt/etc/dump.d/module.d/network_log_dump.sh
-%attr(500,root,root) /opt/var/lib/net-config/network_log_dump.sh
-%attr(500,root,root) /opt/var/lib/net-config/network_dump.sh
+%attr(660,root,root) %{TZ_SYS_DB}/.wifi_offload.db
+%attr(664,root,root) %{TZ_SYS_DB}/.wifi_offload.db-journal
+%attr(500,root,root) %{TZ_SYS_ETC}/dump.d/module.d/network_log_dump.sh
+%attr(500,root,root) %{TZ_SYS_VAR}/lib/net-config/network_log_dump.sh
+%attr(500,root,root) %{TZ_SYS_VAR}/lib/net-config/network_dump.sh
 %if "%{profile}" == "tv"
 %attr(644,root,root) %{_libdir}/udev/rules.d/99-wifiusb-dev.rules
 %endif

@@ -3,7 +3,7 @@
 # $1 is passed by dump_service
 
 export DISPLAY=:0.0
-NETWORK_ORG=${TZ_USER_DATA}/network
+NETWORK_ORG=/opt/usr/data/network
 NETWORK_DEBUG=$1/network
 
 /bin/mkdir -p ${NETWORK_DEBUG}

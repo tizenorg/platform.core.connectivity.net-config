@@ -27,7 +27,7 @@
 
 #include "log.h"
 
-#define LOG_FILE_PATH	tzplatform_mkpath(TZ_USER_DATA, "/network/netconfig.log")
+#define LOG_FILE_PATH	"/opt/usr/data/network/netconfig.log"
 #define MAX_LOG_SIZE	1 * 1024 * 1024
 #define MAX_LOG_COUNT	1
 

@@ -107,7 +107,7 @@ FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
 ENDFOREACH(flag)
 
-SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -Wall -fvisibility=hidden")
+SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -Wall -Werror -fvisibility=hidden")
 SET(EXTRA_CXXFLAGS "${EXTRA_CXXFLAGS} -Wall -Werror -fvisibility=hidden -fvisibility-inlines-hidden")
 SET(CMAKE_C_FLAGS "-I${CMAKE_SOURCE_DIR} -I${CMAKE_SOURCE_DIR}/include ${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -fPIE")
 SET(CMAKE_C_FLAGS_DEBUG "-O0 -g -fPIE")

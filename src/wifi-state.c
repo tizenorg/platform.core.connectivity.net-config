@@ -22,6 +22,7 @@
 #include <bundle.h>
 #include <bundle_internal.h>
 #include <eventsystem.h>
+#include <syspopup_caller.h>
 
 #include "log.h"
 #include "util.h"

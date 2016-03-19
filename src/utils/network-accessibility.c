@@ -100,6 +100,7 @@ static void __netconfig_update_internet_status(unsigned char *reply)
 	 * then no Internet is available */
 	char *temp = NULL;
 	is_internet_available = FALSE;
+	char *saveptr = NULL;
 
 	if (NULL != reply) {
 		if ((NULL != g_strrstr((char*)reply, "HTTP/1.1 200")) &&
@@ -108,7 +109,7 @@ static void __netconfig_update_internet_status(unsigned char *reply)
 		} else if (NULL != g_strrstr((char*)reply, "HTTP/1.1 302")) {
 			DBG("302:: Internet is un-available");
 		} else if ((temp = g_strrstr((char*)reply, "Location:")) != NULL) {
-			char * location = strtok(temp, "\r");
+			char * location = strtok_r(temp, "\r", &saveptr);
 			if (location != NULL) {
 				DBG("%s", location);
 				if (redirect_url1 == NULL)
@@ -432,6 +433,7 @@ cleanup:
 gboolean __netconfig_obtain_host_ip_addr(void)
 {
 	char *host, *addr, *port;
+	char *saveptr = NULL;
 
 	if (net_params == NULL)
 		return FALSE;
@@ -471,7 +473,7 @@ gboolean __netconfig_obtain_host_ip_addr(void)
 		if (host == NULL)
 			goto cleanup;
 
-		addr = strtok(host, ":");
+		addr = strtok_r(host, ":", &saveptr);
 		if (addr == NULL)
 			goto cleanup;
 

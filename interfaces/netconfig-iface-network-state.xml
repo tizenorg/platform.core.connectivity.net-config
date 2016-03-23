@@ -22,5 +22,6 @@
 		</method>
 		<method name="CheckGetPrivilege"></method>
 		<method name="CheckProfilePrivilege"></method>
+		<method name="LaunchMdns"></method>
 	</interface>
 </node>

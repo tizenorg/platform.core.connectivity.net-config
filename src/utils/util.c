@@ -415,6 +415,7 @@ int netconfig_execute_file(const char *file_path,
 			DBG("Fail to execute command (%s)", error_buf);
 			exit(1);
 		}
+		DBG("Success to execute command");
 	} else if (pid > 0) {
 		if (waitpid(pid, &status, 0) == -1)
 			DBG("wait pid (%u) status (%d)", pid, status);
@@ -770,6 +771,25 @@ gboolean handle_launch_direct(Wifi *wifi, GDBusMethodInvocation *context)
 	wifi_complete_launch_direct(wifi, context);
 	return FALSE;
 #endif
+}
+
+gboolean handle_launch_mdns(Network *object, GDBusMethodInvocation *context)
+{
+	int ret = 0;
+	DBG("Launch Wi-Fi direct daemon");
+
+	const char *path = "/usr/sbin/mdnsd";
+	char *const args[] = { "mdnsd", NULL };
+	char *const envs[] = { NULL };
+
+	ret = netconfig_execute_file(path, args, envs);
+	if (ret < 0) {
+		ERR("Failed to launch MDNSResponder daemon");
+		netconfig_error_invalid_parameter(context);
+		return FALSE;
+	}
+	network_complete_launch_mdns(object, context);
+	return TRUE;
 }
 
 gboolean netconfig_send_notification_to_net_popup(const char * noti, const char * ssid)

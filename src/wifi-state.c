@@ -721,6 +721,8 @@ gboolean handle_get_wifi_state(Wifi *wifi, GDBusMethodInvocation *context)
 	} else if(tech_state == NETCONFIG_WIFI_TECH_OFF ||
 		tech_state == NETCONFIG_WIFI_TECH_WPS_ONLY) {
 		param = g_variant_new("(s)", "deactivated");
+	} else if(tech_state == NETCONFIG_WIFI_TECH_CONNECTED) {
+		param = g_variant_new("(s)", "connected");
 	} else {
 		switch (service_state) {
 		case NETCONFIG_WIFI_FAILURE:

@@ -54,7 +54,7 @@ gboolean netconfig_wifi_get_bytes_statistics(guint64 *tx, guint64 *rx)
 		goto endline;
 
 	while (fgets(buf, sizeof(buf), fp)) {
-		guint64 llval;
+		long long unsigned int llval;
 		gulong lval;
 
 		p_ifname = buf;
@@ -70,7 +70,7 @@ gboolean netconfig_wifi_get_bytes_statistics(guint64 *tx, guint64 *rx)
 		sscanf(p_entry,
 				"%llu %llu %lu %lu %lu %lu %lu %lu "
 				"%llu %llu %lu %lu %lu %lu %lu %lu",
-				rx,			/* rx bytes */
+				(long long unsigned int *)rx, /* rx bytes */
 				&llval,		/* rx packet */
 				&lval,		/* rx errors */
 				&lval,		/* rx dropped */
@@ -79,7 +79,7 @@ gboolean netconfig_wifi_get_bytes_statistics(guint64 *tx, guint64 *rx)
 				&lval,		/* rx compressed */
 				&lval,		/* rx multicast */
 
-				tx,			/* tx bytes */
+				(long long unsigned int *)tx, /* tx bytes */
 				&llval,		/* tx packet */
 				&lval,		/* tx errors */
 				&lval,		/* tx dropped */

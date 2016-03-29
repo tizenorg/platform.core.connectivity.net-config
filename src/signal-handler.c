@@ -119,7 +119,12 @@ static void _technology_signal_cb(GDBusConnection *conn,
 			}
 		} else if (g_strcmp0(key, "Connected") == 0) {
 			/* Connection state */
-			wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_CONNECTED);
+			value = g_variant_get_boolean(var);
+			if (value == TRUE) {
+				wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_CONNECTED);
+			} else {
+				wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_POWERED);
+			}
 		} else if (g_strcmp0(key, "Tethering") == 0) {
 			/* Tethering state */
 			wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_TETHERED);

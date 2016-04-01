@@ -54,8 +54,8 @@ static gboolean netconfig_bgscan_paused = FALSE;
 
 static struct bgscan_timer_data *__netconfig_wifi_bgscan_get_bgscan_data(void)
 {
-	static struct bgscan_timer_data timer_data =
-					{SCAN_EXPONENTIAL_MIN, WIFI_BGSCAN_MODE_EXPONENTIAL, 0};
+	static struct bgscan_timer_data timer_data = {
+					SCAN_EXPONENTIAL_MIN, WIFI_BGSCAN_MODE_EXPONENTIAL, 0};
 
 	return &timer_data;
 }
@@ -94,7 +94,7 @@ static gboolean __netconfig_wifi_bgscan_request_connman_scan(int retries)
 		if (__netconfig_wifi_bgscan_get_mode() == WIFI_BGSCAN_MODE_EXPONENTIAL)
 			return TRUE;
 
-	if (state == NETCONFIG_WIFI_ASSOCIATION ||state == NETCONFIG_WIFI_CONFIGURATION) {
+	if (state == NETCONFIG_WIFI_ASSOCIATION || state == NETCONFIG_WIFI_CONFIGURATION) {
 		/* During Wi-Fi connecting, Wi-Fi can be disappeared.
 		 * After 1 sec, try scan even if connecting state */
 		if (retries < 2)
@@ -277,7 +277,7 @@ gboolean handle_set_bgscan(Wifi *wifi, GDBusMethodInvocation *context, guint sca
 	int pm_state = VCONFKEY_PM_STATE_NORMAL;
 
 	old_mode = __netconfig_wifi_bgscan_get_mode();
-	if (old_mode == scan_mode){
+	if (old_mode == scan_mode) {
 		wifi_complete_set_bgscan(wifi, context);
 		return TRUE;
 	}
@@ -301,7 +301,7 @@ gboolean handle_resume_bgscan(Wifi *wifi, GDBusMethodInvocation *context)
 {
 	netconfig_wifi_set_bgscan_pause(FALSE);
 
-	wifi_complete_resume_bgscan (wifi, context);
+	wifi_complete_resume_bgscan(wifi, context);
 	return TRUE;
 }
 

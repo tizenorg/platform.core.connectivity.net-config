@@ -63,14 +63,14 @@ struct internet_params {
 	gboolean request_started;
 };
 
-const static char* url_list[] = {
+static const char* url_list[] = {
 	 "www.google.com",
 	 "www.msn.com",
 	 "www.yahoo.com",
 	 "m.google.com",
 	 "www.amazon.com",
 	 "www.youtube.com"
- };
+};
 
 #define URL_LIST_NUM		6
 
@@ -145,7 +145,7 @@ static gboolean __netconfig_data_activity_timeout(gpointer data)
 {
 	DBG("Timer timed-out");
 	enum netconfig_internet_check_state prev_state = (enum netconfig_internet_check_state)GPOINTER_TO_INT(data);
-	INFO("Prev_state: state=%d (1:dns check / 2:packet check)",prev_state);
+	INFO("Prev_state: state=%d (1:dns check / 2:packet check)", prev_state);
 
 	if (net_params == NULL)
 		return FALSE;
@@ -369,7 +369,7 @@ static void __netconfig_connect_sockets(void)
 	__internet_check_state(INTERNET_CHECK_STATE_PACKET_CHECK);
 	return;
 
-	cleanup:
+cleanup:
 	__internet_check_state(INTERNET_CHECK_STATE_NONE);
 }
 
@@ -390,9 +390,8 @@ static void __netconfig_obtain_host_ip_addr_cb(GObject *src,
 
 	list = g_resolver_lookup_by_name_finish((GResolver *)src, res, &error);
 	if (error != NULL) {
-		if (error->code == G_IO_ERROR_CANCELLED) {
+		if (error->code == G_IO_ERROR_CANCELLED)
 			ERR("G_IO_ERROR_CANCELLED is called[%s]", error->message);
-		}
 		g_error_free(error);
 	}
 
@@ -522,9 +521,8 @@ void netconfig_check_internet_accessibility(void)
 	is_internet_available = FALSE;
 
 	/* If the host IP is resolved, directly go for connecting to sockets*/
-	if (__netconfig_obtain_host_ip_addr() == TRUE) {
+	if (__netconfig_obtain_host_ip_addr() == TRUE)
 		__netconfig_connect_sockets();
-	}
 }
 
 void netconfig_stop_internet_check(void)

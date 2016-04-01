@@ -366,13 +366,11 @@ static gboolean _delete_configuration(const gchar *profile)
 	ERR("get config_id [%s] from [%s]", config_id, profile);
 
 	ret = wifi_config_remove_configuration(config_id);
-	if (ret != TRUE) {
+	if (ret != TRUE)
 		ERR("Fail to wifi_config_remove_configuration [%s]", config_id);
-	}
 
-	if (config_id != NULL) {
+	if (config_id != NULL)
 		g_free(config_id);
-	}
 
 	return ret;
 }
@@ -391,9 +389,8 @@ static gboolean __netconfig_delete_config(const char *profile)
 		return FALSE;
 	}
 
-	if (_delete_configuration(profile) != TRUE) {
+	if (_delete_configuration(profile) != TRUE)
 		ERR("Fail to delete configuration [%s]", profile);
-	}
 
 	wifi_ident = strstr(profile, "wifi_");
 	if (wifi_ident == NULL) {

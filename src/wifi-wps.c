@@ -66,7 +66,7 @@ gboolean netconfig_wifi_is_wps_enabled(void)
 	return netconfig_is_wps_enabled;
 }
 
-static void __netconfig_wifi_wps_notify_scan_done(void)//check this
+static void __netconfig_wifi_wps_notify_scan_done(void)
 {
 	GVariantBuilder *builder = NULL;
 	GVariantBuilder *builder1 = NULL;
@@ -76,7 +76,7 @@ static void __netconfig_wifi_wps_notify_scan_done(void)//check this
 	const char *prop_rssi = "rssi";
 	const char *prop_mode = "mode";
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 	for (list = wps_bss_info_list; list != NULL; list = list->next) {
 		struct wps_bss_info_t *bss_info = (struct wps_bss_info_t *)list->data;
 
@@ -94,10 +94,9 @@ static void __netconfig_wifi_wps_notify_scan_done(void)//check this
 
 			DBG("BSS found; SSID %s, BSSID %s, RSSI %d MODE %d", ssid, bssid_str, rssi, mode);
 
-			builder1 = g_variant_builder_new (G_VARIANT_TYPE ("ay"));
-			for (i = 0; i < ssid_len; i++) {
-				g_variant_builder_add (builder1, "y", ssid[i]);
-			}
+			builder1 = g_variant_builder_new(G_VARIANT_TYPE("ay"));
+			for (i = 0; i < ssid_len; i++)
+				g_variant_builder_add(builder1, "y", ssid[i]);
 			g_variant_builder_add(builder, "{sv}", prop_ssid, g_variant_builder_end(builder1));
 			g_variant_builder_unref(builder1);
 
@@ -110,9 +109,8 @@ static void __netconfig_wifi_wps_notify_scan_done(void)//check this
 	wifi_emit_wps_scan_completed((Wifi *)get_wifi_object(), g_variant_builder_end(builder));
 	g_variant_builder_unref(builder);
 
-	if (wps_bss_info_list != NULL) {
+	if (wps_bss_info_list != NULL)
 		g_slist_free_full(wps_bss_info_list, g_free);
-	}
 
 	wps_bss_info_list = NULL;
 	wps_bss_list_count = 0;
@@ -132,7 +130,7 @@ static void __netconfig_wifi_wps_get_bss_info_result(
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION (source_object);
+	conn = G_DBUS_CONNECTION(source_object);
 	reply = g_dbus_connection_call_finish(conn, res, &error);
 
 	if (error != NULL) {
@@ -239,7 +237,7 @@ static void __netconfig_wifi_wps_get_bsss_result(GObject *source_object,
 	gboolean counter_flag = FALSE;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION (source_object);
+	conn = G_DBUS_CONNECTION(source_object);
 	reply = g_dbus_connection_call_finish(conn, res, &error);
 	if (error != NULL) {
 		ERR("Error code: [%d] Error message: [%s]", error->code, error->message);
@@ -352,7 +350,7 @@ static int __netconfig_wifi_wps_request_scan(const char *if_path)
 		return -EIO;
 	}
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 	g_variant_builder_add(builder, "{sv}", key1, g_variant_new_string(val1));
 	message = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
 	g_variant_builder_unref(builder);
@@ -392,7 +390,7 @@ static void __netconfig_wifi_interface_create_result(
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION (source_object);
+	conn = G_DBUS_CONNECTION(source_object);
 
 	message = g_dbus_connection_call_finish(conn, res, &error);
 	if (error == NULL) {
@@ -425,7 +423,7 @@ static int  __netconfig_wifi_wps_create_interface(void)
 		return -EIO;
 	}
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 	g_variant_builder_add(builder, "{sv}", key, g_variant_new_string(val));
 	message = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
 
@@ -539,7 +537,7 @@ static void __interface_wps_cancel_result(GObject *source_object,
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION (source_object);
+	conn = G_DBUS_CONNECTION(source_object);
 	reply = g_dbus_connection_call_finish(conn, res, &error);
 
 	if (reply == NULL) {

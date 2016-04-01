@@ -107,9 +107,8 @@ static gboolean __netconfig_is_connected(GVariantIter *array)
 	const gchar *value = NULL;
 
 	while (g_variant_iter_loop(array, "{sv}", &key, &variant)) {
-		if (g_strcmp0(key, "State") != 0) {
+		if (g_strcmp0(key, "State") != 0)
 			continue;
-		}
 
 		if (g_variant_is_of_type(variant, G_VARIANT_TYPE_STRING)) {
 			value = g_variant_get_string(variant, NULL);
@@ -143,13 +142,11 @@ static char *__netconfig_get_default_profile(void)
 
 	g_variant_get(message, "(a(oa{sv}))", &iter);
 	while (g_variant_iter_loop(iter, "(oa{sv})", &object_path, &next)) {
-		if (object_path == NULL) {
+		if (object_path == NULL)
 			continue;
-		}
 
-		if(netconfig_is_cellular_profile(object_path) && !netconfig_is_cellular_internet_profile(object_path)){
+		if (netconfig_is_cellular_profile(object_path) && !netconfig_is_cellular_internet_profile(object_path))
 			continue;
-		}
 
 		if (__netconfig_is_connected(next) == TRUE) {
 			default_profile = g_strdup(object_path);
@@ -263,10 +260,10 @@ done:
 		g_variant_unref(message);
 
 	if (iter)
-		g_variant_iter_free (iter);
+		g_variant_iter_free(iter);
 
 	if (iter1)
-		g_variant_iter_free (iter1);
+		g_variant_iter_free(iter1);
 
 	return;
 }
@@ -441,8 +438,7 @@ static void __netconfig_update_default_connection_info(void)
 
 		/* Disable clatd if it is in running state */
 		netconfig_clatd_disable();
-	}
-	else if (profile != NULL) {
+	} else if (profile != NULL) {
 		char *old_ip = vconf_get_str(VCONFKEY_NETWORK_IP);
 		char *old_proxy = vconf_get_str(VCONFKEY_NETWORK_PROXY);
 
@@ -452,10 +448,9 @@ static void __netconfig_update_default_connection_info(void)
 
 			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
 				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_WIFI);
-		}
-		else if (netconfig_is_cellular_profile(profile) ){
+		} else if (netconfig_is_cellular_profile(profile)) {
 
-			if( !netconfig_is_cellular_internet_profile(profile)){
+			if (!netconfig_is_cellular_internet_profile(profile)) {
 				DBG("connection is not a internet profile - stop to update the cellular state");
 				return;
 			}
@@ -466,20 +461,17 @@ static void __netconfig_update_default_connection_info(void)
 				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_CELLULAR);
 
 			/* Enable clatd if IPv6 is set and no IPv4 address */
-			if (!ip_addr && ip_addr6 )
+			if (!ip_addr && ip_addr6)
 				netconfig_clatd_enable();
-		}
-		else if (netconfig_is_ethernet_profile(profile) == TRUE){
+		} else if (netconfig_is_ethernet_profile(profile) == TRUE) {
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_ETHERNET);
 			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
 				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_ETHERNET);
-		}
-		else if (netconfig_is_bluetooth_profile(profile) == TRUE){
+		} else if (netconfig_is_bluetooth_profile(profile) == TRUE) {
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_BLUETOOTH);
 			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
 				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_BT);
-		}
-		else{
+		} else{
 			netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_OFF);
 			netconfig_set_system_event(SYS_EVENT_NETWORK_STATUS,
 				EVT_KEY_NETWORK_STATUS, EVT_VAL_NETWORK_DISCONNECTED);
@@ -534,9 +526,8 @@ static gboolean __netconfig_is_tech_state_connected(void)
 
 	g_variant_get(message, "(a(oa{sv}))", &iter);
 	while (g_variant_iter_loop(iter, "(oa{sv})", &path, &next)) {
-		if (path == NULL) {
+		if (path == NULL)
 			continue;
-		}
 
 		while (g_variant_iter_loop(next, "{sv}", &key, &variant)) {
 			gboolean data;
@@ -580,9 +571,8 @@ static void __netconfig_update_if_service_connected(void)
 
 	g_variant_get(message, "(a(oa{sv}))", &iter);
 	while (g_variant_iter_loop(iter, "(oa{sv})", &path, &next)) {
-		if (path == NULL) {
+		if (path == NULL)
 			continue;
-		}
 
 		if (g_str_has_prefix(path,
 						CONNMAN_WIFI_SERVICE_PROFILE_PREFIX) == TRUE) {
@@ -644,7 +634,7 @@ static void __netconfig_network_notify_result(const char *sig_name, const char *
 		return;
 	}
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 	g_variant_builder_add(builder, "{sv}", prop_key, g_variant_new_string(key));
 	params = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
 
@@ -799,17 +789,17 @@ void netconfig_update_default_profile(const char *profile)
 		}
 	}
 
-	//default profile is NULL and new connected profile is NULL
-	if( !profile ){
+	/* default profile is NULL and new connected profile is NULL */
+	if (!profile) {
 		profile = __netconfig_get_default_profile();
 
 		if (profile && netconfig_is_cellular_profile(profile) &&
-			!netconfig_is_cellular_internet_profile(profile)){
+			!netconfig_is_cellular_internet_profile(profile)) {
 			DBG("not a default cellular profile");
 			profile = NULL;
 		}
 
-		if(!profile){
+		if (!profile) {
 			__netconfig_update_default_connection_info();
 			return;
 		}
@@ -870,7 +860,7 @@ char *netconfig_get_ifname(const char *profile)
 /* Check Ethernet Cable Plug-in /Plug-out Status */
 void netconfig_network_notify_ethernet_cable_state(const char *key)
 {
-       __netconfig_network_notify_result("EthernetCableState", key);
+	__netconfig_network_notify_result("EthernetCableState", key);
 }
 
 static gboolean handle_add_route(
@@ -891,48 +881,48 @@ static gboolean handle_add_route(
 
 	DBG("ip_addr(%s), netmask(%s), interface(%s), gateway(%s)", ip_addr, netmask, interface, gateway);
 
-	switch(address_family) {
-		case AF_INET:
-			if (ip_addr == NULL || netmask == NULL || interface == NULL) {
-				ERR("Invalid parameter");
-				netconfig_error_invalid_parameter(context);
-				return FALSE;
-			}
-
-			if (netconfig_execute_file(path, args, envs) < 0) {
-				DBG("Failed to add a new route");
-				netconfig_error_permission_denied(context);
-				return FALSE;
-			}
-
-			break;
-		case AF_INET6:
-			if (ip_addr == NULL || interface == NULL || gateway == NULL) {
-				ERR("Invalid parameter");
-				netconfig_error_invalid_parameter(context);
-				return FALSE;
-			}
-
-			buf = ip_addr;
-			ch = strchr(buf, '/');
-			pos = ch - buf + 1;
-			if (ch) {
-				prefix_len = atoi(ch + 1);
-				ip_addr[pos-1] = '\0';
-			} else {
-				prefix_len = 128;
-			}
-
-			if (netconfig_add_route_ipv6(ip_addr, interface, gateway, prefix_len) < 0) {
-				DBG("Failed to add a new route");
-				netconfig_error_permission_denied(context);
-				return FALSE;
-			}
-			break;
-		default:
-			DBG("Unknown Address Family");
+	switch (address_family) {
+	case AF_INET:
+		if (ip_addr == NULL || netmask == NULL || interface == NULL) {
+			ERR("Invalid parameter");
 			netconfig_error_invalid_parameter(context);
 			return FALSE;
+		}
+
+		if (netconfig_execute_file(path, args, envs) < 0) {
+			DBG("Failed to add a new route");
+			netconfig_error_permission_denied(context);
+			return FALSE;
+		}
+
+		break;
+	case AF_INET6:
+		if (ip_addr == NULL || interface == NULL || gateway == NULL) {
+			ERR("Invalid parameter");
+			netconfig_error_invalid_parameter(context);
+			return FALSE;
+		}
+
+		buf = ip_addr;
+		ch = strchr(buf, '/');
+		pos = ch - buf + 1;
+		if (ch) {
+			prefix_len = atoi(ch + 1);
+			ip_addr[pos-1] = '\0';
+		} else {
+			prefix_len = 128;
+		}
+
+		if (netconfig_add_route_ipv6(ip_addr, interface, gateway, prefix_len) < 0) {
+			DBG("Failed to add a new route");
+			netconfig_error_permission_denied(context);
+			return FALSE;
+		}
+		break;
+	default:
+		DBG("Unknown Address Family");
+		netconfig_error_invalid_parameter(context);
+		return FALSE;
 	}
 
 	DBG("Successfully added a new route");
@@ -958,46 +948,46 @@ static gboolean handle_remove_route(
 
 	DBG("ip_addr(%s), netmask(%s), interface(%s), gateway(%s)", ip_addr, netmask, interface, gateway);
 
-	switch(address_family) {
-		case AF_INET:
-			if (ip_addr == NULL || netmask == NULL || interface == NULL) {
-				DBG("Invalid parameter!");
-				netconfig_error_invalid_parameter(context);
-				return FALSE;
-			}
-			if (netconfig_execute_file(path, args, envs) < 0) {
-				DBG("Failed to remove the route");
-				netconfig_error_permission_denied(context);
-				return FALSE;
-			}
-			break;
-		case AF_INET6:
-			if (ip_addr == NULL || interface == NULL || gateway == NULL) {
-				DBG("Invalid parameter!");
-				netconfig_error_invalid_parameter(context);
-				return FALSE;
-			}
-
-			buf = ip_addr;
-			ch = strchr(buf, '/');
-			pos = ch - buf + 1;
-			if (ch) {
-				prefix_len = atoi(ch + 1);
-				ip_addr[pos-1] = '\0';
-			} else {
-				prefix_len = 128;
-			}
-
-			if (netconfig_del_route_ipv6(ip_addr, interface, gateway, prefix_len) < 0) {
-				DBG("Failed to remove the route");
-				netconfig_error_permission_denied(context);
-				return FALSE;
-			}
-			break;
-		default:
-			DBG("Unknown Address Family");
+	switch (address_family) {
+	case AF_INET:
+		if (ip_addr == NULL || netmask == NULL || interface == NULL) {
+			DBG("Invalid parameter!");
 			netconfig_error_invalid_parameter(context);
 			return FALSE;
+		}
+		if (netconfig_execute_file(path, args, envs) < 0) {
+			DBG("Failed to remove the route");
+			netconfig_error_permission_denied(context);
+			return FALSE;
+		}
+		break;
+	case AF_INET6:
+		if (ip_addr == NULL || interface == NULL || gateway == NULL) {
+			DBG("Invalid parameter!");
+			netconfig_error_invalid_parameter(context);
+			return FALSE;
+		}
+
+		buf = ip_addr;
+		ch = strchr(buf, '/');
+		pos = ch - buf + 1;
+		if (ch) {
+			prefix_len = atoi(ch + 1);
+			ip_addr[pos-1] = '\0';
+		} else {
+			prefix_len = 128;
+		}
+
+		if (netconfig_del_route_ipv6(ip_addr, interface, gateway, prefix_len) < 0) {
+			DBG("Failed to remove the route");
+			netconfig_error_permission_denied(context);
+			return FALSE;
+		}
+		break;
+	default:
+		DBG("Unknown Address Family");
+		netconfig_error_invalid_parameter(context);
+		return FALSE;
 	}
 
 	DBG("Successfully removed the route");
@@ -1027,7 +1017,7 @@ gboolean handle_ethernet_cable_state(Network *object,
 	int state = 0;
 
 	ret = netconfig_get_ethernet_cable_state(&state);
-	if(ret != 0) {
+	if (ret != 0) {
 		DBG("Failed to get ethernet cable state");
 		netconfig_error_fail_ethernet_cable_state(context);
 		return FALSE;

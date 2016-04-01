@@ -89,9 +89,9 @@ TapiHandle * netconfig_tel_init(void)
 
 void netconfig_tel_deinit(void)
 {
-	int current_sim = 	_check_current_sim();
+	int current_sim = _check_current_sim();
 
-	if (current_sim < 0){
+	if (current_sim < 0) {
 		if (tapi_handle)
 			tel_deinit(tapi_handle);
 

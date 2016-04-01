@@ -280,9 +280,8 @@ static void _got_name_cb(GDBusConnection *conn, const gchar *name,
 {
 	INFO("Got gdbus name: [%s] and gdbus connection: [%p]", name, conn);
 
-	if (g_callback != NULL) {
+	if (g_callback != NULL)
 		g_callback();
-	}
 }
 
 static void _lost_name_cb(GDBusConnection *conn, const gchar *name,

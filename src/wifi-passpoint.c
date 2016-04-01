@@ -78,7 +78,7 @@ gboolean handle_get_passpoint(Wifi *wifi, GDBusMethodInvocation *context)
 	g_return_val_if_fail(wifi != NULL, FALSE);
 
 #if defined TIZEN_WLAN_PASSPOINT
-	if (netconfig_wifi_get_passpoint(&enable)){
+	if (netconfig_wifi_get_passpoint(&enable)) {
 		wifi_complete_get_passpoint(wifi, context, enable);
 		return TRUE;
 	}

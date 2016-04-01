@@ -102,18 +102,18 @@ int connman_register_agent(void)
 				&error);
 
 		if (reply == NULL) {
-	    	 if (error != NULL) {
-	    		 if (g_strcmp0(error->message,
-	    				 "GDBus.Error:net.connman.Error.AlreadyExists: Already exists") == 0) {
+			if (error != NULL) {
+				if (g_strcmp0(error->message,
+						"GDBus.Error:net.connman.Error.AlreadyExists: Already exists") == 0) {
 					break;
-	    		 } else {
-	    			 ERR("Fail to register agent [%d: %s]",
-	    					 error->code, error->message);
-	    		 }
+				} else {
+					ERR("Fail to register agent [%d: %s]",
+						error->code, error->message);
+				}
 
-	    		 g_error_free(error);
-	    	 } else
-	    		 ERR("Fail to register agent");
+				g_error_free(error);
+			} else
+				ERR("Fail to register agent");
 		} else
 			g_variant_unref(reply);
 
@@ -243,9 +243,8 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 				GByteArray *array = g_byte_array_new();
 
 				g_variant_get(value, "ay", &iter1);
-				while(g_variant_iter_loop(iter1, "y",  &char_value)) {
+				while (g_variant_iter_loop(iter1, "y", &char_value))
 					g_byte_array_append(array, &char_value, 1);
-				}
 				g_variant_iter_free(iter1);
 				if (array != NULL && (array->len > 0)) {
 					agent.ssid = g_byte_array_sized_new(array->len);
@@ -271,7 +270,7 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 				service, CONNMAN_SERVICE_INTERFACE, "Connect",
 				NULL, __netconfig_wifi_connect_reply);
 		if (reply == TRUE) {
-			g_dbus_method_invocation_return_value (context, NULL);
+			g_dbus_method_invocation_return_value(context, NULL);
 		} else {
 			error = g_error_new(G_DBUS_ERROR,
 					G_DBUS_ERROR_AUTH_FAILED,
@@ -317,7 +316,7 @@ gboolean handle_request_input(NetConnmanAgent *connman_agent,
 
 	DBG("Agent fields requested for service: %s", service);
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 
 	g_variant_get(fields, "a{sv}", &iter);
 	while (g_variant_iter_loop(iter, "{sv}", &field, &r_value)) {
@@ -332,7 +331,7 @@ gboolean handle_request_input(NetConnmanAgent *connman_agent,
 		} else if (g_strcmp0(field, NETCONFIG_AGENT_FIELD_WPS) == 0 &&
 				(agent.wps_pbc == TRUE || agent.wps_pin != NULL)) {
 			if (agent.wps_pbc == TRUE) {
-				// Sending empty string for WPS push button method
+				/* Sending empty string for WPS push button method */
 				g_variant_builder_add(builder, "{sv}", NETCONFIG_AGENT_FIELD_WPS, g_variant_new_string(""));
 
 				updated = TRUE;
@@ -353,11 +352,10 @@ gboolean handle_request_input(NetConnmanAgent *connman_agent,
 				agent.ssid != NULL) {
 			int i = 0;
 			GVariantBuilder *builder1 = NULL;
-			builder1 = g_variant_builder_new (G_VARIANT_TYPE ("ay"));
+			builder1 = g_variant_builder_new(G_VARIANT_TYPE("ay"));
 
-			for (i = 0; i < (agent.ssid->len); i++) {
-				g_variant_builder_add (builder1, "y", agent.ssid->data[i]);
-			}
+			for (i = 0; i < (agent.ssid->len); i++)
+				g_variant_builder_add(builder1, "y", agent.ssid->data[i]);
 
 			g_variant_builder_add(builder, "{sv}", NETCONFIG_AGENT_FIELD_SSID, g_variant_builder_end(builder1));
 			if (builder1 != NULL)
@@ -382,14 +380,14 @@ gboolean handle_request_input(NetConnmanAgent *connman_agent,
 	g_variant_iter_free(iter);
 
 
-	if (NULL == out_table){
+	if (NULL == out_table) {
 		net_connman_agent_complete_request_input(connman_agent, context, out_table);
 
 		return FALSE;
 	}
 
 	if (updated == TRUE)
-		g_dbus_method_invocation_return_value (context, out_table);
+		g_dbus_method_invocation_return_value(context, out_table);
 	else {
 		GError *error = NULL;
 		error = g_error_new(G_DBUS_ERROR,
@@ -417,7 +415,7 @@ gboolean handle_report_error(NetConnmanAgent *connman_agent,
 	net_connman_agent_complete_report_error(connman_agent, context);
 	DBG("Agent error for service[%s] - [%s]", service, error);
 
-	// Do something when it failed to make a connection
+	/* Do something when it failed to make a connection */
 
 	return ret;
 }
@@ -444,8 +442,8 @@ struct poll_timer_data {
 	void* data;
 };
 
-static struct poll_timer_data timer_data =
-			{QUERY_FOR_INTERNET_INTERVAL, 0, NULL};
+static struct poll_timer_data timer_data = {
+		QUERY_FOR_INTERNET_INTERVAL, 0, NULL};
 
 static gboolean __check_ignore_portal_list(const char * ssid)
 {
@@ -461,7 +459,7 @@ static gboolean __check_ignore_portal_list(const char * ssid)
 	DBG("csc string [%s]", def_str);
 	gchar ** ignore_ap_list = g_strsplit(def_str, ",", 0);
 	ignore_ap_count = g_strv_length(ignore_ap_list);
-	for(i = 0; i < ignore_ap_count; i++) {
+	for (i = 0; i < ignore_ap_count; i++) {
 		DBG("[%d] - [%s]", i, ignore_ap_list[i]);
 		if (strncmp(ignore_ap_list[i], ssid, strlen(ssid)) == 0) {
 			g_strfreev(ignore_ap_list);
@@ -618,7 +616,7 @@ gboolean handle_request_browser(NetConnmanAgent *connman_agent,
 
 	ignore_portal = __check_ignore_portal_list(ssid);
 
-	if (ignore_portal == TRUE){
+	if (ignore_portal == TRUE) {
 		net_connman_agent_complete_request_browser(connman_agent, context);
 		return TRUE;
 	}
@@ -629,7 +627,7 @@ gboolean handle_request_browser(NetConnmanAgent *connman_agent,
 	}
 
 #if defined TIZEN_WEARABLE
-	if (is_portal_msg_shown){
+	if (is_portal_msg_shown) {
 		net_connman_agent_complete_request_browser(connman_agent, context);
 		return TRUE;
 	}

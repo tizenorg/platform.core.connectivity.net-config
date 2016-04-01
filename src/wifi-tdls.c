@@ -39,7 +39,7 @@
 char *peer_mac = NULL;
 int is_connected = 0;
 
-void __netconfig_wifi_notify_tdls_event(const char *sig_name,const char *peer_mac)
+void __netconfig_wifi_notify_tdls_event(const char *sig_name, const char *peer_mac)
 {
 	GVariantBuilder *builder;
 	GVariant *params;
@@ -71,7 +71,7 @@ static GVariant * __netconfig_wifi_tdls_send_dbus_str(const char* method, const 
 	}
 
 	params = g_variant_new("(s)", str);
-	INFO("[TizenMW-->WPAS] Sent Dbus Method :[%s],value[%s]", method,str);
+	INFO("[TizenMW-->WPAS] Sent Dbus Method :[%s],value[%s]", method, str);
 	message = netconfig_invoke_dbus_method(SUPPLICANT_SERVICE,
 			if_path, SUPPLICANT_INTERFACE ".Interface", method, params);
 
@@ -84,9 +84,8 @@ gboolean handle_tdls_disconnect(Wifi *wifi, GDBusMethodInvocation *context,
 {
 	DBG("[TizenMW-->WPAS]: TDLS Teardown Request: [%s]", peer_mac_Addr);
 
-	if(!is_connected) {
+	if (!is_connected) {
 		ERR(" No active TDLS Connection !!!");
-
 	} else {
 		GVariant *message = NULL;
 		message = __netconfig_wifi_tdls_send_dbus_str("TDLSTeardown", (const char*)peer_mac_Addr);
@@ -161,7 +160,7 @@ void netconfig_wifi_tlds_disconnected_event(GVariant *message)
 	if (g_strcmp0(peer_mac, peer_mac_addr) == 0) {
 		INFO("TDLS Peer Disconnected Mac Address: [%s]", peer_mac);
 		is_connected = 0;
-		__netconfig_wifi_notify_tdls_event("TDLSDisconnect",peer_mac);
+		__netconfig_wifi_notify_tdls_event("TDLSDisconnect", peer_mac);
 	} else
 		INFO("TDLS Peer Disconnected peer_mac(%s) != peer_mac_address(%s)", peer_mac, peer_mac_addr);
 }

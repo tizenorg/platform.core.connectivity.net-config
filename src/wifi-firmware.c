@@ -327,8 +327,7 @@ gboolean handle_start(WifiFirmware *firmware, GDBusMethodInvocation *context, co
 				return TRUE;
 			} else
 				netconfig_error_wifi_driver_failed(context);
-		}
-		else
+		} else
 			netconfig_error_wifi_driver_failed(context);
 
 		return FALSE;

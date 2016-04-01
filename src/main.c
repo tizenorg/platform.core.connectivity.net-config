@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 			ERR("Failed to create cert directory");
 	}
 
-#if !GLIB_CHECK_VERSION(2,36,0)
+#if !GLIB_CHECK_VERSION(2, 36, 0)
 	g_type_init();
 #endif
 
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
 	if (!system_info_get_platform_bool(ETHERNET_FEATURE, &ethernet_feature_supported)) {
 		if (ethernet_feature_supported == TRUE) {
-			//Register the callback to check the ethernet Plug-in /Plug-out Status
+			/* Register the callback to check the ethernet Plug-in /Plug-out Status */
 			check_ethernet_monitor_timer = g_timeout_add(ETH_POLLING_TIME,
 					__net_ethernet_cable_status_polling_callback,
 					&check_ethernet_monitor_timer);
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 
 
 	/*remove the Timer*/
-	if(check_ethernet_monitor_timer >0)
+	if (check_ethernet_monitor_timer > 0)
 		g_source_remove(check_ethernet_monitor_timer);
 
 	wifi_state_notifier_cleanup();

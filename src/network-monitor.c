@@ -67,7 +67,7 @@ int netconfig_ethernet_cable_plugin_status_check()
 
 	memset(&ifr, 0, sizeof(ifr));
 	g_strlcpy(ifr.ifr_name, "eth0", IFNAMSIZ);
-	if (ioctl(soketfd, SIOCGMIIPHY, &ifr) < 0){
+	if (ioctl(soketfd, SIOCGMIIPHY, &ifr) < 0) {
 		error = -errno;
 		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
 		ERR("SIOCGMIIPHY on eth0 failed : [%d] [%s]", errno, error_buf);
@@ -77,21 +77,21 @@ int netconfig_ethernet_cable_plugin_status_check()
 	mdata = (struct _stMData *)&ifr.ifr_data;
 	mdata->reg_num = ETH_REG_BMSR;
 
-	if (ioctl(soketfd, SIOCGMIIREG, &ifr) < 0){
+	if (ioctl(soketfd, SIOCGMIIREG, &ifr) < 0) {
 		error = -errno;
 		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
-		ERR("SIOCGMIIREG on %s failed , [%d] [%s] ", ifr.ifr_name,errno,error_buf);
+		ERR("SIOCGMIIREG on %s failed , [%d] [%s] ", ifr.ifr_name, errno, error_buf);
 		goto done;
 	}
 	ret = mdata->val_out;
 	ret = ret & BMSR_LINK_VALID;
 
-	if(ret == 4) {
-		if(!g_chk_eth_send_notification)
+	if (ret == 4) {
+		if (!g_chk_eth_send_notification)
 			netconfig_network_notify_ethernet_cable_state("ATTACHED");
 		g_chk_eth_send_notification = TRUE;
 	} else if (ret == 0) {
-		if(g_chk_eth_send_notification)
+		if (g_chk_eth_send_notification)
 			netconfig_network_notify_ethernet_cable_state("DETACHED");
 		g_chk_eth_send_notification = FALSE;
 	}
@@ -104,17 +104,17 @@ done:
 int netconfig_get_ethernet_cable_state(int *status)
 {
 	int error = 0;
-	if(status == NULL) {
+	if (status == NULL) {
 		DBG("Error !!! Invalid Parameter\n");
 		return -1;
 	}
 
-	if((error = netconfig_ethernet_cable_plugin_status_check()) != 0) {
+	if ((error = netconfig_ethernet_cable_plugin_status_check()) != 0) {
 		DBG("Error !!! Failed to check ethernet cable status [%d]\n", error);
 		return -1;
 	}
 
-	if(g_chk_eth_send_notification == TRUE)
+	if (g_chk_eth_send_notification == TRUE)
 		*status = 1;		/* Ethernet cable Attached */
 	else
 		*status = 0;		/* Ethernet cable Deattached */

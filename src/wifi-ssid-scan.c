@@ -49,23 +49,22 @@ static void __check_security(const char *str_keymgmt, bss_info_t *bss_info)
 {
 	INFO("keymgmt : %s", str_keymgmt);
 
-	if (g_strcmp0(str_keymgmt, "ieee8021x") == 0) {
+	if (g_strcmp0(str_keymgmt, "ieee8021x") == 0)
 		bss_info->security = WIFI_SECURITY_IEEE8021X;
-	} else if (g_strcmp0(str_keymgmt, "wpa-psk") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wpa-psk") == 0)
 		bss_info->security = WIFI_SECURITY_PSK;
-	} else if (g_strcmp0(str_keymgmt, "wpa-psk-sha256") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wpa-psk-sha256") == 0)
 		bss_info->security = WIFI_SECURITY_PSK;
-	} else if (g_strcmp0(str_keymgmt, "wpa-ft-psk") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wpa-ft-psk") == 0)
 		bss_info->security = WIFI_SECURITY_PSK;
-	} else if (g_strcmp0(str_keymgmt, "wpa-ft-eap") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wpa-ft-eap") == 0)
 		bss_info->security = WIFI_SECURITY_IEEE8021X;
-	} else if (g_strcmp0(str_keymgmt, "wpa-eap") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wpa-eap") == 0)
 		bss_info->security = WIFI_SECURITY_IEEE8021X;
-	} else if (g_strcmp0(str_keymgmt, "wpa-eap-sha256") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wpa-eap-sha256") == 0)
 		bss_info->security = WIFI_SECURITY_IEEE8021X;
-	} else if (g_strcmp0(str_keymgmt, "wps") == 0) {
+	else if (g_strcmp0(str_keymgmt, "wps") == 0)
 		bss_info->wps = TRUE;
-	}
 }
 
 static gboolean __ssid_scan_timeout(gpointer data)
@@ -99,21 +98,20 @@ static void _parse_keymgmt_message(GVariant *param, bss_info_t *bss_info)
 
 	g_variant_get(param, "a{sv}", &iter1);
 	while (g_variant_iter_loop(iter1, "{sv}", &key, &var)) {
-		if (g_strcmp0(key, "KeyMgmt") == 0) {//check this :iterate
+		if (g_strcmp0(key, "KeyMgmt") == 0) {
 			GVariantIter *iter2;
 			g_variant_get(var, "as", &iter2);
 			char *str;
 			while (g_variant_iter_loop(iter2, "s", &str)) {
-				if (str == NULL) {
+				if (str == NULL)
 					break;
-				}
 				__check_security(str, bss_info);
 			}
-			g_variant_iter_free (iter2);
+			g_variant_iter_free(iter2);
 		}
 	}
 
-	g_variant_iter_free (iter1);
+	g_variant_iter_free(iter1);
 
 	return;
 }
@@ -141,15 +139,14 @@ static gboolean _request_ssid_scan(const char *object_path, const char *ssid)
 		return FALSE;
 	}
 
-	builder1 = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder1 = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 	g_variant_builder_add(builder1, "{sv}", key1, g_variant_new_string(val1));
 
-	builder2 = g_variant_builder_new(G_VARIANT_TYPE ("aay"));
-	builder3 = g_variant_builder_new (G_VARIANT_TYPE ("ay"));
+	builder2 = g_variant_builder_new(G_VARIANT_TYPE("aay"));
+	builder3 = g_variant_builder_new(G_VARIANT_TYPE("ay"));
 
-	for (i = 0; i < strlen(ssid); i++) {
-		g_variant_builder_add (builder3, "y", ssid[i]);
-	}
+	for (i = 0; i < strlen(ssid); i++)
+		g_variant_builder_add(builder3, "y", ssid[i]);
 
 	g_variant_builder_add(builder2, "@ay", g_variant_builder_end(builder3));
 	g_variant_builder_add(builder1, "{sv}", key2, g_variant_builder_end(builder2));
@@ -184,9 +181,8 @@ static gboolean _request_ssid_scan(const char *object_path, const char *ssid)
 		return FALSE;
 	}
 
-	if (g_ssid != NULL) {
+	if (g_ssid != NULL)
 		g_free(g_ssid);
-	}
 
 	g_ssid = g_strdup(ssid);
 
@@ -203,7 +199,7 @@ static void _emit_ssid_scan_completed(void)
 	const char *prop_security = "security";
 	const char *prop_wps = "wps";
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
 	for (list = bss_info_list; list != NULL; list = list->next) {
 		bss_info_t *bss_info = (bss_info_t *)list->data;
 		if (bss_info && g_strcmp0((char *)bss_info->ssid, g_ssid) == 0) {
@@ -246,9 +242,8 @@ gboolean wifi_ssid_scan(const char *ssid)
 	netconfig_wifi_bgscan_stop();
 
 	if (ssid != NULL) {
-		if (scan_ssid != NULL) {
+		if (scan_ssid != NULL)
 			g_free(scan_ssid);
-		}
 		scan_ssid = g_strdup(ssid);
 	}
 
@@ -324,7 +319,7 @@ void wifi_ssid_scan_add_bss(GVariant *message)
 	}
 
 	if (path != NULL)
-		INFO("Object path of BSS added is %s",path);
+		INFO("Object path of BSS added is %s", path);
 
 	bss_info = g_try_new0(bss_info_t, 1);
 	if (bss_info == NULL)
@@ -350,7 +345,7 @@ void wifi_ssid_scan_add_bss(GVariant *message)
 			const guchar *ie;
 			gsize ie_len;
 			ie = g_variant_get_fixed_array(value, &ie_len, sizeof(guchar));
-			DBG("The IE : %s",ie);
+			DBG("The IE : %s", ie);
 		}
 	}
 
@@ -383,11 +378,10 @@ gboolean handle_request_specific_scan(Wifi *wifi,
 
 	result = wifi_ssid_scan((const char *)ssid);
 
-	if (result != TRUE) {
+	if (result != TRUE)
 		netconfig_error_dbus_method_return(context, NETCONFIG_ERROR_INTERNAL, "FailSpecificScan");
-	} else {
+	else
 		wifi_complete_request_wps_scan(wifi, context);
-	}
 
 	return result;
 }

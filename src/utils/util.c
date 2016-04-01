@@ -860,47 +860,46 @@ void netconfig_set_system_event(const char * sys_evt, const char * evt_key, cons
 #if defined TIZEN_WEARABLE
 int wc_launch_syspopup(netconfig_wcpopup_type_e type)
 {
-        int ret;
-        bundle* b;
-        char *ssid = NULL;
+	int ret;
+	bundle* b;
+	char *ssid = NULL;
 
-        b = bundle_create();
-        if (!b) {
-                ERR("Failed to create bundle");
-                return -1;
-        }
+	b = bundle_create();
+	if (!b) {
+		ERR("Failed to create bundle");
+		return -1;
+	}
 
-        switch (type) {
-        case WC_POPUP_TYPE_SESSION_OVERLAPPED:
-                bundle_add(b, "event-type", "wps-session-overlapped");
-                break;
-        case WC_POPUP_TYPE_WIFI_CONNECTED:
-                ssid = vconf_get_str(VCONFKEY_WIFI_CONNECTED_AP_NAME);
-                if (ssid == NULL) {
-                        ERR("Failed to get connected ap ssid");
-                        ssid = g_strdup(" ");
-                }
-                bundle_add(b, "event-type", "wifi-connected");
-                bundle_add(b, "ssid", ssid);
-                if (ssid)
-                        g_free(ssid);
-                break;
-        case WC_POPUP_TYPE_WIFI_RESTRICT:
-				bundle_add(b, "event-type", "wifi-restrict");
-				break;
-        default:
-                ERR("Popup is not supported[%d]", type);
-                bundle_free(b);
-                return -1;
-        }
+	switch (type) {
+	case WC_POPUP_TYPE_SESSION_OVERLAPPED:
+		bundle_add(b, "event-type", "wps-session-overlapped");
+		break;
+	case WC_POPUP_TYPE_WIFI_CONNECTED:
+		ssid = vconf_get_str(VCONFKEY_WIFI_CONNECTED_AP_NAME);
+		if (ssid == NULL) {
+			ERR("Failed to get connected ap ssid");
+			ssid = g_strdup(" ");
+		}
+		bundle_add(b, "event-type", "wifi-connected");
+		bundle_add(b, "ssid", ssid);
+		if (ssid)
+			g_free(ssid);
+		break;
+	case WC_POPUP_TYPE_WIFI_RESTRICT:
+		bundle_add(b, "event-type", "wifi-restrict");
+		break;
+	default:
+		ERR("Popup is not supported[%d]", type);
+		bundle_free(b);
+		return -1;
+	}
 
-        ret = syspopup_launch("wc-syspopup", b);
-        if (ret < 0)
-                ERR("Failed to launch syspopup");
+	ret = syspopup_launch("wc-syspopup", b);
+	if (ret < 0)
+		ERR("Failed to launch syspopup");
 
-        bundle_free(b);
-
-        return ret;
+	bundle_free(b);
+	return ret;
 }
 
 int wc_launch_popup(netconfig_wcpopup_type_e type)
@@ -964,7 +963,7 @@ char* netconfig_get_env(const char *key)
 {
 	FILE *fp;
 	char buf[256], *entry = NULL, *value = NULL, *last;
-	int len=0;
+	int len = 0;
 
 	if (!key)
 		return NULL;
@@ -979,12 +978,11 @@ char* netconfig_get_env(const char *key)
 		if (entry) {
 			if (strstr(entry, key)) {
 				entry = strtok_r(NULL, "\n", &last);
-				if(entry){
+				if (entry) {
 					len = strlen(entry);
 					value = (char*)malloc(len+1);
 					g_strlcpy(value, entry, len+1);
-				}
-				else{
+				} else {
 					value = (char*)malloc(sizeof(char));
 					g_strlcpy(value, "\n", sizeof(char));
 				}
@@ -1009,7 +1007,7 @@ void netconfig_set_mac_address_from_file(void)
 		ERR("Fail to open %s", MAC_INFO_FILEPATH);
 		return;
 	}
-	if (fgets(mac_str, sizeof(mac_str), file) == NULL ) {
+	if (fgets(mac_str, sizeof(mac_str), file) == NULL) {
 		ERR("Fail to read mac address");
 		fclose(file);
 		return;

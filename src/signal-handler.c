@@ -112,19 +112,17 @@ static void _technology_signal_cb(GDBusConnection *conn,
 		if (g_strcmp0(key, "Powered") == 0) {
 			/* Power state */
 			value = g_variant_get_boolean(var);
-			if (value == TRUE) {
+			if (value == TRUE)
 				wifi_state_update_power_state(TRUE);
-			} else {
+			else
 				wifi_state_update_power_state(FALSE);
-			}
 		} else if (g_strcmp0(key, "Connected") == 0) {
 			/* Connection state */
 			value = g_variant_get_boolean(var);
-			if (value == TRUE) {
+			if (value == TRUE)
 				wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_CONNECTED);
-			} else {
+			else
 				wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_POWERED);
-			}
 		} else if (g_strcmp0(key, "Tethering") == 0) {
 			/* Tethering state */
 			wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_TETHERED);
@@ -153,9 +151,8 @@ static void _service_signal_cb(GDBusConnection *conn,
 	if (sigvalue == NULL)
 		goto done;
 
-	if (g_strcmp0(sig, CONNMAN_SIGNAL_PROPERTY_CHANGED) != 0) {
+	if (g_strcmp0(sig, CONNMAN_SIGNAL_PROPERTY_CHANGED) != 0)
 		goto done;
-	}
 
 	if (g_strcmp0(sigvalue, "State") == 0) {
 		g_variant_get(variant, "s", &property);
@@ -221,12 +218,11 @@ static void _service_signal_cb(GDBusConnection *conn,
 		} else {
 			if (g_strcmp0(property, "ready") == 0 || g_strcmp0(property, "online") == 0) {
 				if (netconfig_get_default_profile() == NULL) {
-					if(!netconfig_is_cellular_profile(path)) {
+					if (!netconfig_is_cellular_profile(path))
 						netconfig_update_default_profile(path);
-					} else {
-						if (netconfig_is_cellular_internet_profile(path)) {
+					else {
+						if (netconfig_is_cellular_internet_profile(path))
 							netconfig_update_default_profile(path);
-						}
 					}
 				}
 
@@ -244,7 +240,7 @@ static void _service_signal_cb(GDBusConnection *conn,
 					goto done;
 
 				netconfig_update_default_profile(NULL);
-			} else if (g_strcmp0(property, "association") == 0 || 	g_strcmp0(property, "configuration") == 0) {
+			} else if (g_strcmp0(property, "association") == 0 || g_strcmp0(property, "configuration") == 0) {
 				if (netconfig_get_default_profile() == NULL)
 					goto done;
 
@@ -376,7 +372,7 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 						break;
 					}
 
-					if(!is_cell_prof)
+					if (!is_cell_prof)
 						netconfig_update_default_profile(
 								service_path);
 					else if (is_cell_internet_prof) {

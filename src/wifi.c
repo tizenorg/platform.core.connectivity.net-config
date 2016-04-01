@@ -53,7 +53,7 @@ static gboolean handle_check_black_list(Wifi *wifi, GDBusMethodInvocation *conte
 {
 	ERR("Name (%s)", name);
 	INFO("disable to check");
-	wifi_complete_check_black_list (wifi, context, TRUE);
+	wifi_complete_check_black_list(wifi, context, TRUE);
 	return TRUE;
 }
 
@@ -113,7 +113,7 @@ void wifi_object_create_and_init(void)
 	wifi_object = wifi_skeleton_new();
 	interface_wifi = G_DBUS_INTERFACE_SKELETON(wifi_object);
 
-	// WIFI power
+	/* WIFI power */
 	g_signal_connect(wifi_object, "handle-load-driver",
 			G_CALLBACK(handle_load_driver), NULL);
 	g_signal_connect(wifi_object, "handle-remove-driver",
@@ -123,27 +123,27 @@ void wifi_object_create_and_init(void)
 	g_signal_connect(wifi_object, "handle-remove-p2p-driver",
 			G_CALLBACK(handle_remove_p2p_driver), NULL);
 
-	// WIFI state
+	/* WIFI state */
 	g_signal_connect(wifi_object, "handle-get-wifi-state",
 			G_CALLBACK(handle_get_wifi_state), NULL);
 
-	// WIFI scan
+	/* WIFI scan */
 	g_signal_connect(wifi_object, "handle-request-specific-scan",
 			G_CALLBACK(handle_request_specific_scan), NULL);
 	g_signal_connect(wifi_object, "handle-request-wps-scan",
 			G_CALLBACK(handle_request_wps_scan), NULL);
 
-	// WIFI direct
+	/* WIFI direct */
 	g_signal_connect(wifi_object, "handle-launch-direct",
 			G_CALLBACK(handle_launch_direct), NULL);
 
-	// EAP config
+	/* EAP config */
 	g_signal_connect(wifi_object, "handle-create-eap-config",
 			G_CALLBACK(handle_create_eap_config), NULL);
 	g_signal_connect(wifi_object, "handle-delete-eap-config",
 			G_CALLBACK(handle_delete_eap_config), NULL);
 
-	// WIFI configuration
+	/* WIFI configuration */
 	g_signal_connect(wifi_object, "handle-save-configuration",
 			G_CALLBACK(handle_save_configuration), NULL);
 	g_signal_connect(wifi_object, "handle-remove-configuration",
@@ -156,13 +156,13 @@ void wifi_object_create_and_init(void)
 			G_CALLBACK(handle_set_config_field), NULL);
 	g_signal_connect(wifi_object, "handle-get-config-passphrase",
 			G_CALLBACK(handle_get_config_passphrase), NULL);
-	// WIFI EAP configuration
+	/* WIFI EAP configuration */
 	g_signal_connect(wifi_object, "handle-save-eap-configuration",
 			G_CALLBACK(handle_save_eap_configuration), NULL);
 	g_signal_connect(wifi_object, "handle-load-eap-configuration",
 			G_CALLBACK(handle_load_eap_configuration), NULL);
 
-	// BG scan mode
+	/* BG scan mode */
 	g_signal_connect(wifi_object, "handle-set-bgscan",
 			G_CALLBACK(handle_set_bgscan), NULL);
 	g_signal_connect(wifi_object, "handle-resume-bgscan",
@@ -170,13 +170,13 @@ void wifi_object_create_and_init(void)
 	g_signal_connect(wifi_object, "handle-pause-bgscan",
 			G_CALLBACK(handle_pause_bgscan), NULL);
 
-	// Passpoint
+	/* Passpoint */
 	g_signal_connect(wifi_object, "handle-set-passpoint",
 				G_CALLBACK(handle_set_passpoint), NULL);
 	g_signal_connect(wifi_object, "handle-get-passpoint",
 					G_CALLBACK(handle_get_passpoint), NULL);
 
-	// EAP authentication
+	/* EAP authentication */
 	g_signal_connect(wifi_object, "handle-get-aka-auth",
 				G_CALLBACK(handle_get_aka_auth), NULL);
 	g_signal_connect(wifi_object, "handle-get-sim-auth",
@@ -188,11 +188,11 @@ void wifi_object_create_and_init(void)
 	g_signal_connect(wifi_object, "handle-req-sim-auth",
 			G_CALLBACK(handle_req_sim_auth), NULL);
 
-	// WIFI MDM blacklist
+	/* WIFI MDM blacklist */
 	g_signal_connect(wifi_object, "handle-check-black-list",
 			G_CALLBACK(handle_check_black_list), NULL);
 
-	//TDLS methods
+	/* TDLS methods */
 	g_signal_connect(wifi_object, "handle-tdls-disconnect",
 			G_CALLBACK(handle_tdls_disconnect), NULL);
 	g_signal_connect(wifi_object, "handle-tdls-connected-peer",
@@ -203,7 +203,7 @@ void wifi_object_create_and_init(void)
 		ERR("Export WIFI_PATH for wifi failed");
 	}
 
-	/*Interface connman.Agent*/
+	/* Interface connman.Agent */
 	connman_agent_object = net_connman_agent_skeleton_new();
 
 	interface_connman_agent = G_DBUS_INTERFACE_SKELETON(connman_agent_object);

@@ -135,9 +135,8 @@ static gboolean __is_wifi_profile_available(void)
 
 	g_variant_get(message, "(a(oa{sv}))", &iter);
 	while (g_variant_iter_loop(iter, "(oa{sv})", &obj, &next)) {
-		if (obj == NULL || netconfig_is_wifi_profile((const gchar*)obj) == FALSE) {
+		if (obj == NULL || netconfig_is_wifi_profile((const gchar*)obj) == FALSE)
 			continue;
-		}
 
 		g_variant_iter_free(next);
 		g_free(obj);
@@ -160,9 +159,8 @@ static gboolean __is_favorited(GVariantIter *array)
 	while (g_variant_iter_loop(array, "{sv}", &key, &var)) {
 		gboolean value;
 
-		if (g_str_equal(key, "Favorite") != TRUE) {
+		if (g_str_equal(key, "Favorite") != TRUE)
 			continue;
-		}
 
 		value = g_variant_get_boolean(var);
 		if (value)
@@ -239,9 +237,8 @@ static gboolean _check_network_notification(gpointer data)
 	}
 
 	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &ug_state);
-	if (ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND) {
+	if (ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		goto cleanup;
-	}
 
 	netconfig_send_notification_to_net_popup(NETCONFIG_ADD_FOUND_AP_NOTI, NULL);
 
@@ -269,9 +266,8 @@ static char *_get_connman_favorite_service(void)
 
 	g_variant_get(message, "(a(oa{sv}))", &iter);
 	while (g_variant_iter_loop(iter, "(oa{sv})", &obj, &next)) {
-		if (obj == NULL || netconfig_is_wifi_profile(obj) == FALSE) {
+		if (obj == NULL || netconfig_is_wifi_profile(obj) == FALSE)
 			continue;
-		}
 
 		if (__is_favorited(next) == TRUE) {
 			favorite_service = g_strdup(obj);
@@ -291,13 +287,11 @@ static void __notification_value_changed_cb(keynode_t *node, void *user_data)
 {
 	int value = -1;
 
-	if (vconf_get_int(VCONFKEY_WIFI_ENABLE_QS, &value) < 0) {
+	if (vconf_get_int(VCONFKEY_WIFI_ENABLE_QS, &value) < 0)
 		return;
-	}
 
-	if (value == VCONFKEY_WIFI_QS_DISABLE) {
+	if (value == VCONFKEY_WIFI_QS_DISABLE)
 		netconfig_send_notification_to_net_popup(NETCONFIG_DEL_FOUND_AP_NOTI, NULL);
-	}
 }
 
 static void _register_network_notification(void)
@@ -390,7 +384,7 @@ static void _set_power_lock(gboolean power_lock)
 			"org.tizen.system.deviced.display",
 			lock_method,
 			params);
-	if (reply == NULL){
+	if (reply == NULL) {
 		ERR("Failed to set_power_lock");
 		return;
 	}
@@ -414,7 +408,7 @@ void wifi_state_emit_power_completed(gboolean power_on)
 	else
 		wifi_emit_power_off_completed((Wifi *)get_wifi_object());
 
-	DBG("Successfully sent signal [%s]",(power_on)?"powerOn":"powerOff");
+	DBG("Successfully sent signal [%s]", (power_on) ? "powerOn" : "powerOff");
 }
 
 void wifi_state_emit_power_failed(void)
@@ -579,8 +573,8 @@ void wifi_state_set_service_state(wifi_service_state_e new_state)
 
 		netconfig_wifi_bgscan_stop();
 		netconfig_wifi_bgscan_start(TRUE);
-	} else if ((old_state > NETCONFIG_WIFI_IDLE && old_state < NETCONFIG_WIFI_CONNECTED) && new_state == NETCONFIG_WIFI_IDLE){
-		//in ipv6 case disconnect/association -> association
+	} else if ((old_state > NETCONFIG_WIFI_IDLE && old_state < NETCONFIG_WIFI_CONNECTED) && new_state == NETCONFIG_WIFI_IDLE) {
+		/* in ipv6 case disconnect/association -> association */
 		DBG("reset the bg scan period");
 		netconfig_wifi_set_bgscan_pause(FALSE);
 
@@ -590,7 +584,7 @@ void wifi_state_set_service_state(wifi_service_state_e new_state)
 
 	_wifi_state_changed(new_state);
 
-	if (new_state == NETCONFIG_WIFI_CONNECTED){
+	if (new_state == NETCONFIG_WIFI_CONNECTED) {
 		_wifi_state_connected_activation();
 #if defined TIZEN_WEARABLE
 		wc_launch_syspopup(WC_POPUP_TYPE_WIFI_CONNECTED);
@@ -638,9 +632,8 @@ wifi_tech_state_e wifi_state_get_technology_state(void)
 
 	g_variant_get(message, "(a(oa{sv}))", &iter);
 	while (g_variant_iter_loop(iter, "(oa{sv})", &path, &next)) {
-		if (path == NULL || g_strcmp0(path, CONNMAN_WIFI_TECHNOLOGY_PREFIX) != 0) {
+		if (path == NULL || g_strcmp0(path, CONNMAN_WIFI_TECHNOLOGY_PREFIX) != 0)
 			continue;
-		}
 
 		while (g_variant_iter_loop(next, "{sv}", &key, &variant)) {
 			const gchar *sdata = NULL;
@@ -650,24 +643,24 @@ wifi_tech_state_e wifi_state_get_technology_state(void)
 				data = g_variant_get_boolean(variant);
 				DBG("key-[%s] - %s", key, data ? "True" : "False");
 
-				if (strcmp(key, "Powered") == 0 && data) {
+				if (strcmp(key, "Powered") == 0 && data)
 					wifi_tech_powered = TRUE;
-				} else if (strcmp(key, "Connected") == 0 && data) {
+				else if (strcmp(key, "Connected") == 0 && data)
 					wifi_tech_connected = TRUE;
-				} else if (strcmp(key, "Tethering") == 0 && data) {
-					// For further use
-				}
+				/* For further use
+				else if (strcmp(key, "Tethering") == 0 && data) {
+				} */
 			} else if (g_variant_is_of_type(variant, G_VARIANT_TYPE_STRING)) {
 				sdata = g_variant_get_string(variant, NULL);
 				DBG("%s", sdata);
 			}
 		}
-		g_variant_iter_free (next);
+		g_variant_iter_free(next);
 	}
 
 	g_variant_unref(message);
 
-	g_variant_iter_free (iter);
+	g_variant_iter_free(iter);
 
 	if (wifi_tech_powered == TRUE)
 		ret = NETCONFIG_WIFI_TECH_POWERED;
@@ -716,14 +709,14 @@ gboolean handle_get_wifi_state(Wifi *wifi, GDBusMethodInvocation *context)
 	tech_state = wifi_state_get_technology_state();
 	service_state = wifi_state_get_service_state();
 
-	if(tech_state == NETCONFIG_WIFI_TECH_UNKNOWN) {
+	if (tech_state == NETCONFIG_WIFI_TECH_UNKNOWN)
 		param = g_variant_new("(s)", "unknown");
-	} else if(tech_state == NETCONFIG_WIFI_TECH_OFF ||
-		tech_state == NETCONFIG_WIFI_TECH_WPS_ONLY) {
+	else if (tech_state == NETCONFIG_WIFI_TECH_OFF ||
+		tech_state == NETCONFIG_WIFI_TECH_WPS_ONLY)
 		param = g_variant_new("(s)", "deactivated");
-	} else if(tech_state == NETCONFIG_WIFI_TECH_CONNECTED) {
+	else if (tech_state == NETCONFIG_WIFI_TECH_CONNECTED)
 		param = g_variant_new("(s)", "connected");
-	} else {
+	else {
 		switch (service_state) {
 		case NETCONFIG_WIFI_FAILURE:
 			param = g_variant_new("(s)", "failure");

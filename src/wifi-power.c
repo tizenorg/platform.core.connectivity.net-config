@@ -102,18 +102,17 @@ static void __technology_reply(GObject *source_object, GAsyncResult *res, gpoint
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION (source_object);
+	conn = G_DBUS_CONNECTION(source_object);
 	reply = g_dbus_connection_call_finish(conn, res, &error);
 
 	if (reply == NULL) {
 		if (error != NULL) {
-			if (g_strcmp0(error->message, CONNMAN_ERROR_INTERFACE ".AlreadyEnabled") == 0) {
+			if (g_strcmp0(error->message, CONNMAN_ERROR_INTERFACE ".AlreadyEnabled") == 0)
 				wifi_state_update_power_state(TRUE);
-			} else if (g_strcmp0(error->message, CONNMAN_ERROR_INTERFACE ".AlreadyDisabled") == 0) {
+			else if (g_strcmp0(error->message, CONNMAN_ERROR_INTERFACE ".AlreadyDisabled") == 0)
 				wifi_state_update_power_state(FALSE);
-			} else {
+			else
 				ERR("Fail to request status [%d: %s]", error->code, error->message);
-			}
 			g_error_free(error);
 		} else {
 			ERR("Fail torequest status");
@@ -290,7 +289,7 @@ static int _set_connman_technology_power(gboolean enable)
 	else
 		param0 = g_variant_new_boolean(value_disable);
 
-	params = g_variant_new("(sv)",key, param0);
+	params = g_variant_new("(sv)", key, param0);
 
 	reply = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
 			CONNMAN_WIFI_TECHNOLOGY_PREFIX, CONNMAN_TECHNOLOGY_INTERFACE,
@@ -720,9 +719,8 @@ static void __emergency_mode_changed_cb(keynode_t *node, void *user_data)
 		/* enhanced power saving mode on */
 		vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
 		psmode_wifi_use = wifi_use;
-		if (wifi_use != 0) {
+		if (wifi_use != 0)
 			netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 0);
-		}
 
 		if (wifi_state == VCONFKEY_WIFI_OFF)
 			return;
@@ -1218,16 +1216,15 @@ void __netconfig_set_ether_macaddr()
 		netconfig_set_vconf_str(VCONF_ETH_MAC_ADDRESS, mac_addr);
 	}
 
-	DBG("MAC Address of eth0 [%s]",mac_addr);
+	DBG("MAC Address of eth0 [%s]", mac_addr);
 	const char *path = NET_EXEC_PATH;
 	char *const args[] = { "/sbin/ifconfig", "eth0", "hw",
-		"ether",mac_addr, "up", NULL};
+		"ether", mac_addr, "up", NULL};
 	char *const envs[] = { NULL };
 	rv = netconfig_execute_file(path, args, envs);
 
-	if (rv < 0) {
+	if (rv < 0)
 		ERR("Unable to execute system command");
-	}
 	g_free(mac_addr);
 
 }

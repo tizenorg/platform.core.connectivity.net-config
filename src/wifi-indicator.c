@@ -101,16 +101,16 @@ static int __netconfig_wifi_update_and_get_rssi(void)
 
 		/* read wireless status */
 		char *saveptr;
-		p_entry = strtok_r(p_entry, " .", &saveptr);	// status			"%x"
+		p_entry = strtok_r(p_entry, " .", &saveptr);	/* status			"%x" */
 		if (p_entry != NULL)
 			sscanf(p_entry, "%x", &status);
-		p_entry = strtok_r(NULL, " .", &saveptr);		// Quality link		"%d"
+		p_entry = strtok_r(NULL, " .", &saveptr);		/* Quality link		"%d" */
 		if (p_entry != NULL)
 			sscanf(p_entry, "%d", &link);
-		p_entry = strtok_r(NULL, " .", &saveptr);		// Quality level	"%d"
+		p_entry = strtok_r(NULL, " .", &saveptr);		/* Quality level	"%d" */
 		if (p_entry != NULL)
 			sscanf(p_entry, "%d", &rssi_dbm);
-		p_entry = strtok_r(NULL, " .", &saveptr);		// Quality noise	"%d"
+		p_entry = strtok_r(NULL, " .", &saveptr);		/* Quality noise	"%d" */
 		if (p_entry != NULL)
 			sscanf(p_entry, "%d", &noise);
 
@@ -191,7 +191,7 @@ static void __netconfig_wifi_data_activity_booster(int level)
 
 	if (level > 0) {
 		/* enable booster */
-		switch(level) {
+		switch (level) {
 		case 1:
 			params = g_variant_new("(ii)", level1, lock);
 			break;
@@ -221,7 +221,7 @@ static void __netconfig_wifi_data_activity_booster(int level)
 	if (old_level == 0 || old_level == level)
 		return;
 
-	switch(old_level) {
+	switch (old_level) {
 	case 1:
 		params = g_variant_new("(ii)", level1, unlock);
 		break;
@@ -329,7 +329,7 @@ static gboolean __wifi_indicator_monitor(gpointer data)
 		return TRUE;
 
 	rssi_dbm = __netconfig_wifi_update_and_get_rssi();
-	//INFO("%d dbm", rssi_dbm);
+	/* INFO("%d dbm", rssi_dbm); */
 	snr_level = netconfig_wifi_rssi_level(rssi_dbm);
 	__netconfig_wifi_set_rssi_level(snr_level);
 

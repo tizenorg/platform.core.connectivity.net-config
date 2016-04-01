@@ -59,10 +59,10 @@ static void __netconfig_clock_set_timeserver(const char *server)
 	GVariant *params = NULL;
 	GVariantBuilder *builder;
 
-	builder = g_variant_builder_new(G_VARIANT_TYPE ("as"));
+	builder = g_variant_builder_new(G_VARIANT_TYPE("as"));
 	g_variant_builder_add(builder, "s", server);
 
-	params = g_variant_new("(sv)",param0, g_variant_builder_end(builder));
+	params = g_variant_new("(sv)", param0, g_variant_builder_end(builder));
 	g_variant_builder_unref(builder);
 
 	reply = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
@@ -117,11 +117,10 @@ static void __automatic_time_update_changed_cb(keynode_t *node, void *user_data)
 	gboolean automatic_time_update = FALSE;
 	wifi_service_state_e wifi_state = NETCONFIG_WIFI_UNKNOWN;
 
-	if (node != NULL) {
+	if (node != NULL)
 		automatic_time_update = vconf_keynode_get_bool(node);
-	} else {
+	else
 		vconf_get_bool(VCONFKEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL, &automatic_time_update);
-	}
 
 	if (automatic_time_update == FALSE) {
 		INFO("Automatic time update is changed to 'FALSE'");

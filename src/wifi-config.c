@@ -41,8 +41,8 @@
 
 #define WIFI_CONFIG_PREFIX      "wifi_"
 #define MAC_ADDRESS_LENGTH		12
-#define WIFI_PREFIX_LENGTH		MAC_ADDRESS_LENGTH + 6	// wifi_485a3f2f506a_
-#define PROFILE_PREFIX_LENGTH	WIFI_PREFIX_LENGTH + 21	// /net/connman/service/wifi_485a3f2f506a_
+#define WIFI_PREFIX_LENGTH		MAC_ADDRESS_LENGTH + 6	/* wifi_485a3f2f506a_ */
+#define PROFILE_PREFIX_LENGTH	WIFI_PREFIX_LENGTH + 21	/* /net/connman/service/wifi_485a3f2f506a_ */
 
 #define WIFI_MAC_ADD_LENGTH		17
 #define WIFI_MAC_ADD_PATH		"/sys/class/net/wlan0/address"
@@ -140,9 +140,8 @@ static gboolean __get_mac_address(gchar **mac_address)
 	tmp = g_ascii_strdown(tmp_mac, (gssize)strlen(tmp_mac));
 	g_free(tmp_mac);
 	while (tmp[i]) {
-		if (tmp[i] != ':') {
+		if (tmp[i] != ':')
 			mac[j++] = tmp[i];
-		}
 		i++;
 	}
 	mac[12] = '\0';
@@ -292,11 +291,10 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 	}
 	config->proxy_address = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_PROXY_SERVER, NULL);
 	hidden = g_key_file_get_boolean(keyfile, group_name, WIFI_CONFIG_HIDDEN, NULL);
-	if (hidden) {
+	if (hidden)
 		config->is_hidden = g_strdup("TRUE");
-	} else {
+	else
 		config->is_hidden = g_strdup("FALSE");
-	}
 
 	if (g_strcmp0(config->security_type, WIFI_SECURITY_EAP) == 0) {
 		config->eap_config->anonymous_identity = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY, NULL);
@@ -409,13 +407,12 @@ static gboolean _set_field(const gchar *config_id, const gchar *key, const gchar
 
 	if (g_strcmp0(key, WIFI_CONFIG_PROXY_METHOD) == 0) {
 		g_key_file_set_string(keyfile, group_name, key, value);
-	}else if (g_strcmp0(key, WIFI_CONFIG_PROXY_SERVER) == 0) {
+	} else if (g_strcmp0(key, WIFI_CONFIG_PROXY_SERVER) == 0) {
 		g_key_file_set_string(keyfile, group_name, key, value);
 	} else if (g_strcmp0(key, WIFI_CONFIG_HIDDEN) == 0) {
 		gboolean hidden = FALSE;
-		if (g_strcmp0(value, "TRUE") == 0) {
+		if (g_strcmp0(value, "TRUE") == 0)
 			hidden = TRUE;
-		}
 		g_key_file_set_boolean(keyfile, group_name, key, hidden);
 	} else if (g_strcmp0(key, WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY) == 0) {
 		g_key_file_set_string(keyfile, group_name, key, value);
@@ -475,11 +472,10 @@ static gboolean _get_field(const gchar *config_id, const gchar *key, gchar **val
 		val = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_PROXY_SERVER, NULL);
 	} else if (g_strcmp0(key, WIFI_CONFIG_HIDDEN) == 0) {
 		hidden = g_key_file_get_boolean(keyfile, group_name, WIFI_CONFIG_HIDDEN, NULL);
-		if (hidden) {
+		if (hidden)
 			val = g_strdup("TRUE");
-		} else {
+		else
 			val = g_strdup("FALSE");
-		}
 	} else if (g_strcmp0(key, WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY) == 0) {
 		val = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY, NULL);
 	} else if (g_strcmp0(key, WIFI_CONFIG_EAP_CACERT) == 0) {
@@ -565,7 +561,7 @@ gboolean wifi_config_remove_configuration(const gchar *config_id)
 	return ret;
 }
 
-// dbus method
+/* dbus method */
 gboolean handle_get_config_ids(Wifi *wifi, GDBusMethodInvocation *context)
 {
 	guint i = 0;
@@ -592,7 +588,7 @@ gboolean handle_get_config_ids(Wifi *wifi, GDBusMethodInvocation *context)
 	config_ids = g_slist_nth(config_ids, 0);
 	g_slist_free_full(config_ids, g_free);
 
-	wifi_complete_get_config_ids(wifi, context, (const gchar * const*)result);
+	wifi_complete_get_config_ids(wifi, context, (const gchar * const *)result);
 
 	if (result)
 		g_free(result);
@@ -726,7 +722,7 @@ gboolean handle_save_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 	g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_FAVORITE, conf->favorite);
 	g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_AUTOCONNECT, conf->autoconnect);
 
-	// Optional field
+	/* Optional field */
 	if (conf->proxy_address != NULL) {
 		g_key_file_set_string(keyfile, group_name, WIFI_CONFIG_PROXY_METHOD, "manual");
 		g_key_file_set_string(keyfile, group_name, WIFI_CONFIG_PROXY_SERVER, conf->proxy_address);
@@ -734,9 +730,8 @@ gboolean handle_save_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 
 	if (conf->is_hidden != NULL) {
 		gboolean hidden = FALSE;
-		if (g_strcmp0(conf->is_hidden, "TRUE") == 0) {
+		if (g_strcmp0(conf->is_hidden, "TRUE") == 0)
 			hidden = TRUE;
-		}
 		g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_HIDDEN, hidden);
 	}
 
@@ -790,56 +785,55 @@ gboolean handle_load_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 	if (conf->proxy_address != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string(conf->proxy_address));
 		g_free(conf->proxy_address);
-	} else {
+	} else
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string("NONE"));
-	}
+
 	if (conf->last_error != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string(conf->last_error));
 		g_free(conf->last_error);
-	} else {
+	} else
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string("ERROR_NONE"));
-	}
+
 	if (conf->eap_config != NULL) {
-		if (conf->eap_config->anonymous_identity != NULL) {
+		if (conf->eap_config->anonymous_identity != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY, g_variant_new_string(conf->eap_config->anonymous_identity));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->ca_cert != NULL) {
+
+		if (conf->eap_config->ca_cert != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_CACERT, g_variant_new_string(conf->eap_config->ca_cert));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_CACERT, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->client_cert != NULL) {
+
+		if (conf->eap_config->client_cert != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_CLIENTCERT, g_variant_new_string(conf->eap_config->client_cert));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_CLIENTCERT, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->private_key != NULL) {
+
+		if (conf->eap_config->private_key != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_PRIVATEKEY, g_variant_new_string(conf->eap_config->private_key));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_PRIVATEKEY, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->identity != NULL) {
+
+		if (conf->eap_config->identity != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_IDENTITY, g_variant_new_string(conf->eap_config->identity));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_IDENTITY, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->eap_type != NULL) {
+
+		if (conf->eap_config->eap_type != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_TYPE, g_variant_new_string(conf->eap_config->eap_type));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_TYPE, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->eap_auth_type != NULL) {
+
+		if (conf->eap_config->eap_auth_type != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_AUTH_TYPE, g_variant_new_string(conf->eap_config->eap_auth_type));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_AUTH_TYPE, g_variant_new_string("NONE"));
-		}
-		if (conf->eap_config->subject_match != NULL) {
+
+		if (conf->eap_config->subject_match != NULL)
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_SUBJECT_MATCH, g_variant_new_string(conf->eap_config->subject_match));
-		} else {
+		else
 			g_variant_builder_add(b, "{sv}", WIFI_CONFIG_EAP_SUBJECT_MATCH, g_variant_new_string("NONE"));
-		}
 	}
 
 	__free_wifi_configuration(conf);
@@ -987,7 +981,7 @@ gboolean handle_save_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 	g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_FAVORITE, conf->favorite);
 	g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_AUTOCONNECT, conf->autoconnect);
 
-	// Optional field
+	/* Optional field */
 	if (conf->proxy_address != NULL) {
 		g_key_file_set_string(keyfile, group_name, WIFI_CONFIG_PROXY_METHOD, "manual");
 		g_key_file_set_string(keyfile, group_name, WIFI_CONFIG_PROXY_SERVER, conf->proxy_address);
@@ -995,9 +989,8 @@ gboolean handle_save_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 
 	if (conf->is_hidden != NULL) {
 		gboolean hidden = FALSE;
-		if (g_strcmp0(conf->is_hidden, "TRUE") == 0) {
+		if (g_strcmp0(conf->is_hidden, "TRUE") == 0)
 			hidden = TRUE;
-		}
 		g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_HIDDEN, hidden);
 	}
 
@@ -1030,7 +1023,7 @@ gboolean handle_remove_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 
 	ret = _remove_configuration(config_id);
 	if (ret != TRUE) {
-		// no configuration or error
+		/* no configuration or error */
 		ERR("No [%s] configuration", config_id);
 		netconfig_error_no_profile(context);
 		return FALSE;
@@ -1040,7 +1033,7 @@ gboolean handle_remove_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 	return ret;
 }
 
-// config field key / value
+/* config field key / value */
 /*
  * [wifi_macaddress_config_id]
  * Name=name (mandatory)
@@ -1113,7 +1106,7 @@ gboolean handle_set_config_field(Wifi *wifi, GDBusMethodInvocation *context,
 	if (keyfile_key != NULL)
 		g_free(keyfile_key);
 
-	wifi_complete_set_config_field(wifi,context);
+	wifi_complete_set_config_field(wifi, context);
 	return ret;
 }
 

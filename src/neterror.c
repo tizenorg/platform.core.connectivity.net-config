@@ -165,7 +165,7 @@ void netconfig_error_dbus_method_return(GDBusMethodInvocation *context, netconfi
 	ERR("dbus method return error");
 
 	msg = g_strdup_printf("%s.%s", NETCONFIG_ERROR_INTERFACE, message);
-	g_dbus_method_invocation_return_error(context, netconfig_error_quark(), error,"%s", msg);
+	g_dbus_method_invocation_return_error(context, netconfig_error_quark(), error, "%s", msg);
 
 	g_free(msg);
 }

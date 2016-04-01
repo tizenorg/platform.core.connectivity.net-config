@@ -95,7 +95,7 @@ static void __netconfig_emulator_set_proxy(void)
 	proxy = netconfig_get_env(HTTP_PROXY);
 	DBG("Get system proxy: %s", proxy);
 
-	if (proxy != NULL){
+	if (proxy != NULL) {
 		vconf_set_str(VCONFKEY_NETWORK_PROXY, proxy);
 		free(proxy);
 	}

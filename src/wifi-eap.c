@@ -234,7 +234,7 @@ static gboolean __netconfig_wifi_req_sim_auth(GArray *rand_data,
 	auth_data.auth_type = TAPI_SIM_AUTH_TYPE_GSM;
 	auth_data.rand_length = SIM_RAND_DATA_LEN;
 
-	for (i=0; i<rand_data->len; i++)
+	for (i = 0; i < rand_data->len; i++)
 		auth_data.rand_data[i] = g_array_index(rand_data, guint8, i);
 
 	handle = (TapiHandle *)netconfig_tel_init();
@@ -296,16 +296,15 @@ static netconfig_error_e __netconfig_wifi_req_aka_auth(
 	auth_data.rand_length = AKA_RAND_DATA_LEN;
 	auth_data.autn_length = AKA_AUTN_DATA_LEN;
 
-	for (i=0; i<rand_data->len; i++)
+	for (i = 0; i < rand_data->len; i++)
 		auth_data.rand_data[i] = g_array_index(rand_data, guint8, i);
 
-	for (i=0; i<autn_data->len; i++)
+	for (i = 0; i < autn_data->len; i++)
 		auth_data.autn_data[i] = g_array_index(autn_data, guint8, i);
 
 	handle = (TapiHandle *)netconfig_tel_init();
-	if (handle == NULL) {
+	if (handle == NULL)
 		return NETCONFIG_ERROR_FAILED_REQ_SIM_AUTH;
-	}
 
 	ret = tel_req_sim_authentication(handle, &auth_data,
 			__netconfig_response_aka_authentication, NULL);
@@ -354,7 +353,7 @@ static gboolean __netconfig_wifi_get_sim_authdata(Wifi *wifi,
 	}
 
 	wifi_complete_get_sim_auth(wifi, context, array->data);
-	g_array_free (array, TRUE);
+	g_array_free(array, TRUE);
 	__netconfig_wifi_clean_authentication();
 	return TRUE;
 }
@@ -385,7 +384,7 @@ static gboolean __netconfig_wifi_get_aka_authdata(Wifi *wifi, GDBusMethodInvocat
 								wifi_authdata->resp_length);
 
 		wifi_complete_get_aka_auth(wifi, context, array->data);
-		g_array_free (array, TRUE);
+		g_array_free(array, TRUE);
 
 		__netconfig_wifi_clean_authentication();
 
@@ -423,7 +422,7 @@ static gboolean __netconfig_wifi_get_aka_authdata(Wifi *wifi, GDBusMethodInvocat
 	}
 
 	wifi_complete_get_aka_auth(wifi, context, array->data);
-	g_array_free (array, TRUE);
+	g_array_free(array, TRUE);
 	__netconfig_wifi_clean_authentication();
 
 	return TRUE;
@@ -474,9 +473,8 @@ gboolean handle_req_sim_auth(Wifi *wifi, GDBusMethodInvocation *context, GVarian
 	result = __netconfig_wifi_req_sim_auth(rand_data_garray, context);
 	g_array_free(rand_data_garray, FALSE);
 
-	if (result) {
+	if (result)
 		wifi_complete_req_sim_auth(wifi, context, result);
-	}
 
 	return result;
 }

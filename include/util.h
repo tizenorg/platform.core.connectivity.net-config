@@ -72,6 +72,9 @@ int netconfig_add_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gi
 int netconfig_del_route_ipv4(gchar *ip_addr, gchar *subnet, gchar *interface, gint address_family);
 
 gboolean handle_launch_direct(Wifi *wifi, GDBusMethodInvocation *context);
+gboolean handle_launch_mdns(Network *object, GDBusMethodInvocation *context);
+gboolean handle_ref_mdns(Network *object, GDBusMethodInvocation *context);
+gboolean handle_unref_mdns(Network *object, GDBusMethodInvocation *context);
 
 gboolean netconfig_send_notification_to_net_popup(const char * noti, const char * data);
 int netconfig_send_message_to_net_popup(const char *title,

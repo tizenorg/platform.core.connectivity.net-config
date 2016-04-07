@@ -50,6 +50,7 @@
 #define MAC_ADDRESS_MAX_LEN		18
 
 static gboolean netconfig_device_picker_test = FALSE;
+static int mdnsd_ref_count = 0;
 
 GKeyFile *netconfig_keyfile_load(const char *pathname)
 {
@@ -764,12 +765,75 @@ gboolean handle_launch_direct(Wifi *wifi, GDBusMethodInvocation *context)
 		netconfig_error_wifi_direct_failed(context);
 		return FALSE;
 	}
+
 	wifi_complete_launch_direct(wifi, context);
 	return TRUE;
 #else
 	wifi_complete_launch_direct(wifi, context);
 	return FALSE;
 #endif
+}
+
+int execute_mdnsd_script(char* op) {
+	const char *path = "/usr/bin/mdnsresponder-server.sh";
+	char *const args[] = { "mdnsresponder-server.sh", op, NULL };
+	char *const envs[] = { NULL };
+
+	return netconfig_execute_file(path, args, envs);
+}
+
+gboolean handle_launch_mdns(Network *object, GDBusMethodInvocation *context)
+{
+	DBG("Launch mdnsresponder daemon");
+
+	if (mdnsd_ref_count != 0) {
+		ERR("Invalid access");
+		netconfig_error_invalid_parameter(context);
+		return FALSE;
+	}
+
+	if (execute_mdnsd_script("start") < 0) {
+		ERR("Failed to launch mdnsresponder daemon");
+		netconfig_error_invalid_parameter(context);
+		return FALSE;
+	}
+
+	network_complete_launch_mdns(object, context);
+	return TRUE;
+}
+
+gboolean handle_ref_mdns(Network *object, GDBusMethodInvocation *context)
+{
+	mdnsd_ref_count++;
+
+	DBG("Ref mdnsresponder daemon. ref count: %d", mdnsd_ref_count);
+	network_complete_ref_mdns(object, context);
+	return TRUE;
+}
+
+gboolean handle_unref_mdns(Network *object, GDBusMethodInvocation *context)
+{
+	DBG("Unef mdnsresponder daemon");
+	
+	if (mdnsd_ref_count <= 0) {
+		ERR("Invalid access");
+		netconfig_error_invalid_parameter(context);
+		return FALSE;
+	}
+
+	mdnsd_ref_count--;
+
+	DBG("Unref mdnsresponder daemon. ref count: %d", mdnsd_ref_count);
+	if (mdnsd_ref_count == 0) {
+		if (execute_mdnsd_script("stop") < 0) {
+			ERR("Failed to stop mdnsresponder daemon");
+			netconfig_error_invalid_parameter(context);
+			return FALSE;
+		}
+	}
+
+	network_complete_unref_mdns(object, context);
+	return TRUE;
 }
 
 gboolean netconfig_send_notification_to_net_popup(const char * noti, const char * ssid)

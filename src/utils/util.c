@@ -878,7 +878,7 @@ gboolean netconfig_send_notification_to_net_popup(const char * noti, const char 
 		bundle_add(b, "_AP_NAME_", ssid);
 	}
 
-	ret = syspopup_launch("net.netpopup", b);
+	ret = syspopup_launch(NETPOPUP_NAME, b);
 
 	bundle_free(b);
 
@@ -902,7 +902,7 @@ int netconfig_send_message_to_net_popup(const char *title,
 	bundle_add(b, "_SYSPOPUP_TYPE_", type);
 	bundle_add(b, "_AP_NAME_", ssid);
 
-	ret = syspopup_launch("net.netpopup", b);
+	ret = syspopup_launch(NETPOPUP_NAME, b);
 
 	bundle_free(b);
 

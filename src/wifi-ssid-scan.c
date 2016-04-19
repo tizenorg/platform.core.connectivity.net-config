@@ -120,7 +120,7 @@ static gboolean _request_ssid_scan(const char *object_path, const char *ssid)
 {
 	/* TODO: Revise following code */
 
-#define NETCONFIG_DBUS_REPLY_TIMEOUT (10 * 1000)
+#define NETCONFIG_DBUS_REPLY_TIMEOUT (20 * 1000)
 	GDBusConnection *connection = NULL;
 	GVariant *reply = NULL;
 	GVariant *params = NULL;

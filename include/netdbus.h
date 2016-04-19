@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 #define DBUS_REPLY_TIMEOUT		(120 * 1000)
-#define NETCONFIG_DBUS_REPLY_TIMEOUT	(10 * 1000)
+#define NETCONFIG_DBUS_REPLY_TIMEOUT	(15 * 1000)
 #define DBUS_INTERFACE_PROPERTIES	"org.freedesktop.DBus.Properties"
 
 #define NETCONFIG_SERVICE				"net.netconfig"

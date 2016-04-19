@@ -61,7 +61,7 @@ static void __netconfig_pop_wifi_connected_poppup(const char *ssid)
 	bundle_add(b, "_AP_NAME_", ssid);
 
 	DBG("Launch Wi-Fi connected alert network popup");
-	syspopup_launch("net.netpopup", b);
+	syspopup_launch("net-popup", b);
 
 	bundle_free(b);
 }

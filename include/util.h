@@ -34,6 +34,7 @@ extern "C" {
 #define NETCONFIG_DEL_PORTAL_NOTI		"del_portal_noti"
 #define NETCONFIG_TIZEN_SYSTEM_ENV 		"/run/tizen-system-env"
 
+#define NETPOPUP_NAME		"net-popup"
 #define MAX_SIZE_ERROR_BUFFER 256
 
 #if defined TIZEN_WEARABLE

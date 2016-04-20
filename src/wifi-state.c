@@ -56,7 +56,7 @@ static void __netconfig_pop_wifi_connected_poppup(const char *ssid)
 	b = bundle_create();
 
 	bundle_add(b, "_SYSPOPUP_TITLE_", "Network connection popup");
-	bundle_add(b, "_SYSPOPUP_TYPE_", "notification");
+	bundle_add(b, "_SYSPOPUP_TYPE_", "toast_popup");
 	bundle_add(b, "_SYSPOPUP_CONTENT_", "wifi connected");
 	bundle_add(b, "_AP_NAME_", ssid);
 

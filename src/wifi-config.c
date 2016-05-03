@@ -590,6 +590,10 @@ gboolean handle_get_config_ids(Wifi *wifi, GDBusMethodInvocation *context)
 
 	wifi_complete_get_config_ids(wifi, context, (const gchar * const *)result);
 
+	for (i = 0; i < length; i++)
+		if(result[i])
+			g_free(result[i]);
+
 	if (result)
 		g_free(result);
 

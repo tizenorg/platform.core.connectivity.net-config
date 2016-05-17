@@ -380,7 +380,7 @@ gboolean handle_request_specific_scan(Wifi *wifi,
 	if (result != TRUE)
 		netconfig_error_dbus_method_return(context, NETCONFIG_ERROR_INTERNAL, "FailSpecificScan");
 	else
-		wifi_complete_request_wps_scan(wifi, context);
+		wifi_complete_request_specific_scan(wifi, context);
 
 	return result;
 }

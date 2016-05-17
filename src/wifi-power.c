@@ -39,6 +39,7 @@
 #include "wifi-tel-intf.h"
 #include "netsupplicant.h"
 #include "network-state.h"
+#include "network-dpm.h"
 #include "wifi-firmware.h"
 #include "wifi-background-scan.h"
 
@@ -1086,6 +1087,12 @@ gboolean handle_load_driver(Wifi *wifi,
 	DBG("Wi-Fi power on requested");
 
 	g_return_val_if_fail(wifi != NULL, FALSE);
+
+	if (!netconfig_dpm_update_from_wifi()) {
+		DBG("DPM policy restricts Wi-Fi");
+		netconfig_error_permission_denied(context);
+		return TRUE;
+	}
 
 #if defined TIZEN_WEARABLE
 	err = wifi_power_on_wearable(device_picker_test);

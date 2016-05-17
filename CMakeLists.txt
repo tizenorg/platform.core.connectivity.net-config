@@ -24,6 +24,7 @@ SET(SRCS
 	src/dbus/netdbus.c
 	src/network-clock.c
 	src/network-state.c
+	src/network-dpm.c
 	src/network-monitor.c
 	src/wifi-firmware.c
 	src/wifi-indicator.c

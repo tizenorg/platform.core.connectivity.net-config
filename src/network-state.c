@@ -40,6 +40,7 @@
 #include "wifi-state.h"
 #include "wifi-power.h"
 #include "network-state.h"
+#include "network-dpm.h"
 #include "network-monitor.h"
 #include "netsupplicant.h"
 #include "wifi-tel-intf.h"
@@ -1060,6 +1061,14 @@ void state_object_create_and_init(void)
 				G_CALLBACK(handle_ref_mdns), NULL);
 	g_signal_connect(netconfigstate, "handle-unref-mdns",
 				G_CALLBACK(handle_unref_mdns), NULL);
+	g_signal_connect(netconfigstate, "handle-device-policy-set-wifi",
+				G_CALLBACK(handle_device_policy_set_wifi), NULL);
+	g_signal_connect(netconfigstate, "handle-device-policy-get-wifi",
+				G_CALLBACK(handle_device_policy_get_wifi), NULL);
+	g_signal_connect(netconfigstate, "handle-device-policy-set-wifi-profile",
+				G_CALLBACK(handle_device_policy_set_wifi_profile), NULL);
+	g_signal_connect(netconfigstate, "handle-device-policy-get-wifi-profile",
+				G_CALLBACK(handle_device_policy_get_wifi_profile), NULL);
 
 	if (!g_dbus_interface_skeleton_export(interface_network, connection,
 			NETCONFIG_NETWORK_STATE_PATH, NULL)) {

@@ -31,6 +31,7 @@
 #include "wifi-agent.h"
 #include "wifi-power.h"
 #include "network-clock.h"
+#include "network-dpm.h"
 #include "network-state.h"
 #include "network-monitor.h"
 #include "signal-handler.h"
@@ -121,6 +122,8 @@ int main(int argc, char *argv[])
 	/* If its environment uses Emulator, network configuration is set by emulator default */
 	emulator_test_and_start();
 
+	/* For device policy manager */
+	netconfig_dpm_init();
 
 	/*In case no emulator, set the ETH0 Mac address*/
 #if defined TIZEN_TV
@@ -146,6 +149,8 @@ int main(int argc, char *argv[])
 	log_cleanup();
 
 	deregister_gdbus_signal();
+
+	netconfig_dpm_deinit();
 
 #if !defined TIZEN_TELEPHONY_ENABLE
 	netconfig_clock_deinit();

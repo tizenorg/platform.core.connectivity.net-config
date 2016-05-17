@@ -909,6 +909,24 @@ int netconfig_send_message_to_net_popup(const char *title,
 	return ret;
 }
 
+int netconfig_send_restriction_to_net_popup(const char *title,
+		const char *type, const char *restriction)
+{
+	int ret = 0;
+	bundle *b = bundle_create();
+
+	bundle_add(b, "_SYSPOPUP_TITLE_", title);
+	bundle_add(b, "_SYSPOPUP_CONTENT_", "security restriction");
+	bundle_add(b, "_SYSPOPUP_TYPE_", type);
+	bundle_add(b, "_RESTRICTED_TYPE_", restriction);
+
+	ret = syspopup_launch("net-popup", b);
+
+	bundle_free(b);
+
+	return ret;
+}
+
 void netconfig_set_system_event(const char * sys_evt, const char * evt_key, const char * evt_val)
 {
 	bundle *b = NULL;

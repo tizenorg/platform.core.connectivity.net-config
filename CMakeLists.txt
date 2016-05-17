@@ -23,6 +23,7 @@ SET(SRCS
 	src/utils/util.c
 	src/dbus/netdbus.c
 	src/network-clock.c
+	src/network-dpm.c
 	src/network-state.c
 	src/network-monitor.c
 	src/wifi-firmware.c
@@ -99,6 +100,7 @@ PKG_CHECK_MODULES(pkgs REQUIRED
 	syspopup-caller
 	capi-system-info
 	capi-appfw-application
+	dpm
 	${P2P_REQUIRED_PKGS}
 	${WEARABLE_REQUIRED_PKGS}
 	)

@@ -393,12 +393,14 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 			}
 		}
 	}
+
+	g_variant_iter_free(added);
+
 	if (next)
 		g_variant_iter_free(next);
-	if (added)
-		g_variant_iter_free(added);
 	if (removed)
 		g_variant_iter_free(removed);
+
 	return;
 }
 

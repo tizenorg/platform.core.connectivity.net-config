@@ -162,12 +162,16 @@ static void _service_signal_cb(GDBusConnection *conn,
 			int wifi_state = 0;
 
 			vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
-			if (wifi_state == VCONFKEY_WIFI_OFF)
+			if (wifi_state == VCONFKEY_WIFI_OFF) {
+				g_free(property);
 				goto done;
+			}
 
 			if (g_strcmp0(property, "ready") == 0 || g_strcmp0(property, "online") == 0) {
-				if (wifi_state >= VCONFKEY_WIFI_CONNECTED)
+				if (wifi_state >= VCONFKEY_WIFI_CONNECTED) {
+					g_free(property);
 					goto done;
+				}
 
 				netconfig_update_default_profile(path);
 
@@ -181,11 +185,14 @@ static void _service_signal_cb(GDBusConnection *conn,
 						wifi_state_set_service_state(NETCONFIG_WIFI_FAILURE);
 					else
 						wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
+					g_free(property);
 					goto done;
 				}
 
-				if (g_strcmp0(path, netconfig_get_default_profile()) != 0)
+				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
+					g_free(property);
 					goto done;
+				}
 
 				netconfig_update_default_profile(NULL);
 
@@ -201,11 +208,14 @@ static void _service_signal_cb(GDBusConnection *conn,
 						wifi_state_set_service_state(NETCONFIG_WIFI_ASSOCIATION);
 					else
 						wifi_state_set_service_state(NETCONFIG_WIFI_CONFIGURATION);
+					g_free(property);
 					goto done;
 				}
 
-				if (g_strcmp0(path, netconfig_get_default_profile()) != 0)
+				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
+					g_free(property);
 					goto done;
+				}
 
 				netconfig_update_default_profile(NULL);
 
@@ -230,29 +240,38 @@ static void _service_signal_cb(GDBusConnection *conn,
 					cellular_state_set_service_state(NETCONFIG_CELLULAR_ONLINE);
 
 			} else if (g_strcmp0(property, "failure") == 0 || g_strcmp0(property, "disconnect") == 0 || g_strcmp0(property, "idle") == 0) {
-				if (netconfig_get_default_profile() == NULL)
+				if (netconfig_get_default_profile() == NULL) {
+					g_free(property);
 					goto done;
+				}
 
 				if (netconfig_is_cellular_profile(path) && netconfig_is_cellular_internet_profile(path))
 					cellular_state_set_service_state(NETCONFIG_CELLULAR_IDLE);
 
-				if (g_strcmp0(path, netconfig_get_default_profile()) != 0)
+				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
+					g_free(property);
 					goto done;
+				}
 
 				netconfig_update_default_profile(NULL);
 			} else if (g_strcmp0(property, "association") == 0 || g_strcmp0(property, "configuration") == 0) {
-				if (netconfig_get_default_profile() == NULL)
+				if (netconfig_get_default_profile() == NULL) {
+					g_free(property);
 					goto done;
+				}
 
 				if (netconfig_is_cellular_profile(path) && netconfig_is_cellular_internet_profile(path))
 					cellular_state_set_service_state(NETCONFIG_CELLULAR_CONNECTING);
 
-				if (g_strcmp0(path, netconfig_get_default_profile()) != 0)
+				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
+					g_free(property);
 					goto done;
+				}
 
 				netconfig_update_default_profile(NULL);
 			}
 		}
+		g_free(property);
 	} else if (g_strcmp0(sigvalue, "Proxy") == 0) {
 		if (netconfig_is_wifi_profile(path) != TRUE || g_strcmp0(path, netconfig_get_default_profile()) != 0)
 			goto done;
@@ -292,6 +311,7 @@ static void _service_signal_cb(GDBusConnection *conn,
 	} else if (g_strcmp0(sigvalue, "Error") == 0) {
 		g_variant_get(variant, "s", &property);
 		INFO("[%s] Property : %s", sigvalue, property);
+		g_free(property);
 	}
 done:
 	if (sigvalue)
@@ -368,6 +388,7 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 							g_strcmp0(value,
 								"online") != 0) {
 						g_free(property);
+						g_free(value);
 						g_variant_unref(variant);
 						break;
 					}
@@ -387,6 +408,7 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 						cellular_state_set_service_state(
 							NETCONFIG_CELLULAR_ONLINE);
 					g_free(property);
+					g_free(value);
 					g_variant_unref(variant);
 					break;
 				}
@@ -398,6 +420,7 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 
 	if (next)
 		g_variant_iter_free(next);
+
 	if (removed)
 		g_variant_iter_free(removed);
 

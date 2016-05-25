@@ -105,6 +105,7 @@ int connman_register_agent(void)
 			if (error != NULL) {
 				if (g_strcmp0(error->message,
 						"GDBus.Error:net.connman.Error.AlreadyExists: Already exists") == 0) {
+					g_error_free(error);
 					break;
 				} else {
 					ERR("Fail to register agent [%d: %s]",

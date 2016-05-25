@@ -344,6 +344,7 @@ static void _set_power_save(gboolean power_save)
 	else
 		old_state = power_save;
 
+	g_variant_unref(input_args);
 	return;
 }
 

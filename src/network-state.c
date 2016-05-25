@@ -196,6 +196,8 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					netconfig_default_connection_info.ifname = g_strdup(value);
 				}
 			}
+			if (iter1)
+				g_variant_iter_free(iter1);
 		} else if (g_strcmp0(key, "IPv4") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
@@ -204,6 +206,8 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					netconfig_default_connection_info.ipaddress = g_strdup(value);
 				}
 			}
+			if (iter1)
+				g_variant_iter_free(iter1);
 		} else if (g_strcmp0(key, "IPv6") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
@@ -212,6 +216,8 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					netconfig_default_connection_info.ipaddress6 = g_strdup(value);
 				}
 			}
+			if (iter1)
+				g_variant_iter_free(iter1);
 		} else if (g_strcmp0(key, "Proxy") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
 			while (g_variant_iter_loop(iter1, "{sv}", &key2, &variant2)) {

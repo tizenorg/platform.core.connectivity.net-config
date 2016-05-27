@@ -125,10 +125,8 @@ static void __netconfig_update_internet_status(unsigned char *reply)
 					} else
 						is_internet_available = TRUE;
 
-					g_free(redirect_url1);
-					g_free(redirect_url2);
-					redirect_url1 = NULL;
-					redirect_url2 = NULL;
+					GFREE(redirect_url1);
+					GFREE(redirect_url2);
 				}
 			}
 		} else {
@@ -406,12 +404,10 @@ static void __netconfig_obtain_host_ip_addr_cb(GObject *src,
 		if (!str_addr)
 			continue;
 
-		if (net_params != NULL) {
-			g_free(net_params->addr);
-			net_params->addr = str_addr;
-		}
+		GFREE(net_params->addr);
+		net_params->addr = str_addr;
 
-		g_object_unref(cur->data);
+		GOBJECT_UNREF(cur->data);
 		break;
 	}
 
@@ -465,7 +461,7 @@ gboolean __netconfig_obtain_host_ip_addr(void)
 				NULL);
 		__internet_check_state(INTERNET_CHECK_STATE_DNS_CHECK);
 
-		g_object_unref(r);
+		GOBJECT_UNREF(r);
 		return FALSE;
 	} else {
 		host = g_strdup(proxy_addr);
@@ -488,15 +484,15 @@ gboolean __netconfig_obtain_host_ip_addr(void)
 				net_params->port = tmp;
 			}
 		}
-		g_free(net_params->addr);
+		GFREE(net_params->addr);
 		net_params->addr = g_strdup(addr);
 
-		g_free(host);
+		GFREE(host);
 	}
 	return TRUE;
 
 cleanup:
-	g_free(host);
+	GFREE(host);
 	netconfig_stop_internet_check();
 
 	return FALSE;
@@ -554,23 +550,10 @@ void netconfig_stop_internet_check(void)
 		net_params->fd = -1;
 	}
 
-	if (net_params->addr != NULL) {
-		g_free(net_params->addr);
-		net_params->addr = NULL;
-	}
-
-	g_free(net_params);
-	net_params = NULL;
-
-	if (redirect_url1) {
-		g_free(redirect_url1);
-		redirect_url1 = NULL;
-	}
-
-	if (redirect_url2) {
-		g_free(redirect_url2);
-		redirect_url2 = NULL;
-	}
+	GFREE(net_params->addr);
+	GFREE(net_params);
+	GFREE(redirect_url1);
+	GFREE(redirect_url2);
 }
 
 void netconfig_internet_accessibility_init(void)
@@ -580,5 +563,5 @@ void netconfig_internet_accessibility_init(void)
 
 void netconfig_internet_accessibility_deinit(void)
 {
-	g_object_unref(cancellable);
+	GOBJECT_UNREF(cancellable);
 }

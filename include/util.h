@@ -45,6 +45,30 @@ typedef enum {
 }netconfig_wcpopup_type_e;
 #endif
 
+#define GFREE(var)\
+	if (var) {\
+		g_free(var);\
+		var = NULL;\
+	}
+
+#define GVARIANT_ITER_FREE(var)\
+	if (var) {\
+		g_variant_iter_free(var);\
+		var = NULL;\
+	}
+
+#define GVARIANT_UNREF(var)\
+	if (var) {\
+		g_variant_unref(var);\
+		var = NULL;\
+	}
+
+#define GOBJECT_UNREF(var)\
+	if (var) {\
+		g_object_unref(var);\
+		var = NULL;\
+	}
+
 GKeyFile *netconfig_keyfile_load(const char *pathname);
 void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname);
 

@@ -178,7 +178,7 @@ static void __netconfig_wifi_wps_get_bss_info_result(
 						bss_info->mode = 2;
 					else
 						bss_info->mode = 0;
-					g_free(mode);
+					GFREE(mode);
 				}
 			} else if (g_strcmp0(key, "Signal") == 0) {
 				gint16 signal;
@@ -189,15 +189,14 @@ static void __netconfig_wifi_wps_get_bss_info_result(
 		}
 	}
 
-	if (bss_info->ssid[0] == '\0')
-		g_free(bss_info);
-	else
+	if (bss_info->ssid[0] == '\0') {
+		GFREE(bss_info);
+	} else
 		wps_bss_info_list = g_slist_append(wps_bss_info_list, bss_info);
 
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 done:
-	if (reply)
-		g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 
 	netconfig_gdbus_pending_call_unref();
 
@@ -255,20 +254,15 @@ static void __netconfig_wifi_wps_get_bsss_result(GObject *source_object,
 				counter_flag = TRUE;
 			}
 
-			if (path)
-				g_free(path);
+			GFREE(path);
 		}
 	}
 
-	if (iter)
-		g_variant_iter_free(iter);
-
-	if (value)
-		g_variant_unref(value);
+	GVARIANT_ITER_FREE(iter);
+	GVARIANT_UNREF(value);
 
 done:
-	if (reply)
-		g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 
 	netconfig_gdbus_pending_call_unref();
 
@@ -370,7 +364,7 @@ static int __netconfig_wifi_wps_request_scan(const char *if_path)
 
 	netconfig_is_device_scanning = TRUE;
 
-	g_variant_unref(message);
+	GVARIANT_UNREF(message);
 	/* Clear bss_info_list for the next scan result */
 	if (wps_bss_info_list) {
 		g_slist_free_full(wps_bss_info_list, g_free);
@@ -398,7 +392,7 @@ static void __netconfig_wifi_interface_create_result(
 
 		if (path) {
 			__netconfig_wifi_wps_request_scan(path);
-			g_free(path);
+			GFREE(path);
 		}
 	}
 	else if (NULL != strstr(error->message, ".InterfaceExists")) {
@@ -406,7 +400,7 @@ static void __netconfig_wifi_interface_create_result(
 		g_variant_get(message, "(o)", &path);
 		if (path) {
 			__netconfig_wifi_wps_request_scan(path);
-			g_free(path);
+			GFREE(path);
 		}
 		else
 			__netconfig_wifi_wps_request_scan(NULL);
@@ -416,7 +410,7 @@ static void __netconfig_wifi_interface_create_result(
 		wifi_power_driver_and_supplicant(FALSE);
 	}
 
-	g_variant_unref(message);
+	GVARIANT_UNREF(message);
 }
 
 static int  __netconfig_wifi_wps_create_interface(void)
@@ -450,7 +444,7 @@ static int  __netconfig_wifi_wps_create_interface(void)
 			(GAsyncReadyCallback) __netconfig_wifi_interface_create_result,
 			NULL);
 
-	g_variant_unref(message);
+	GVARIANT_UNREF(message);
 
 	return 0;
 }
@@ -562,7 +556,7 @@ static void __interface_wps_cancel_result(GObject *source_object,
 		DBG("Successfully M/W--->WPAS: Interface.WPS.Cancel Method");
 	}
 
-	g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 	netconfig_gdbus_pending_call_unref();
 }
 

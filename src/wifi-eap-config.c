@@ -105,8 +105,8 @@ out:
 	if (file != NULL)
 		fclose(file);
 
-	g_free(data);
-	g_free(config_file);
+	GFREE(data);
+	GFREE(config_file);
 
 	return err;
 }
@@ -142,28 +142,28 @@ static int __config_delete(const char *ssid)
 	DBG("Temporal %s", cert_path);
 	if (cert_path != NULL && remove(cert_path) != 0)
 		ERR("Failed to remove %s", cert_path);
-	g_free(cert_path);
+	GFREE(cert_path);
 
 	cert_path = g_key_file_get_string(keyfile, group_name,
 			CONNMAN_CONFIG_FIELD_CLIENT_CERT_FILE, NULL);
 	DBG("Temporal %s", cert_path);
 	if (cert_path != NULL && remove(cert_path) != 0)
 		ERR("Failed to remove %s", cert_path);
-	g_free(cert_path);
+	GFREE(cert_path);
 
 	cert_path = g_key_file_get_string(keyfile, group_name,
 			CONNMAN_CONFIG_FIELD_PVT_KEY_FILE, NULL);
 	DBG("Temporal %s", cert_path);
 	if (cert_path != NULL && remove(cert_path) != 0)
 		ERR("Failed to remove %s", cert_path);
-	g_free(cert_path);
+	GFREE(cert_path);
 
 	cert_path = g_key_file_get_string(keyfile, group_name,
 			CONNMAN_CONFIG_FIELD_PVT_KEY_PASSPHRASE, NULL);
 	DBG("Temporal %s", cert_path);
 	if (cert_path != NULL && remove(cert_path) != 0)
 		ERR("Failed to remove %s", cert_path);
-	g_free(cert_path);
+	GFREE(cert_path);
 
 	dirname = g_strdup_printf("%s/%s", WIFI_CERT_STORAGEDIR, ssid);
 	if (dirname != NULL) {
@@ -171,7 +171,7 @@ static int __config_delete(const char *ssid)
 			if (g_file_test(dirname, G_FILE_TEST_IS_DIR) == TRUE)
 				rmdir(dirname);
 
-		g_free(dirname);
+		GFREE(dirname);
 	}
 
 	if (remove(config_file) != 0) {
@@ -181,8 +181,8 @@ static int __config_delete(const char *ssid)
 
 out:
 	g_key_file_free(keyfile);
-	g_free(config_file);
-	g_free(group_name);
+	GFREE(config_file);
+	GFREE(group_name);
 
 	return err;
 }
@@ -209,7 +209,7 @@ static gboolean __netconfig_copy_config(const char *src, const char *dst)
 	}
 
 	INFO("Successfully installed[%d]", length);
-	g_free(buf);
+	GFREE(buf);
 
 	if (remove(src) != 0)
 		WARN("Failed to remove %s", src);
@@ -236,14 +236,14 @@ static gboolean __netconfig_create_config(GVariant *fields)
 			if (g_strcmp0(field, CONNMAN_CONFIG_FIELD_NAME) == 0) {
 				encoded_ssid = __get_encoded_ssid(value);
 
-				g_free(value);
-				g_free(field);
+				GFREE(value);
+				GFREE(field);
 				break;
 			} else if (g_strcmp0(field, CONNMAN_CONFIG_FIELD_SSID) == 0) {
 				encoded_ssid = g_strdup(value);
 
-				g_free(field);
-				g_free(value);
+				GFREE(field);
+				GFREE(value);
 				break;
 			}
 		}
@@ -267,7 +267,7 @@ static gboolean __netconfig_create_config(GVariant *fields)
 		goto out;
 	}
 
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	g_variant_get(fields, "a{ss}", &iter);
 	while (g_variant_iter_loop(iter, "{ss}", &field, &value)) {
@@ -303,12 +303,12 @@ static gboolean __netconfig_create_config(GVariant *fields)
 					if (mkdir(dirname, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP |
 							S_IXGRP | S_IROTH | S_IXOTH) < 0) {
 						if (errno != EEXIST) {
-							g_free(dirname);
+							GFREE(dirname);
 							goto out;
 						}
 					}
 				}
-				g_free(dirname);
+				GFREE(dirname);
 
 				cert_path = g_strdup_printf("%s/%s/%s",
 						WIFI_CERT_STORAGEDIR, encoded_ssid, cert_file);
@@ -318,12 +318,12 @@ static gboolean __netconfig_create_config(GVariant *fields)
 				}
 				if (__netconfig_copy_config(value, cert_path) != TRUE) {
 					ERR("Failed to read cert file %s", value);
-					g_free(cert_path);
+					GFREE(cert_path);
 					goto out;
 				}
 
 				g_key_file_set_string(keyfile, group_name, field, cert_path);
-				g_free(cert_path);
+				GFREE(cert_path);
 			}
 		} else {
 			DBG("field: %s, value: %s", field, value);
@@ -345,10 +345,9 @@ out:
 	if (keyfile)
 		g_key_file_free(keyfile);
 
-	g_variant_iter_free(iter);
-
-	g_free(group_name);
-	g_free(encoded_ssid);
+	GVARIANT_ITER_FREE(iter);
+	GFREE(group_name);
+	GFREE(encoded_ssid);
 
 	return updated;
 }
@@ -369,8 +368,7 @@ static gboolean _delete_configuration(const gchar *profile)
 	if (ret != TRUE)
 		ERR("Fail to wifi_config_remove_configuration [%s]", config_id);
 
-	if (config_id != NULL)
-		g_free(config_id);
+	GFREE(config_id);
 
 	return ret;
 }
@@ -419,13 +417,13 @@ static gboolean __netconfig_delete_config(const char *profile)
 	err = __config_delete((const char *)ssid);
 	if (err < 0) {
 		ERR("Failed to delete configuration %s[%d]", ssid, err);
-		g_free(ssid);
+		GFREE(ssid);
 		return FALSE;
 	}
 
 	DBG("Successfully deleted %s with length %d", ssid, ssid_len);
 
-	g_free(ssid);
+	GFREE(ssid);
 	return TRUE;
 }
 
@@ -453,8 +451,7 @@ static void __netconfig_eap_state(
 	if (state == NETCONFIG_WIFI_FAILURE)
 		__netconfig_delete_config(wifi_profile);
 
-	g_free(netconfig_eap_notifier.user_data);
-	netconfig_eap_notifier.user_data = NULL;
+	GFREE(netconfig_eap_notifier.user_data);
 
 	wifi_state_notifier_unregister(&netconfig_eap_notifier);
 }
@@ -502,7 +499,7 @@ gboolean handle_create_eap_config(Wifi *wifi, GDBusMethodInvocation *context,
 			netconfig_wifi_set_agent_field_for_eap_network(
 									name, identity, passphrase);
 
-			g_variant_iter_free(iter);
+			GVARIANT_ITER_FREE(iter);
 		}
 
 		result = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,

@@ -85,7 +85,7 @@ int netconfig_dump_log(const char *path)
 
 	dump_path = g_strdup(path);
 	_start_dump(dump_path);
-	g_free(dump_path);
+	GFREE(dump_path);
 
 	_send_dump_signal(DUMP_FINISH_SIGNAL);
 	ERR("Dump is finished");

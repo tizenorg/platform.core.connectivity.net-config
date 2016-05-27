@@ -58,10 +58,10 @@ static struct netconfig_wifi_agent agent;
 static void __netconfig_agent_clear_fields(void)
 {
 	g_byte_array_free(agent.ssid, TRUE);
-	g_free(agent.name);
-	g_free(agent.identity);
-	g_free(agent.passphrase);
-	g_free(agent.wps_pin);
+	GFREE(agent.name);
+	GFREE(agent.identity);
+	GFREE(agent.passphrase);
+	GFREE(agent.wps_pin);
 
 	agent.ssid = NULL;
 	agent.name = NULL;
@@ -116,7 +116,7 @@ int connman_register_agent(void)
 			} else
 				ERR("Fail to register agent");
 		} else
-			g_variant_unref(reply);
+			GVARIANT_UNREF(reply);
 
 		sleep(1);
 	} while (TRUE);
@@ -246,7 +246,7 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 				g_variant_get(value, "ay", &iter1);
 				while (g_variant_iter_loop(iter1, "y", &char_value))
 					g_byte_array_append(array, &char_value, 1);
-				g_variant_iter_free(iter1);
+				GVARIANT_ITER_FREE(iter1);
 				if (array != NULL && (array->len > 0)) {
 					agent.ssid = g_byte_array_sized_new(array->len);
 					agent.ssid->len = array->len;
@@ -294,7 +294,7 @@ gboolean handle_set_field(NetConnmanAgent *connman_agent,
 
 		__netconfig_agent_clear_fields();
 	}
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	net_connman_agent_complete_set_field(connman_agent, context);
 	return reply;
@@ -378,7 +378,7 @@ gboolean handle_request_input(NetConnmanAgent *connman_agent,
 	if (builder)
 		g_variant_builder_unref(builder);
 
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 
 	if (NULL == out_table) {
@@ -400,7 +400,7 @@ gboolean handle_request_input(NetConnmanAgent *connman_agent,
 	}
 
 	__netconfig_agent_clear_fields();
-	g_variant_unref(out_table);
+	GVARIANT_UNREF(out_table);
 
 	return updated;
 }
@@ -544,7 +544,7 @@ static gboolean __netconfig_wifi_portal_login_timeout(gpointer data)
 						NULL);
 
 				if (reply != NULL)
-					g_variant_unref(reply);
+					GVARIANT_UNREF(reply);
 				else
 					ERR("Failed to forget the AP ");
 			}

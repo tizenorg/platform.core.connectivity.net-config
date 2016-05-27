@@ -65,7 +65,7 @@ static void _set_wifi_mac_address(void)
 	if (mac_addr != NULL) {
 		if (strlen(mac_addr) == 0)
 			netconfig_set_mac_address_from_file();
-		g_free(mac_addr);
+		GFREE(mac_addr);
 	}
 }
 
@@ -244,9 +244,9 @@ void wifi_object_create_and_init(void)
 
 void wifi_object_deinit(void)
 {
-	g_object_unref(wifi_object);
-	g_object_unref(connman_agent_object);
-	g_object_unref(wififirmware_object);
+	GOBJECT_UNREF(wifi_object);
+	GOBJECT_UNREF(connman_agent_object);
+	GOBJECT_UNREF(wififirmware_object);
 
 	wifi_power_deinitialize();
 }

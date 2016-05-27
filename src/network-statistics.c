@@ -430,5 +430,5 @@ void statistics_object_create_and_init(void)
 
 void statistics_object_deinit(void)
 {
-	g_object_unref(netconfigstatistics);
+	GOBJECT_UNREF(netconfigstatistics);
 }

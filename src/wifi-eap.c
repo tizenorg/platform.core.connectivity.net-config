@@ -55,17 +55,11 @@ static void *__netconfig_wifi_free_wifi_authdata(
 		struct wifii_authentication_data *data)
 {
 	if (data != NULL) {
-		if (data->resp_data)
-			g_free(data->resp_data);
-		if (data->authentication_key)
-			g_free(data->authentication_key);
-		if (data->cipher_data)
-			g_free(data->cipher_data);
-		if (data->integrity_data)
-			g_free(data->integrity_data);
-
-		g_free(data);
-		data = NULL;
+		GFREE(data->resp_data);
+		GFREE(data->authentication_key);
+		GFREE(data->cipher_data);
+		GFREE(data->integrity_data);
+		GFREE(data);
 	}
 
 	return NULL;
@@ -106,7 +100,7 @@ static gboolean __netconfig_wifi_get_sim_imsi(Wifi *wifi,
 			imsi_info.szMnc, imsi_info.szMsin);
 
 	wifi_complete_get_sim_imsi(wifi, context, imsi);
-	g_free(imsi);
+	GFREE(imsi);
 
 	return TRUE;
 }
@@ -134,14 +128,10 @@ void __netconfig_response_sim_authentication(TapiHandle *handle,
 		wifi_authdata->authentication_key_length =
 					auth_resp->authentication_key_length;
 
-		if (wifi_authdata->resp_data != NULL)
-			g_free(wifi_authdata->resp_data);
-
+		GFREE(wifi_authdata->resp_data);
 		wifi_authdata->resp_data = g_strdup(auth_resp->resp_data);
 
-		if (wifi_authdata->authentication_key != NULL)
-			g_free(wifi_authdata->authentication_key);
-
+		GFREE(wifi_authdata->authentication_key);
 		wifi_authdata->authentication_key =
 							g_strdup(auth_resp->authentication_key);
 	} else {
@@ -175,19 +165,13 @@ void __netconfig_response_aka_authentication(TapiHandle *handle,
 		wifi_authdata->cipher_length = auth_resp->cipher_length;
 		wifi_authdata->integrity_length = auth_resp->integrity_length;
 
-		if (wifi_authdata->resp_data != NULL)
-			g_free(wifi_authdata->resp_data);
-
+		GFREE(wifi_authdata->resp_data);
 		wifi_authdata->resp_data = g_strdup(auth_resp->resp_data);
 
-		if (wifi_authdata->cipher_data != NULL)
-			g_free(wifi_authdata->cipher_data);
-
+		GFREE(wifi_authdata->cipher_data);
 		wifi_authdata->cipher_data = g_strdup(auth_resp->cipher_data);
 
-		if (wifi_authdata->integrity_data != NULL)
-			g_free(wifi_authdata->integrity_data);
-
+		GFREE(wifi_authdata->integrity_data);
 		wifi_authdata->integrity_data = g_strdup(auth_resp->integrity_data);
 	} else {
 		ERR("the result error for aka auth : [%d]", auth_resp->auth_result);
@@ -196,9 +180,7 @@ void __netconfig_response_aka_authentication(TapiHandle *handle,
 					auth_resp->auth_result == TAPI_SIM_AUTH_SYNCH_FAILURE) {
 			wifi_authdata->resp_length = auth_resp->resp_length;
 
-			if (wifi_authdata->resp_data != NULL)
-				g_free(wifi_authdata->resp_data);
-
+			GFREE(wifi_authdata->resp_data);
 			wifi_authdata->resp_data = g_strdup(auth_resp->resp_data);
 		}
 	}
@@ -463,11 +445,11 @@ gboolean handle_req_sim_auth(Wifi *wifi, GDBusMethodInvocation *context, GVarian
 		*(out_auth_data + i) = byte;
 		i++;
 	}
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	rand_data_garray = g_array_sized_new(FALSE, FALSE, sizeof(guchar), length);
 	memcpy(rand_data_garray->data, out_auth_data, length);
-	g_free(out_auth_data);
+	GFREE(out_auth_data);
 	rand_data_garray->len = length;
 
 	result = __netconfig_wifi_req_sim_auth(rand_data_garray, context);
@@ -502,11 +484,11 @@ gboolean handle_req_aka_auth(Wifi *wifi, GDBusMethodInvocation *context, GVarian
 		*(out_auth_data + i) = byte;
 		i++;
 	}
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	rand_data_garray = g_array_sized_new(FALSE, FALSE, sizeof(guchar), length);
 	memcpy(rand_data_garray->data, out_auth_data, length);
-	g_free(out_auth_data);
+	GFREE(out_auth_data);
 	rand_data_garray->len = length;
 
 	i = 0;
@@ -517,11 +499,11 @@ gboolean handle_req_aka_auth(Wifi *wifi, GDBusMethodInvocation *context, GVarian
 		*(out_auth_data + i) = byte;
 		i++;
 	}
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	autn_data_garray = g_array_sized_new(FALSE, FALSE, sizeof(guchar), length);
 	memcpy(autn_data_garray->data, out_auth_data, length);
-	g_free(out_auth_data);
+	GFREE(out_auth_data);
 	autn_data_garray->len = length;
 
 	ret = __netconfig_wifi_req_aka_auth(rand_data_garray, autn_data_garray, context);

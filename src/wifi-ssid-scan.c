@@ -107,11 +107,11 @@ static void _parse_keymgmt_message(GVariant *param, bss_info_t *bss_info)
 					break;
 				__check_security(str, bss_info);
 			}
-			g_variant_iter_free(iter2);
+			GVARIANT_ITER_FREE(iter2);
 		}
 	}
 
-	g_variant_iter_free(iter1);
+	GVARIANT_ITER_FREE(iter1);
 
 	return;
 }
@@ -180,12 +180,10 @@ static gboolean _request_ssid_scan(const char *object_path, const char *ssid)
 		return FALSE;
 	}
 
-	if (g_ssid != NULL)
-		g_free(g_ssid);
-
+	GFREE(g_ssid);
 	g_ssid = g_strdup(ssid);
 
-	g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 
 	return TRUE;
 }
@@ -223,10 +221,7 @@ static void _emit_ssid_scan_completed(void)
 		bss_info_list = NULL;
 	}
 
-	if (g_ssid != NULL) {
-		g_free(g_ssid);
-		g_ssid = NULL;
-	}
+	GFREE(g_ssid);
 
 	INFO("SpecificScanCompleted");
 
@@ -241,8 +236,7 @@ gboolean wifi_ssid_scan(const char *ssid)
 	netconfig_wifi_bgscan_stop();
 
 	if (ssid != NULL) {
-		if (scan_ssid != NULL)
-			g_free(scan_ssid);
+		GFREE(scan_ssid);
 		scan_ssid = g_strdup(ssid);
 	}
 
@@ -257,7 +251,7 @@ gboolean wifi_ssid_scan(const char *ssid)
 
 	if (netconfig_wifi_get_scanning() == TRUE) {
 		DBG("Wi-Fi scan in progress, %s scan will be delayed", scan_ssid);
-		g_free(scan_ssid);
+		GFREE(scan_ssid);
 		return TRUE;
 	}
 
@@ -269,16 +263,13 @@ gboolean wifi_ssid_scan(const char *ssid)
 	INFO("Start Wi-Fi scan with %s(%d)", scan_ssid, strlen(scan_ssid));
 	if (_request_ssid_scan(if_path, (const char *)scan_ssid) == TRUE) {
 		_start_ssid_scan_timer();
-		g_free(scan_ssid);
-		scan_ssid = NULL;
+		GFREE(scan_ssid);
 		return TRUE;
 	}
 
 error:
-	if (scan_ssid != NULL) {
-		g_free(scan_ssid);
-		scan_ssid = NULL;
-	}
+
+	GFREE(scan_ssid);
 
 	netconfig_wifi_bgscan_start(FALSE);
 
@@ -348,12 +339,11 @@ void wifi_ssid_scan_add_bss(GVariant *message)
 		}
 	}
 
-	g_variant_iter_free(iter);
-	if (path)
-		g_free(path);
+	GVARIANT_ITER_FREE(iter);
+	GFREE(path);
 
 	if (bss_info->ssid[0] == '\0') {
-		g_free(bss_info);
+		GFREE(bss_info);
 		return;
 	}
 

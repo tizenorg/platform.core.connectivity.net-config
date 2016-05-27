@@ -76,24 +76,24 @@ static void __free_wifi_configuration(struct wifi_config *conf)
 	if (conf == NULL)
 		return;
 
-	g_free(conf->name);
-	g_free(conf->ssid);
-	g_free(conf->passphrase);
-	g_free(conf->security_type);
-	g_free(conf->is_hidden);
-	g_free(conf->proxy_address);
+	GFREE(conf->name);
+	GFREE(conf->ssid);
+	GFREE(conf->passphrase);
+	GFREE(conf->security_type);
+	GFREE(conf->is_hidden);
+	GFREE(conf->proxy_address);
 	if (conf->eap_config) {
-		g_free(conf->eap_config->anonymous_identity);
-		g_free(conf->eap_config->ca_cert);
-		g_free(conf->eap_config->client_cert);
-		g_free(conf->eap_config->private_key);
-		g_free(conf->eap_config->identity);
-		g_free(conf->eap_config->eap_type);
-		g_free(conf->eap_config->eap_auth_type);
-		g_free(conf->eap_config->subject_match);
-		g_free(conf->eap_config);
+		GFREE(conf->eap_config->anonymous_identity);
+		GFREE(conf->eap_config->ca_cert);
+		GFREE(conf->eap_config->client_cert);
+		GFREE(conf->eap_config->private_key);
+		GFREE(conf->eap_config->identity);
+		GFREE(conf->eap_config->eap_type);
+		GFREE(conf->eap_config->eap_auth_type);
+		GFREE(conf->eap_config->subject_match);
+		GFREE(conf->eap_config);
 	}
-	g_free(conf);
+	GFREE(conf);
 }
 
 static gboolean __get_mac_address(gchar **mac_address)
@@ -138,7 +138,7 @@ static gboolean __get_mac_address(gchar **mac_address)
 	}
 #endif
 	tmp = g_ascii_strdown(tmp_mac, (gssize)strlen(tmp_mac));
-	g_free(tmp_mac);
+	GFREE(tmp_mac);
 	while (tmp[i]) {
 		if (tmp[i] != ':')
 			mac[j++] = tmp[i];
@@ -164,14 +164,14 @@ static gboolean __get_group_name(const gchar *prefix, const gchar *config_id, gc
 
 	g_name = g_strdup_printf("%s%s_%s", prefix, mac_address, config_id);
 	if (g_name == NULL) {
-		g_free(mac_address);
+		GFREE(mac_address);
 		return FALSE;
 	}
 
 	*group_name = g_strdup(g_name);
 
-	g_free(mac_address);
-	g_free(g_name);
+	GFREE(mac_address);
+	GFREE(g_name);
 
 	return TRUE;
 }
@@ -216,7 +216,7 @@ static GKeyFile *__get_configuration_keyfile(const gchar *group_name)
 	keyfile = netconfig_keyfile_load(path);
 	if (keyfile == NULL) {
 		ERR("keyfile[%s] is NULL", path);
-		g_free(path);
+		GFREE(path);
 	}
 
 	return keyfile;
@@ -235,7 +235,7 @@ static gboolean __remove_file(const gchar *pathname, const gchar *filename)
 		ret = TRUE;
 	}
 
-	g_free(path);
+	GFREE(path);
 	return ret;
 }
 
@@ -277,7 +277,7 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 	keyfile = __get_configuration_keyfile(group_name);
 	if (keyfile == NULL) {
 		ERR("Fail to __get_configuration_keyfile[%s]", group_name);
-		g_free(group_name);
+		GFREE(group_name);
 		return FALSE;
 	}
 
@@ -286,7 +286,7 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 	if (ret != TRUE) {
 		ERR("Fail to _get_security_type");
 		g_key_file_free(keyfile);
-		g_free(group_name);
+		GFREE(group_name);
 		return FALSE;
 	}
 	config->proxy_address = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_PROXY_SERVER, NULL);
@@ -310,7 +310,7 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 	config->last_error = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_FAILURE, NULL);
 
 	g_key_file_free(keyfile);
-	g_free(group_name);
+	GFREE(group_name);
 
 	return TRUE;
 }
@@ -332,24 +332,24 @@ static gboolean _save_configuration(const gchar *config_id, GKeyFile *keyfile)
 	if (g_file_test(dir, G_FILE_TEST_IS_DIR) == TRUE) {
 		if (__remove_configuration(dir) != TRUE) {
 			ERR("[%s] is existed, but cannot remove", dir);
-			g_free(group_name);
-			g_free(dir);
+			GFREE(group_name);
+			GFREE(dir);
 			return FALSE;
 		}
 	}
 
 	if (mkdir(dir, (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) < 0) {
 		ERR("Cannot mkdir %s", dir);
-		g_free(group_name);
-		g_free(dir);
+		GFREE(group_name);
+		GFREE(dir);
 		return FALSE;
 	}
 
 	path = g_strdup_printf(CONNMAN_STORAGE "/%s/settings", group_name);
 	netconfig_keyfile_save(keyfile, path);
-	g_free(group_name);
-	g_free(dir);
-	g_free(path);
+	GFREE(group_name);
+	GFREE(dir);
+	GFREE(path);
 
 	return TRUE;
 }
@@ -379,8 +379,8 @@ static gboolean _remove_configuration(const gchar *config_id)
 		ret = FALSE;
 	}
 
-	g_free(group_name);
-	g_free(dir);
+	GFREE(group_name);
+	GFREE(dir);
 
 	return ret;
 }
@@ -438,7 +438,7 @@ static gboolean _set_field(const gchar *config_id, const gchar *key, const gchar
 	_save_configuration(config_id, keyfile);
 
 	g_key_file_free(keyfile);
-	g_free(group_name);
+	GFREE(group_name);
 
 	return ret;
 }
@@ -500,10 +500,10 @@ static gboolean _get_field(const gchar *config_id, const gchar *key, gchar **val
 	}
 
 	*value = g_strdup(val);
-	g_free(val);
+	GFREE(val);
 
 	g_key_file_free(keyfile);
-	g_free(group_name);
+	GFREE(group_name);
 
 	return TRUE;
 }
@@ -528,7 +528,7 @@ static GSList *_get_list(void)
 		}
 		gchar *config_id = g_strdup(dp->d_name + WIFI_PREFIX_LENGTH);
 		list = g_slist_append(list, g_strdup(config_id));
-		g_free(config_id);
+		GFREE(config_id);
 	}
 	closedir(dir);
 
@@ -547,7 +547,7 @@ gboolean wifi_config_get_config_id(const gchar *service_profile, gchar **config_
 
 	ret = __get_config_id(service_profile, &val);
 	*config_id = g_strdup(val);
-	g_free(val);
+	GFREE(val);
 
 	return ret;
 }
@@ -591,11 +591,8 @@ gboolean handle_get_config_ids(Wifi *wifi, GDBusMethodInvocation *context)
 	wifi_complete_get_config_ids(wifi, context, (const gchar * const *)result);
 
 	for (i = 0; i < length; i++)
-		if(result[i])
-			g_free(result[i]);
-
-	if (result)
-		g_free(result);
+		GFREE(result[i]);
+	GFREE(result);
 
 	return TRUE;
 }
@@ -613,7 +610,7 @@ gboolean handle_load_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 
 	ret = _load_configuration(config_id, conf);
 	if (ret != TRUE) {
-		g_free(conf);
+		GFREE(conf);
 		ERR("Fail to _load_configuration");
 		netconfig_error_no_profile(context);
 		return FALSE;
@@ -625,21 +622,21 @@ gboolean handle_load_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 	g_variant_builder_add(b, "{sv}", WIFI_CONFIG_HIDDEN, g_variant_new_string(conf->is_hidden));
 	if (conf->proxy_address != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string(conf->proxy_address));
-		g_free(conf->proxy_address);
+		GFREE(conf->proxy_address);
 	} else {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string("NONE"));
 	}
 	if (conf->last_error != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string(conf->last_error));
-		g_free(conf->last_error);
+		GFREE(conf->last_error);
 	} else {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string("ERROR_NONE"));
 	}
 
-	g_free(conf->name);
-	g_free(conf->security_type);
-	g_free(conf->is_hidden);
-	g_free(conf);
+	GFREE(conf->name);
+	GFREE(conf->security_type);
+	GFREE(conf->is_hidden);
+	GFREE(conf);
 
 	wifi_complete_load_configuration(wifi, context, g_variant_builder_end(b));
 	g_variant_builder_unref(b);
@@ -749,14 +746,14 @@ gboolean handle_save_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 	}
 
 	g_key_file_free(keyfile);
-	g_free(conf->name);
-	g_free(conf->ssid);
-	g_free(conf->passphrase);
-	g_free(conf->is_hidden);
-	g_free(conf->proxy_address);
-	g_free(conf);
+	GFREE(conf->name);
+	GFREE(conf->ssid);
+	GFREE(conf->passphrase);
+	GFREE(conf->is_hidden);
+	GFREE(conf->proxy_address);
+	GFREE(conf);
 
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	return ret;
 }
@@ -775,8 +772,8 @@ gboolean handle_load_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 
 	ret = _load_configuration(config_id, conf);
 	if (ret != TRUE) {
-		g_free(conf->eap_config);
-		g_free(conf);
+		GFREE(conf->eap_config);
+		GFREE(conf);
 		ERR("Fail to _load_configuration");
 		netconfig_error_no_profile(context);
 		return FALSE;
@@ -788,13 +785,13 @@ gboolean handle_load_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 	g_variant_builder_add(b, "{sv}", WIFI_CONFIG_HIDDEN, g_variant_new_string(conf->is_hidden));
 	if (conf->proxy_address != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string(conf->proxy_address));
-		g_free(conf->proxy_address);
+		GFREE(conf->proxy_address);
 	} else
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string("NONE"));
 
 	if (conf->last_error != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string(conf->last_error));
-		g_free(conf->last_error);
+		GFREE(conf->last_error);
 	} else
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string("ERROR_NONE"));
 
@@ -1010,7 +1007,7 @@ gboolean handle_save_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 	g_key_file_free(keyfile);
 	__free_wifi_configuration(conf);
 
-	g_variant_iter_free(iter);
+	GVARIANT_ITER_FREE(iter);
 
 	return ret;
 }
@@ -1107,8 +1104,7 @@ gboolean handle_set_config_field(Wifi *wifi, GDBusMethodInvocation *context,
 		ret = FALSE;
 	}
 
-	if (keyfile_key != NULL)
-		g_free(keyfile_key);
+	GFREE(keyfile_key);
 
 	wifi_complete_set_config_field(wifi, context);
 	return ret;
@@ -1133,7 +1129,7 @@ gboolean handle_get_config_passphrase(Wifi *wifi, GDBusMethodInvocation *context
 	}
 
 	wifi_complete_get_config_passphrase(wifi, context, passphrase);
-	g_free(passphrase);
+	GFREE(passphrase);
 
 	return ret;
 }

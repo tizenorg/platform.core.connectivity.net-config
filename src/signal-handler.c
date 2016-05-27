@@ -127,10 +127,8 @@ static void _technology_signal_cb(GDBusConnection *conn,
 			/* Tethering state */
 			wifi_state_set_tech_state(NETCONFIG_WIFI_TECH_TETHERED);
 		}
-		if (key)
-			g_free(key);
-		if (var)
-			g_variant_unref(var);
+		GFREE(key);
+		GVARIANT_UNREF(var);
 	}
 }
 
@@ -163,13 +161,13 @@ static void _service_signal_cb(GDBusConnection *conn,
 
 			vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
 			if (wifi_state == VCONFKEY_WIFI_OFF) {
-				g_free(property);
+				GFREE(property);
 				goto done;
 			}
 
 			if (g_strcmp0(property, "ready") == 0 || g_strcmp0(property, "online") == 0) {
 				if (wifi_state >= VCONFKEY_WIFI_CONNECTED) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
@@ -185,12 +183,12 @@ static void _service_signal_cb(GDBusConnection *conn,
 						wifi_state_set_service_state(NETCONFIG_WIFI_FAILURE);
 					else
 						wifi_state_set_service_state(NETCONFIG_WIFI_IDLE);
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
 				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
@@ -208,12 +206,12 @@ static void _service_signal_cb(GDBusConnection *conn,
 						wifi_state_set_service_state(NETCONFIG_WIFI_ASSOCIATION);
 					else
 						wifi_state_set_service_state(NETCONFIG_WIFI_CONFIGURATION);
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
 				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
@@ -241,7 +239,7 @@ static void _service_signal_cb(GDBusConnection *conn,
 
 			} else if (g_strcmp0(property, "failure") == 0 || g_strcmp0(property, "disconnect") == 0 || g_strcmp0(property, "idle") == 0) {
 				if (netconfig_get_default_profile() == NULL) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
@@ -249,14 +247,14 @@ static void _service_signal_cb(GDBusConnection *conn,
 					cellular_state_set_service_state(NETCONFIG_CELLULAR_IDLE);
 
 				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
 				netconfig_update_default_profile(NULL);
 			} else if (g_strcmp0(property, "association") == 0 || g_strcmp0(property, "configuration") == 0) {
 				if (netconfig_get_default_profile() == NULL) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
@@ -264,14 +262,14 @@ static void _service_signal_cb(GDBusConnection *conn,
 					cellular_state_set_service_state(NETCONFIG_CELLULAR_CONNECTING);
 
 				if (g_strcmp0(path, netconfig_get_default_profile()) != 0) {
-					g_free(property);
+					GFREE(property);
 					goto done;
 				}
 
 				netconfig_update_default_profile(NULL);
 			}
 		}
-		g_free(property);
+		GFREE(property);
 	} else if (g_strcmp0(sigvalue, "Proxy") == 0) {
 		if (netconfig_is_wifi_profile(path) != TRUE || g_strcmp0(path, netconfig_get_default_profile()) != 0)
 			goto done;
@@ -291,8 +289,8 @@ static void _service_signal_cb(GDBusConnection *conn,
 				DBG("Proxy - [%s]", value);
 				vconf_set_str(VCONFKEY_NETWORK_PROXY, value);
 
-				g_free(property);
-				g_variant_unref(var);
+				GFREE(property);
+				GVARIANT_UNREF(var);
 				break;
 			} else if (g_strcmp0(property, "Method") == 0) {
 				value = g_variant_get_string(var, NULL);
@@ -301,8 +299,8 @@ static void _service_signal_cb(GDBusConnection *conn,
 				if (g_strcmp0(value, "direct") == 0)
 					vconf_set_str(VCONFKEY_NETWORK_PROXY, "");
 
-				g_free(property);
-				g_variant_unref(var);
+				GFREE(property);
+				GVARIANT_UNREF(var);
 				break;
 			}
 		}
@@ -311,14 +309,11 @@ static void _service_signal_cb(GDBusConnection *conn,
 	} else if (g_strcmp0(sigvalue, "Error") == 0) {
 		g_variant_get(variant, "s", &property);
 		INFO("[%s] Property : %s", sigvalue, property);
-		g_free(property);
+		GFREE(property);
 	}
 done:
-	if (sigvalue)
-		g_free(sigvalue);
-
-	if (variant)
-		g_variant_unref(variant);
+	GFREE(sigvalue);
+	GVARIANT_UNREF(variant);
 
 	return;
 }
@@ -341,12 +336,10 @@ static void _dbus_name_changed_cb(GDBusConnection *conn,
 
 		connman_register_agent();
 	}
-	if (name)
-		g_free(name);
-	if (old)
-		g_free(old);
-	if (new)
-		g_free(new);
+
+	GFREE(name);
+	GFREE(old);
+	GFREE(new);
 
 	return;
 }
@@ -387,9 +380,9 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 					if (g_strcmp0(value, "ready") != 0 &&
 							g_strcmp0(value,
 								"online") != 0) {
-						g_free(property);
-						g_free(value);
-						g_variant_unref(variant);
+						GFREE(property);
+						GFREE(value);
+						GVARIANT_UNREF(variant);
 						break;
 					}
 
@@ -407,9 +400,9 @@ static void _services_changed_cb(GDBusConnection *conn, const gchar *name,
 							is_cell_internet_prof)
 						cellular_state_set_service_state(
 							NETCONFIG_CELLULAR_ONLINE);
-					g_free(property);
-					g_free(value);
-					g_variant_unref(variant);
+					GFREE(property);
+					GFREE(value);
+					GVARIANT_UNREF(variant);
 					break;
 				}
 			}
@@ -458,8 +451,8 @@ static void _supplicant_properties_changed(GDBusConnection *conn,
 			if (scanning == TRUE)
 				netconfig_wifi_set_scanning(TRUE);
 
-			g_variant_unref(variant);
-			g_free(key);
+			GVARIANT_UNREF(variant);
+			GFREE(key);
 			break;
 		}
 	}
@@ -591,9 +584,8 @@ static void __netconfig_dumpservice_handler(GDBusConnection *conn,
 	g_variant_get(param, "(io)", &mode, &signal_path);
 	DBG("Path: %s and mode: %d", signal_path, mode);
 	netconfig_dump_log(path);
-	if (signal_path)
-		g_free(signal_path);
 
+	GFREE(signal_path);
 	return;
 }
 #endif

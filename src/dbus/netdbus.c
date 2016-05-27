@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include "log.h"
+#include "util.h"
 #include "netdbus.h"
 
 #define DBUS_PARAM_TYPE_STRING		"string"

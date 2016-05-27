@@ -65,7 +65,7 @@ static void _set_wifi_mac_address(void)
 	if (mac_addr != NULL) {
 		if (strlen(mac_addr) == 0)
 			netconfig_set_mac_address_from_file();
-		g_free(mac_addr);
+		GFREE(mac_addr);
 	}
 }
 

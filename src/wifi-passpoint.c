@@ -50,7 +50,7 @@ static gboolean netconfig_wifi_get_passpoint(gint32 *enabled)
 		result = TRUE;
 	}
 
-	g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 
 	return result;
 }

@@ -138,14 +138,13 @@ static gboolean __is_wifi_profile_available(void)
 		if (obj == NULL || netconfig_is_wifi_profile((const gchar*)obj) == FALSE)
 			continue;
 
-		g_variant_iter_free(next);
-		g_free(obj);
+		GVARIANT_ITER_FREE(next);
+		GFREE(obj);
 		break;
 	}
 
-	g_variant_unref(message);
-
-	g_variant_iter_free(iter);
+	GVARIANT_UNREF(message);
+	GVARIANT_ITER_FREE(iter);
 
 	return TRUE;
 }
@@ -165,8 +164,8 @@ static gboolean __is_favorited(GVariantIter *array)
 		value = g_variant_get_boolean(var);
 		if (value)
 			is_favorite = TRUE;
-		g_free(key);
-		g_variant_unref(var);
+		GFREE(key);
+		GVARIANT_UNREF(var);
 		break;
 	}
 
@@ -271,14 +270,14 @@ static char *_get_connman_favorite_service(void)
 
 		if (__is_favorited(next) == TRUE) {
 			favorite_service = g_strdup(obj);
-			g_free(obj);
-			g_variant_iter_free(next);
+			GFREE(obj);
+			GVARIANT_ITER_FREE(next);
 			break;
 		}
 	}
 
-	g_variant_iter_free(iter);
-	g_variant_unref(message);
+	GVARIANT_ITER_FREE(iter);
+	GVARIANT_UNREF(message);
 
 	return favorite_service;
 }
@@ -344,7 +343,7 @@ static void _set_power_save(gboolean power_save)
 	else
 		old_state = power_save;
 
-	g_variant_unref(input_args);
+	GVARIANT_UNREF(input_args);
 	return;
 }
 
@@ -397,7 +396,7 @@ static void _set_power_lock(gboolean power_lock)
 	else
 		old_state = power_lock;
 
-	g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 
 	return;
 }
@@ -656,12 +655,11 @@ wifi_tech_state_e wifi_state_get_technology_state(void)
 				DBG("%s", sdata);
 			}
 		}
-		g_variant_iter_free(next);
+		GVARIANT_ITER_FREE(next);
 	}
 
-	g_variant_unref(message);
-
-	g_variant_iter_free(iter);
+	GVARIANT_UNREF(message);
+	GVARIANT_ITER_FREE(iter);
 
 	if (wifi_tech_powered == TRUE)
 		ret = NETCONFIG_WIFI_TECH_POWERED;

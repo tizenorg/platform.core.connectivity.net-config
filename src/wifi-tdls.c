@@ -90,7 +90,7 @@ gboolean handle_tdls_disconnect(Wifi *wifi, GDBusMethodInvocation *context,
 		GVariant *message = NULL;
 		message = __netconfig_wifi_tdls_send_dbus_str("TDLSTeardown", (const char*)peer_mac_Addr);
 		DBG("[TizenMW<--WPAS] TDLS DBUS Command sent successfully");
-		g_variant_unref(message);
+		GVARIANT_UNREF(message);
 		is_connected = 0;
 	}
 
@@ -124,14 +124,14 @@ gboolean handle_tdls_connected_peer(Wifi *wifi, GDBusMethodInvocation *context)
 	if (g_strcmp0("connected", reply_str) != 0) {
 		ERR("[TizenMW<--WPAS] TDLS Connection not available");
 		wifi_complete_tdls_connected_peer(wifi, context, "00.00.00.00.00.00");
-		g_variant_unref(message);
+		GVARIANT_UNREF(message);
 		return TRUE;
 	}
 
 	INFO("[TizenMW<--WPAS] TDLS Connection available, Peer Mac address %s", peer_mac);
 	wifi_complete_tdls_connected_peer(wifi, context, peer_mac);
 
-	g_variant_unref(message);
+	GVARIANT_UNREF(message);
 	return TRUE;
 }
 
@@ -141,7 +141,7 @@ void netconfig_wifi_tlds_connected_event(GVariant *message)
 	DBG("[TizenMW<--WPAS] WiFi TDLS Connected EVENT");
 	if (is_connected == 1) {
 		INFO("TDLS Peer already connected");
-		g_free(peer_mac);
+		GFREE(peer_mac);
 	}
 
 	g_variant_get(message, "(s)", &peer_mac);

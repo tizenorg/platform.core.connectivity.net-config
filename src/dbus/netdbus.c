@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include "log.h"
+#include "util.h"
 #include "netdbus.h"
 
 #define DBUS_PARAM_TYPE_STRING		"string"
@@ -89,7 +90,7 @@ void netconfig_gdbus_pending_call_unref(void)
 	if (gconn_data.conn_ref_count < 1)
 		return;
 
-	g_object_unref(gconn_data.connection);
+	GOBJECT_UNREF(gconn_data.connection);
 
 	if (__sync_sub_and_fetch(&gconn_data.conn_ref_count, 1) < 1) {
 		/* TODO: Check this
@@ -334,7 +335,7 @@ int setup_gdbus(got_name_cb cb)
 void cleanup_gdbus(void)
 {
 	g_bus_unown_name(owner_id);
-	g_object_unref(manager_server_wifi);
-	g_object_unref(manager_server_state);
-	g_object_unref(manager_server_statistics);
+	GOBJECT_UNREF(manager_server_wifi);
+	GOBJECT_UNREF(manager_server_state);
+	GOBJECT_UNREF(manager_server_statistics);
 }

@@ -71,8 +71,9 @@ static void __netconfig_clock_set_timeserver(const char *server)
 
 	if (reply == NULL)
 		ERR("Failed to configure NTP server");
-	else
-		g_variant_unref(reply);
+	else {
+		GVARIANT_UNREF(reply);
+	}
 
 	return;
 }

@@ -83,18 +83,18 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 		*needle = '\0';
 
 	if (directory == NULL || (*directory) == '\0') {
-		g_free(directory);
+		GFREE(directory);
 		return;
 	}
 
 	if (g_file_test(directory, G_FILE_TEST_IS_DIR) != TRUE) {
 		if (g_mkdir_with_parents(directory,
 				S_IRUSR | S_IWUSR | S_IXUSR) != 0) {
-			g_free(directory);
+			GFREE(directory);
 			return;
 		}
 	}
-	g_free(directory);
+	GFREE(directory);
 
 	keydata = g_key_file_to_data(keyfile, &size, &error);
 	if (g_file_set_contents(pathname, keydata, size, &error) != TRUE) {
@@ -104,7 +104,7 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 
 	chmod(pathname, S_IRUSR | S_IWUSR);
 
-	g_free(keydata);
+	GFREE(keydata);
 }
 
 void netconfig_start_timer_seconds(guint secs,
@@ -181,7 +181,7 @@ static gboolean __netconfig_test_device_picker()
 	favorite_wifi_service = wifi_get_favorite_service();
 	if (favorite_wifi_service != NULL) {
 		ERR("favorite_wifi_service is existed[%s] : Donot launch device picker", favorite_wifi_service);
-		g_free(favorite_wifi_service);
+		GFREE(favorite_wifi_service);
 		return FALSE;
 	}
 
@@ -946,8 +946,7 @@ int wc_launch_syspopup(netconfig_wcpopup_type_e type)
 		}
 		bundle_add(b, "event-type", "wifi-connected");
 		bundle_add(b, "ssid", ssid);
-		if (ssid)
-			g_free(ssid);
+		GFREE(ssid);
 		break;
 	case WC_POPUP_TYPE_WIFI_RESTRICT:
 		bundle_add(b, "event-type", "wifi-restrict");
@@ -1087,6 +1086,6 @@ void netconfig_set_mac_address_from_file(void)
 	mac_lower_str = g_ascii_strup(mac_str, (gssize)mac_len);
 	netconfig_set_vconf_str(VCONFKEY_WIFI_BSSID_ADDRESS, mac_lower_str);
 
-	g_free(mac_lower_str);
+	GFREE(mac_lower_str);
 	fclose(file);
 }

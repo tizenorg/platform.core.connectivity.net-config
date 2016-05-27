@@ -116,8 +116,8 @@ static gboolean __netconfig_is_connected(GVariantIter *array)
 				is_connected = TRUE;
 		}
 
-		g_free(key);
-		g_variant_unref(variant);
+		GFREE(key);
+		GVARIANT_UNREF(variant);
 		break;
 	}
 
@@ -150,13 +150,13 @@ static char *__netconfig_get_default_profile(void)
 
 		if (__netconfig_is_connected(next) == TRUE) {
 			default_profile = g_strdup(object_path);
-			g_free(object_path);
-			g_variant_iter_free(next);
+			GFREE(object_path);
+			GVARIANT_ITER_FREE(next);
 			break;
 		}
 	}
-	g_variant_iter_free(iter);
-	g_variant_unref(message);
+	GVARIANT_ITER_FREE(iter);
+	GVARIANT_UNREF(message);
 
 	return default_profile;
 }
@@ -196,8 +196,7 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					netconfig_default_connection_info.ifname = g_strdup(value);
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			GVARIANT_ITER_FREE(iter1);
 		} else if (g_strcmp0(key, "IPv4") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
@@ -206,8 +205,7 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					netconfig_default_connection_info.ipaddress = g_strdup(value);
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			GVARIANT_ITER_FREE(iter1);
 		} else if (g_strcmp0(key, "IPv6") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
@@ -216,8 +214,7 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					netconfig_default_connection_info.ipaddress6 = g_strdup(value);
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			GVARIANT_ITER_FREE(iter1);
 		} else if (g_strcmp0(key, "Proxy") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
 			while (g_variant_iter_loop(iter1, "{sv}", &key2, &variant2)) {
@@ -225,36 +222,33 @@ static void __netconfig_get_default_connection_info(const char *profile)
 
 				if (g_strcmp0(key2, "Servers") == 0) {
 					if (!g_variant_is_of_type(variant2, G_VARIANT_TYPE_STRING_ARRAY)) {
-						g_free(key2);
-						g_variant_unref(variant2);
+						GFREE(key2);
+						GVARIANT_UNREF(variant2);
 						break;
 					}
 
 					g_variant_get(variant2, "as", &iter_sub);
 					g_variant_iter_loop(iter_sub, "s", &value);
-					g_variant_iter_free(iter_sub);
+					GVARIANT_ITER_FREE(iter_sub);
 					if (value != NULL && (strlen(value) > 0))
 						netconfig_default_connection_info.proxy = g_strdup(value);
 				} else if (g_strcmp0(key2, "Method") == 0) {
 					if (g_variant_is_of_type(variant2, G_VARIANT_TYPE_STRING)) {
-						g_free(key2);
-						g_variant_unref(variant2);
+						GFREE(key2);
+						GVARIANT_UNREF(variant2);
 						break;
 					}
 
 					value = g_variant_get_string(variant2, NULL);
 					if (g_strcmp0(value, "direct") == 0) {
-						g_free(netconfig_default_connection_info.proxy);
-						netconfig_default_connection_info.proxy = NULL;
-
-						g_free(key2);
-						g_variant_unref(variant2);
+						GFREE(netconfig_default_connection_info.proxy);
+						GFREE(key2);
+						GVARIANT_UNREF(variant2);
 						break;
 					}
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			GVARIANT_ITER_FREE(iter1);
 		} else if (g_strcmp0(key, "Frequency") == 0) {
 			if (g_variant_is_of_type(next, G_VARIANT_TYPE_UINT16)) {
 				freq = g_variant_get_uint16(next);
@@ -264,14 +258,10 @@ static void __netconfig_get_default_connection_info(const char *profile)
 	}
 
 done:
-	if (message)
-		g_variant_unref(message);
 
-	if (iter)
-		g_variant_iter_free(iter);
-
-	if (iter1)
-		g_variant_iter_free(iter1);
+	GVARIANT_UNREF(message);
+	GVARIANT_ITER_FREE(iter);
+	GVARIANT_ITER_FREE(iter1);
 
 	return;
 }
@@ -493,7 +483,7 @@ static void __netconfig_update_default_connection_info(void)
 			else
 				netconfig_set_vconf_str(VCONFKEY_NETWORK_IP, "");
 		}
-		g_free(old_ip);
+		GFREE(old_ip);
 
 		if (g_strcmp0(old_proxy, proxy_addr) != 0) {
 			if (proxy_addr == NULL)
@@ -501,7 +491,7 @@ static void __netconfig_update_default_connection_info(void)
 			else
 				netconfig_set_vconf_str(VCONFKEY_NETWORK_PROXY, proxy_addr);
 		}
-		g_free(old_proxy);
+		GFREE(old_proxy);
 
 		netconfig_set_vconf_int(VCONFKEY_NETWORK_CONFIGURATION_CHANGE_IND, 1);
 
@@ -544,10 +534,10 @@ static gboolean __netconfig_is_tech_state_connected(void)
 				DBG("%s [%s: %s]", path, key, data ? "True" : "False");
 				if (TRUE == data) {
 					ret = TRUE;
-					g_free(path);
-					g_free(key);
-					g_variant_unref(variant);
-					g_variant_iter_free(next);
+					GFREE(path);
+					GFREE(key);
+					GVARIANT_UNREF(variant);
+					GVARIANT_ITER_FREE(next);
 					goto done;
 				}
 			}
@@ -555,8 +545,8 @@ static gboolean __netconfig_is_tech_state_connected(void)
 	}
 
 done:
-	g_variant_iter_free(iter);
-	g_variant_unref(message);
+	GVARIANT_ITER_FREE(iter);
+	GVARIANT_UNREF(message);
 
 	return ret;
 }
@@ -609,18 +599,18 @@ static void __netconfig_update_if_service_connected(void)
 					 * Lets update the default profile info.
 					 */
 					netconfig_update_default_profile((const gchar*)path);
-					g_free(key);
-					g_free(path);
-					g_variant_unref(var);
-					g_variant_iter_free(next);
+					GFREE(key);
+					GFREE(path);
+					GVARIANT_UNREF(var);
+					GVARIANT_ITER_FREE(next);
 					goto done;
 				}
 			}
 		}
 	}
 done:
-	g_variant_iter_free(iter);
-	g_variant_unref(message);
+	GVARIANT_ITER_FREE(iter);
+	GVARIANT_UNREF(message);
 
 	return;
 }
@@ -771,29 +761,19 @@ void netconfig_update_default_profile(const char *profile)
 		if (netconfig_is_wifi_profile(netconfig_default_connection_info.profile))
 			__netconfig_reset_ipv4_socket();
 
-		g_free(old_profile);
+		GFREE(old_profile);
 		old_profile = strdup(netconfig_default_connection_info.profile);
 
-		g_free(netconfig_default_connection_info.profile);
-		netconfig_default_connection_info.profile = NULL;
-
-		g_free(netconfig_default_connection_info.ifname);
-		netconfig_default_connection_info.ifname = NULL;
-
-		g_free(netconfig_default_connection_info.ipaddress);
-		netconfig_default_connection_info.ipaddress = NULL;
-
-		g_free(netconfig_default_connection_info.ipaddress6);
-		netconfig_default_connection_info.ipaddress6 = NULL;
-
-		g_free(netconfig_default_connection_info.proxy);
-		netconfig_default_connection_info.proxy = NULL;
+		GFREE(netconfig_default_connection_info.profile);
+		GFREE(netconfig_default_connection_info.ifname);
+		GFREE(netconfig_default_connection_info.ipaddress);
+		GFREE(netconfig_default_connection_info.ipaddress6);
+		GFREE(netconfig_default_connection_info.proxy);
 
 		netconfig_default_connection_info.freq = 0;
 
 		if (wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED) {
-			g_free(netconfig_default_connection_info.essid);
-			netconfig_default_connection_info.essid = NULL;
+			GFREE(netconfig_default_connection_info.essid);
 		}
 	}
 
@@ -858,9 +838,8 @@ char *netconfig_get_ifname(const char *profile)
 		}
 	}
 
-	g_variant_unref(message);
-
-	g_variant_iter_free(iter);
+	GVARIANT_UNREF(message);
+	GVARIANT_ITER_FREE(iter);
 
 	return ifname;
 }
@@ -1077,5 +1056,5 @@ void state_object_create_and_init(void)
 
 void state_object_deinit(void)
 {
-	g_object_unref(netconfigstate);
+	GOBJECT_UNREF(netconfigstate);
 }

@@ -26,6 +26,7 @@
 #include <tzplatform_config.h>
 
 #include "log.h"
+#include "util.h"
 
 #define LOG_FILE_PATH	"/opt/usr/data/network/netconfig.log"
 #define MAX_LOG_SIZE	1 * 1024 * 1024
@@ -53,8 +54,8 @@ static inline void __netconfig_log_update_file_revision(int rev)
 	if (rename(log_file, next_log_file) != 0)
 		remove(log_file);
 
-	g_free(log_file);
-	g_free(next_log_file);
+	GFREE(log_file);
+	GFREE(next_log_file);
 }
 
 static inline void __netconfig_log_make_backup(void)
@@ -70,7 +71,7 @@ static inline void __netconfig_log_make_backup(void)
 	if (rename(LOG_FILE_PATH, backup) != 0)
 		remove(LOG_FILE_PATH);
 
-	g_free(backup);
+	GFREE(backup);
 }
 
 static inline void __netconfig_log_get_local_time(char *strtime, const int size)

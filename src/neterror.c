@@ -22,6 +22,7 @@
 #include "netdbus.h"
 #include "neterror.h"
 #include "log.h"
+#include "util.h"
 
 #define NETCONFIG_ERROR_INTERFACE NETCONFIG_SERVICE ".Error"
 #define CONNMAN_AGENT_ERROR_INTERFACE "net.connman.Agent.Error"
@@ -167,7 +168,7 @@ void netconfig_error_dbus_method_return(GDBusMethodInvocation *context, netconfi
 	msg = g_strdup_printf("%s.%s", NETCONFIG_ERROR_INTERFACE, message);
 	g_dbus_method_invocation_return_error(context, netconfig_error_quark(), error, "%s", msg);
 
-	g_free(msg);
+	GFREE(msg);
 }
 
 void netconfig_error_init(void)

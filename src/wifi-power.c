@@ -121,7 +121,7 @@ static void __technology_reply(GObject *source_object, GAsyncResult *res, gpoint
 		DBG("Successfully requested");
 	}
 
-	g_variant_unref(reply);
+	GVARIANT_UNREF(reply);
 	netconfig_gdbus_pending_call_unref();
 }
 
@@ -1200,7 +1200,7 @@ void __netconfig_set_ether_macaddr()
 		if (__netconfig_get_random_mac(rand_mac_add, ETH_MAC_ADDR_SIZE == -1)) {
 
 			ERR("Could not generate the Random Mac address");
-			g_free(mac_addr);
+			GFREE(mac_addr);
 			return;
 		}
 
@@ -1225,7 +1225,7 @@ void __netconfig_set_ether_macaddr()
 
 	if (rv < 0)
 		ERR("Unable to execute system command");
-	g_free(mac_addr);
+	GFREE(mac_addr);
 
 }
 #endif

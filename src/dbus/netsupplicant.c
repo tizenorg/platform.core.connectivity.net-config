@@ -18,6 +18,7 @@
  */
 
 #include "log.h"
+#include "util.h"
 #include "netdbus.h"
 #include "netsupplicant.h"
 
@@ -48,9 +49,8 @@ const char *netconfig_wifi_get_supplicant_interface(void)
 
 	g_strlcpy(obj_path, path, DBUS_OBJECT_PATH_MAX);
 
-	if (path)
-		g_free(path);
-	g_variant_unref(message);
+	GFREE(path);
+	GVARIANT_UNREF(message);
 
 	return (const char *)obj_path;
 }

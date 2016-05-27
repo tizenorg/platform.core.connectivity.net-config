@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.70
+Version:	1.1.71
 Release:	2
 Group:		System/Network
 License:	Apache-2.0

@@ -75,55 +75,21 @@ int connman_register_agent(void)
 {
 	GVariant *reply = NULL;
 	GVariant *params = NULL;
-	GError *error;
-	GDBusConnection *connection = NULL;
 
-	connection = netdbus_get_connection();
-	if (connection == NULL) {
-		ERR("GDBusconnection is NULL");
-		return -1;
-	}
+	params = g_variant_new("(o)", NETCONFIG_WIFI_PATH);
+	reply = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE,
+			"RegisterAgent", params);
 
-	do {
-		error = NULL;
-		params = g_variant_new("(o)", NETCONFIG_WIFI_PATH);
-
-		reply = g_dbus_connection_call_sync(
-				connection,
-				CONNMAN_SERVICE,
-				CONNMAN_MANAGER_PATH,
-				CONNMAN_MANAGER_INTERFACE,
-				"RegisterAgent",
-				params,
-				NULL,
-				G_DBUS_CALL_FLAGS_NONE,
-				DBUS_REPLY_TIMEOUT,
-				netdbus_get_cancellable(),
-				&error);
-
-		if (reply == NULL) {
-			if (error != NULL) {
-				if (g_strcmp0(error->message,
-						"GDBus.Error:net.connman.Error.AlreadyExists: Already exists") == 0) {
-					g_error_free(error);
-					break;
-				} else {
-					ERR("Fail to register agent [%d: %s]",
-						error->code, error->message);
-				}
-
-				g_error_free(error);
-			} else
-				ERR("Fail to register agent");
-		} else
-			g_variant_unref(reply);
-
-		sleep(1);
-	} while (TRUE);
+	if (reply == NULL) {
+			ERR("Fail to register agent");
+			return FALSE;
+	} else
+		g_variant_unref(reply);
 
 	INFO("Registered to connman agent successfully");
 
-	return 0;
+	return TRUE;
 }
 
 int connman_unregister_agent(void)

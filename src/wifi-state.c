@@ -230,13 +230,13 @@ static gboolean _check_network_notification(gpointer data)
 		goto cleanup;
 	}
 
-	vconf_get_int(VCONFKEY_WIFI_ENABLE_QS, &qs_enable);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_ENABLE_QS, &qs_enable);
 	if (qs_enable != VCONFKEY_WIFI_QS_ENABLE) {
 		DBG("qs_enable != VCONFKEY_WIFI_QS_ENABLE");
 		goto cleanup;
 	}
 
-	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &ug_state);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &ug_state);
 	if (ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		goto cleanup;
 
@@ -287,7 +287,7 @@ static void __notification_value_changed_cb(keynode_t *node, void *user_data)
 {
 	int value = -1;
 
-	if (vconf_get_int(VCONFKEY_WIFI_ENABLE_QS, &value) < 0)
+	if (netconfig_vconf_get_int(VCONFKEY_WIFI_ENABLE_QS, &value) < 0)
 		return;
 
 	if (value == VCONFKEY_WIFI_QS_DISABLE)

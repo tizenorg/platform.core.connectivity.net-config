@@ -324,7 +324,7 @@ static gboolean __wifi_indicator_monitor(gpointer data)
 		return FALSE;
 
 	/* In case of LCD off, we don't need to update Wi-Fi indicator */
-	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
+	netconfig_vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
 	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
 		return TRUE;
 

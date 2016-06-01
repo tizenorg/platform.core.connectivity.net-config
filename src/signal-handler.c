@@ -161,7 +161,7 @@ static void _service_signal_cb(GDBusConnection *conn,
 		if (netconfig_is_wifi_profile(path) == TRUE) {
 			int wifi_state = 0;
 
-			vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+			netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
 			if (wifi_state == VCONFKEY_WIFI_OFF) {
 				g_free(property);
 				goto done;

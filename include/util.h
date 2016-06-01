@@ -86,6 +86,8 @@ int wc_launch_popup(netconfig_wcpopup_type_e type);
 #endif
 void netconfig_set_vconf_int(const char * key, int value);
 void netconfig_set_vconf_str(const char * key, const char * value);
+int netconfig_vconf_get_int(const char * key, int *value);
+int netconfig_vconf_get_bool(const char * key, int *value);
 char* netconfig_get_env(const char *key);
 void netconfig_set_mac_address_from_file(void);
 

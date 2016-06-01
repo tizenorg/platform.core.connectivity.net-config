@@ -431,7 +431,7 @@ static void __netconfig_update_default_connection_info(void)
 	else
 		DBG("%s: ip(%s) proxy(%s)", profile, ip_addr, proxy_addr);
 
-	vconf_get_int(VCONFKEY_NETWORK_STATUS, &old_network_status);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_STATUS, &old_network_status);
 
 	if (profile == NULL && old_network_status != VCONFKEY_NETWORK_OFF) {
 		netconfig_set_vconf_int(VCONFKEY_NETWORK_STATUS, VCONFKEY_NETWORK_OFF);

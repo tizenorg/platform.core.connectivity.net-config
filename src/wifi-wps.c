@@ -512,7 +512,7 @@ gboolean handle_request_wps_scan(Wifi *wifi, GDBusMethodInvocation *context)
 	tech_state = wifi_state_get_technology_state();
 	if (tech_state <= NETCONFIG_WIFI_TECH_OFF) {
 #if !defined TIZEN_WEARABLE
-		vconf_get_int(VCONF_WIFI_ALWAYS_ALLOW_SCANNING, &enabled);
+		netconfig_vconf_get_int(VCONF_WIFI_ALWAYS_ALLOW_SCANNING, &enabled);
 #else
 		enabled = 0;
 #endif

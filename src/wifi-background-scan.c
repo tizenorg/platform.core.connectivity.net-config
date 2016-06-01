@@ -198,7 +198,7 @@ static gboolean __netconfig_wifi_bgscan_next_scan(gpointer data)
 		return FALSE;
 
 	/* In case of LCD off, we don't need Wi-Fi scan */
-	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
+	netconfig_vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
 	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
 		return TRUE;
 
@@ -287,7 +287,7 @@ gboolean handle_set_bgscan(Wifi *wifi, GDBusMethodInvocation *context, guint sca
 	netconfig_wifi_bgscan_stop();
 
 	/* In case of LCD off, we don't need Wi-Fi scan right now */
-	vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
+	netconfig_vconf_get_int(VCONFKEY_PM_STATE, &pm_state);
 	if (pm_state >= VCONFKEY_PM_STATE_LCDOFF)
 		netconfig_wifi_bgscan_start(FALSE);
 	else

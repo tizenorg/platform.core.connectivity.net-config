@@ -212,7 +212,7 @@ static void __netconfig_pop_device_picker(void)
 	bundle *b = NULL;
 	int wifi_ug_state = 0;
 
-	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 
@@ -279,7 +279,7 @@ void netconfig_wifi_device_picker_service_start(void)
 #else
 	int wifi_ug_state;
 
-	vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
 #endif
@@ -310,7 +310,7 @@ gboolean netconfig_is_wifi_direct_on(void)
 #if defined TIZEN_P2P_ENABLE
 	int wifi_direct_state = 0;
 
-	vconf_get_int(VCONFKEY_WIFI_DIRECT_STATE, &wifi_direct_state);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_DIRECT_STATE, &wifi_direct_state);
 
 	DBG("Wi-Fi direct mode %d", wifi_direct_state);
 	return (wifi_direct_state != 0) ? TRUE : FALSE;
@@ -324,8 +324,7 @@ gboolean netconfig_is_wifi_tethering_on(void)
 #if defined TIZEN_TETHERING_ENABLE
 	int wifi_tethering_state = 0;
 
-	vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_MODE, &wifi_tethering_state);
-
+	netconfig_vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_MODE, &wifi_tethering_state);
 	DBG("Wi-Ti tethering mode %d", wifi_tethering_state);
 	if (wifi_tethering_state & VCONFKEY_MOBILE_HOTSPOT_MODE_WIFI)
 		return TRUE;
@@ -1021,6 +1020,32 @@ void netconfig_set_vconf_str(const char * key, const char * value)
 	ret = vconf_set_str(key, value);
 	if (ret != VCONF_OK)
 		ERR("Failed to set");
+}
+
+int netconfig_vconf_get_int(const char * key, int *value)
+{
+	int ret = 0;
+
+	ret = vconf_get_int(key, value);
+	if (ret != VCONF_OK) {
+		ERR("Failed to get vconfkey [%s] value", key);
+		return -1;
+	}
+
+	return 0;
+}
+
+int netconfig_vconf_get_bool(const char * key, int *value)
+{
+	int ret = 0;
+
+	ret = vconf_get_bool(key, value);
+	if (ret != VCONF_OK) {
+		ERR("Failed to get vconfkey [%s] value", key);
+		return -1;
+	}
+
+	return 0;
 }
 
 char* netconfig_get_env(const char *key)

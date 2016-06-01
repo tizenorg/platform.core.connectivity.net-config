@@ -87,7 +87,7 @@ static gboolean __is_wifi_restricted(void)
 #endif
 	int restricted_mode = 0;
 
-	vconf_get_bool(VCONFKEY_SETAPPL_NETWORK_RESTRICT_MODE, &restricted_mode);
+	netconfig_vconf_get_bool(VCONFKEY_SETAPPL_NETWORK_RESTRICT_MODE, &restricted_mode);
 	if (restricted_mode != 0) {
 		DBG("network restricted mode[%d]", restricted_mode);
 		return TRUE;
@@ -440,13 +440,13 @@ int netconfig_wifi_on_wearable(gboolean device_picker_test)
 		return -EPERM;
 	}
 
-	if (vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use) < 0) {
+	if (netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use) < 0) {
 		ERR("Fail to get VCONF_WIFI_WEARABLE_WIFI_USE");
 		return -EIO;
 	}
 
 	if (wifi_use > 0) {
-		if (vconf_get_int(VCONFKEY_SETAPPL_PSMODE, &ps_mode) < 0) {
+		if (netconfig_vconf_get_int(VCONFKEY_SETAPPL_PSMODE, &ps_mode) < 0) {
 			ERR("Fail to get VCONFKEY_SETAPPL_PSMODE");
 			return -EIO;
 		}
@@ -514,7 +514,7 @@ static void __wearable_wifi_use_changed_cb(keynode_t* node, void* user_data)
 	int wifi_use = 1;
 	gboolean wifi_restrict = FALSE;
 
-	if (vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
+	if (netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
 		ERR("Fail to get VCONFKEY_WIFI_STATE");
 		return;
 	}
@@ -522,7 +522,7 @@ static void __wearable_wifi_use_changed_cb(keynode_t* node, void* user_data)
 	if (node != NULL)
 		wifi_use = vconf_keynode_get_int(node);
 	else
-		vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
+		netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
 
 	if (wifi_use > 0) {
 		DBG("wifi use on");
@@ -557,15 +557,15 @@ static void __netconfig_wifi_wearable_airplane_mode(keynode_t *node,
 	int wifi_use = 0, airplane_state = 0;
 	int wifi_use_off_by_airplane = 0;
 
-	vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE,
+	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE,
 			&wifi_use_off_by_airplane);
 
-	vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
+	netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
 
 	if (node != NULL)
 		airplane_state = vconf_keynode_get_bool(node);
 	else
-		vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
+		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
 
 	DBG("airplane mode %s (prev:%d)", airplane_state > 0 ? "ON" : "OFF", airplane_mode);
 	DBG("Wi-Fi use %d, Wi-Fi was off by flight mode %s", wifi_use,
@@ -601,14 +601,14 @@ static void __netconfig_wifi_airplane_mode(keynode_t *node, void *user_data)
 	int wifi_state = 0, airplane_state = 0;
 	int wifi_off_by_airplane = 0;
 
-	vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, &wifi_off_by_airplane);
+	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, &wifi_off_by_airplane);
 
-	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
 
 	if (node != NULL)
 		airplane_state = vconf_keynode_get_bool(node);
 	else
-		vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
+		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
 
 	DBG("airplane mode %s (prev:%d)", airplane_state > 0 ? "ON" : "OFF", airplane_mode);
 	DBG("Wi-Fi state %d, Wi-Fi was off by flight mode %s", wifi_state,
@@ -647,14 +647,14 @@ static void __netconfig_wifi_restrict_mode(keynode_t *node, void *user_data)
 	int wifi_state = 0, restricted = 0;
 	int wifi_off_by_restricted = 0;
 
-	vconf_get_int(VCONF_WIFI_OFF_STATE_BY_RESTRICTED, &wifi_off_by_restricted);
+	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_RESTRICTED, &wifi_off_by_restricted);
 
-	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
 
 	if (node != NULL)
 		restricted = vconf_keynode_get_bool(node);
 	else
-		vconf_get_bool(VCONFKEY_SETAPPL_NETWORK_RESTRICT_MODE, &restricted);
+		netconfig_vconf_get_bool(VCONFKEY_SETAPPL_NETWORK_RESTRICT_MODE, &restricted);
 
 	DBG("network restricted mode %s", restricted > 0 ? "ON" : "OFF");
 	DBG("Wi-Fi state %d, Wi-Fi was off by restricted mode %s", wifi_state,
@@ -694,11 +694,11 @@ static void __emergency_mode_changed_cb(keynode_t *node, void *user_data)
 	int wifi_use = 1;
 #endif
 
-	vconf_get_int(VCONF_WIFI_OFF_STATE_BY_EMERGENCY, &wifi_off_by_emergency);
-	vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_EMERGENCY, &wifi_off_by_emergency);
+	netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
 
 #if !defined TIZEN_WEARABLE
-	vconf_get_bool(VCONFKEY_SETAPPL_NETWORK_PERMIT_WITH_LCD_OFF_LIMIT, &emergency_by_fmm);
+	netconfig_vconf_get_bool(VCONFKEY_SETAPPL_NETWORK_PERMIT_WITH_LCD_OFF_LIMIT, &emergency_by_fmm);
 	DBG("emergency mode by Find My Mobile (%d)", emergency_by_fmm);
 	if (emergency_by_fmm == 1)
 		return;
@@ -707,7 +707,7 @@ static void __emergency_mode_changed_cb(keynode_t *node, void *user_data)
 	if (node != NULL)
 		emergency = vconf_keynode_get_int(node);
 	else
-		vconf_get_int(VCONFKEY_SETAPPL_PSMODE, &emergency);
+		netconfig_vconf_get_int(VCONFKEY_SETAPPL_PSMODE, &emergency);
 
 	DBG("emergency mode %s", emergency > SETTING_PSMODE_POWERFUL ? "ON" : "OFF");
 	DBG("Wi-Fi state %d, Wi-Fi was off by emergency mode %s", wifi_state, wifi_off_by_emergency ? "Yes" : "No");
@@ -717,7 +717,7 @@ static void __emergency_mode_changed_cb(keynode_t *node, void *user_data)
 		/* basic power saving mode on */
 	} else if (emergency == SETTING_PSMODE_WEARABLE_ENHANCED) {
 		/* enhanced power saving mode on */
-		vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
+		netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
 		psmode_wifi_use = wifi_use;
 		if (wifi_use != 0)
 			netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 0);
@@ -770,7 +770,7 @@ static void __pm_state_changed_cb(keynode_t* node, void* user_data)
 	int wifi_state = 0;
 	static int prev_state = VCONFKEY_PM_STATE_NORMAL;
 
-	if (vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
+	if (netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
 		ERR("Fail to get VCONFKEY_WIFI_STATE");
 		return;
 	}
@@ -784,7 +784,7 @@ static void __pm_state_changed_cb(keynode_t* node, void* user_data)
 	if (node != NULL)
 		new_state = vconf_keynode_get_int(node);
 	else
-		vconf_get_int(VCONFKEY_PM_STATE, &new_state);
+		netconfig_vconf_get_int(VCONFKEY_PM_STATE, &new_state);
 
 	DBG("wifi state: %d (0 off / 1 on / 2 connected)", wifi_state);
 	DBG("Old PM state: %d, current: %d", prev_state, new_state);
@@ -868,7 +868,7 @@ static void __netconfig_telephony_ready_changed_cb(keynode_t * node, void *data)
 	if (node != NULL)
 		telephony_ready = vconf_keynode_get_bool(node);
 	else
-		vconf_get_bool(VCONFKEY_TELEPHONY_READY, &telephony_ready);
+		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_READY, &telephony_ready);
 
 	if (telephony_ready != 0) {
 		if (netconfig_tapi_check_sim_state() == FALSE) {
@@ -997,7 +997,7 @@ int wifi_power_on_wearable(gboolean device_picker_test)
 		return -EPERM;
 	}
 
-	if (vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use) < 0) {
+	if (netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use) < 0) {
 		ERR("Fail to get VCONF_WIFI_WEARABLE_WIFI_USE");
 		return -EIO;
 	}
@@ -1026,16 +1026,16 @@ void wifi_power_initialize(void)
 
 	/* Initialize Airplane mode */
 #if defined TIZEN_TELEPHONY_ENABLE
-	vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_mode);
+	netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_mode);
 #endif
 	DBG("Airplane[%s]", airplane_mode > 0 ? "ON" : "OFF");
 
 	/* Update the last Wi-Fi power state */
-	vconf_get_int(VCONF_WIFI_LAST_POWER_STATE, &wifi_last_power_state);
+	netconfig_vconf_get_int(VCONF_WIFI_LAST_POWER_STATE, &wifi_last_power_state);
 	if (wifi_last_power_state > VCONFKEY_WIFI_OFF) {
 #if defined TIZEN_TELEPHONY_ENABLE
 		int telephony_ready = 0;
-		vconf_get_bool(VCONFKEY_TELEPHONY_READY, &telephony_ready);
+		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_READY, &telephony_ready);
 		if (telephony_ready == 0) {
 			DBG("Telephony API is not initialized yet");
 			vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY,

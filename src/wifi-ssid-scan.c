@@ -17,6 +17,8 @@
  *
  */
 
+#include <stdio.h>
+
 #include "log.h"
 #include "util.h"
 #include "neterror.h"
@@ -24,6 +26,9 @@
 #include "netsupplicant.h"
 #include "wifi-ssid-scan.h"
 #include "wifi-background-scan.h"
+
+#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
 
 typedef enum {
 	WIFI_SECURITY_UNKNOWN = 0x00,
@@ -35,6 +40,7 @@ typedef enum {
 
 typedef struct {
 	unsigned char ssid[33];
+	unsigned char bssid[6];
 	wifi_security_e security;
 	gboolean privacy;
 	gboolean wps;
@@ -195,6 +201,9 @@ static void _emit_ssid_scan_completed(void)
 	GVariantBuilder *builder = NULL;
 	GSList* list = NULL;
 	const char *prop_ssid = "ssid";
+	const char *prop_bssid = "bssid";
+	char bssid_buf[18] = {0,};
+	char *bssid_str = bssid_buf;
 	const char *prop_security = "security";
 	const char *prop_wps = "wps";
 
@@ -203,10 +212,17 @@ static void _emit_ssid_scan_completed(void)
 		bss_info_t *bss_info = (bss_info_t *)list->data;
 		if (bss_info && g_strcmp0((char *)bss_info->ssid, g_ssid) == 0) {
 			const gchar *ssid = (char *)bss_info->ssid;
+			const gchar *bssid = (gchar *)&bss_info->bssid[0];
 			wifi_security_e security = bss_info->security;
 			gboolean wps = bss_info->wps;
 			DBG("BSS found; SSID:%s security:%d WPS:%d", ssid, security, wps);
+
+			if(bssid) {
+				snprintf(bssid_str, sizeof(bssid_buf), MACSTR, MAC2STR(bssid));
+				DBG("BSSID: %s", bssid_str);
+			}
 			g_variant_builder_add(builder, "{sv}", prop_ssid, g_variant_new_string(ssid));
+			g_variant_builder_add(builder, "{sv}", prop_bssid, g_variant_new_string(bssid));
 			g_variant_builder_add(builder, "{sv}", prop_security, g_variant_new_int32(security));
 			/* WPS */
 			g_variant_builder_add(builder, "{sv}", prop_wps, g_variant_new_boolean(wps));
@@ -345,6 +361,13 @@ void wifi_ssid_scan_add_bss(GVariant *message)
 			gsize ie_len;
 			ie = g_variant_get_fixed_array(value, &ie_len, sizeof(guchar));
 			DBG("The IE : %s", ie);
+		} else if(g_strcmp0(key, "BSSID") == 0) {
+			const guchar *bssid;
+			gsize bssid_len;
+
+			bssid = g_variant_get_fixed_array(value, &bssid_len, sizeof(guchar));
+			if(bssid != NULL && bssid_len == 6)
+				memcpy(bss_info->bssid,bssid,bssid_len);
 		}
 	}
 

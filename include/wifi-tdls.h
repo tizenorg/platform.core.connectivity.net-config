@@ -26,6 +26,15 @@
 #include <glib.h>
 #include "netsupplicant.h"
 
+typedef struct {
+	int is_connected;
+	int hdcp;
+	int port;
+	int availability;
+	int tdls_support;
+	unsigned char ip_add[4];
+}wifi_tdls_wfd_info_s;
+
 void netconfig_wifi_tlds_connected_event(GVariant *message);
 void netconfig_wifi_tlds_disconnected_event(GVariant *message);
 void __netconfig_wifi_notify_tdls_connected_event(const char *peer_mac);

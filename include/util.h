@@ -79,6 +79,8 @@ gboolean handle_unref_mdns(Network *object, GDBusMethodInvocation *context);
 gboolean netconfig_send_notification_to_net_popup(const char * noti, const char * data);
 int netconfig_send_message_to_net_popup(const char *title,
 		const char *content, const char *type, const char *ssid);
+int netconfig_send_restriction_to_net_popup(const char *title,
+		const char *type, const char *restriction);
 void netconfig_set_system_event(const char * sys_evt, const char * evt_key, const char * evt_val);
 #if defined TIZEN_WEARABLE
 int wc_launch_syspopup(netconfig_wcpopup_type_e type);

@@ -24,6 +24,7 @@
 #include "network-state.h"
 #include "wifi-power.h"
 
+#include <stdio.h>
 #include <arpa/inet.h>
 #include <net/route.h>
 #include <net/ethernet.h>
@@ -34,71 +35,53 @@
 #include <vconf.h>
 #include <vconf-keys.h>
 
+#define ETHERNET_CABLE_STATUS	"/sys/class/net/eth0/carrier"
+
 /* Check send notification status */
 static gboolean g_chk_eth_send_notification = FALSE;
 
 int netconfig_ethernet_cable_plugin_status_check()
 {
-	struct ifreq ifr;
-	int soketfd = -1;
-	int error = 0;
-	int ret = 0;
-	struct _stMData *mdata;
-	struct timeval tv;
-	char error_buf[MAX_SIZE_ERROR_BUFFER] = {};
-
-	soketfd = socket(PF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-	if (soketfd < 0) {
-		ERR("Failed to create socket");
-		return -errno;
+	int ret = -1;
+	FILE *fd = NULL;
+	char error_buf[MAX_SIZE_ERROR_BUFFER] = {0, };
+	if(0 == access(ETHERNET_CABLE_STATUS, F_OK)) {
+		fd = fopen(ETHERNET_CABLE_STATUS, "r");
+		if(fd == NULL) {
+			ERR("Error! Could not open /sys/class/net/eth0/carrier file\n");
+			return -1;
+		}
+	} else {
+		ERR("Error! Could not access /sys/class/net/eth0/carrier file\n");
+		return -1;
 	}
 
-	/* Set Timeout for IOCTL Call */
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
-
-	if (setsockopt(soketfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,
-			sizeof(struct timeval)) < 0) {
-
+	int rv = 0;
+	errno = 0;
+	rv = fscanf(fd, "%d", &ret);
+	if(rv < 0) {
 		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
-		ERR("Failed to set socket option : [%d] [%s]", -errno, error_buf);
-		goto done;
+		ERR("Error! Failed to read from file, rv:[%d], error:[%s]", rv, error_buf);
+		fclose(fd);
+		return -1;
 	}
 
-	memset(&ifr, 0, sizeof(ifr));
-	g_strlcpy(ifr.ifr_name, "eth0", IFNAMSIZ);
-	if (ioctl(soketfd, SIOCGMIIPHY, &ifr) < 0) {
-		error = -errno;
-		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
-		ERR("SIOCGMIIPHY on eth0 failed : [%d] [%s]", errno, error_buf);
-		goto done;
-	}
-
-	mdata = (struct _stMData *)&ifr.ifr_data;
-	mdata->reg_num = ETH_REG_BMSR;
-
-	if (ioctl(soketfd, SIOCGMIIREG, &ifr) < 0) {
-		error = -errno;
-		strerror_r(errno, error_buf, MAX_SIZE_ERROR_BUFFER);
-		ERR("SIOCGMIIREG on %s failed , [%d] [%s] ", ifr.ifr_name, errno, error_buf);
-		goto done;
-	}
-	ret = mdata->val_out;
-	ret = ret & BMSR_LINK_VALID;
-
-	if (ret == 4) {
-		if (!g_chk_eth_send_notification)
+	if(ret == 1) {
+		if(!g_chk_eth_send_notification) {
+			ERR("/sys/class/net/eth0/carrier : [%d]", ret);
 			netconfig_network_notify_ethernet_cable_state("ATTACHED");
+		}
 		g_chk_eth_send_notification = TRUE;
 	} else if (ret == 0) {
-		if (g_chk_eth_send_notification)
+		if(g_chk_eth_send_notification) {
+			ERR("/sys/class/net/eth0/carrier : [%d]", ret);
 			netconfig_network_notify_ethernet_cable_state("DETACHED");
+		}
 		g_chk_eth_send_notification = FALSE;
 	}
-	error = 0;
-done:
-	close(soketfd);
-	return error;
+
+	fclose(fd);
+	return 0;
 }
 
 int netconfig_get_ethernet_cable_state(int *status)

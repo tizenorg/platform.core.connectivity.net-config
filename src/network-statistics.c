@@ -109,7 +109,7 @@ static gboolean handle_get_wifi_total_tx_bytes(
 	guint64 total_bytes = 0;
 	int val = 0;
 
-	vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_SNT, &val);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_SNT, &val);
 	tx_bytes = (guint64)val;
 
 	if (netconfig_wifi_get_bytes_statistics(&tx, &rx) == TRUE)
@@ -130,7 +130,7 @@ static gboolean handle_get_wifi_total_rx_bytes(
 	guint64 total_bytes = 0;
 	int val = 0;
 
-	vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_RCV, &val);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_RCV, &val);
 	rx_bytes = (guint64)val;
 
 	if (netconfig_wifi_get_bytes_statistics(&tx, &rx) == TRUE)
@@ -151,7 +151,7 @@ static gboolean handle_get_wifi_last_tx_bytes(
 	guint64 last_bytes = 0;
 	int val = 0;
 
-	vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_SNT, &val);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_SNT, &val);
 	tx_bytes = (guint64)val;
 
 	if (wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED) {
@@ -178,7 +178,7 @@ static gboolean handle_get_wifi_last_rx_bytes(
 	guint64 last_bytes = 0;
 	int val = 0;
 
-	vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_RCV, &val);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_RCV, &val);
 	rx_bytes = (guint64)val;
 
 	if (wifi_state_get_service_state() != NETCONFIG_WIFI_CONNECTED) {
@@ -317,10 +317,10 @@ void netconfig_wifi_statistics_update_powered_off(void)
 	if (netconfig_wifi_get_bytes_statistics(&cur_tx, &cur_rx) != TRUE)
 		return;
 
-	vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_SNT, &val);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_SNT, &val);
 	prev_tx = (guint64)val;
 
-	vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_RCV, &val);
+	netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_TOTAL_RCV, &val);
 	prev_rx = (guint64)val;
 
 	total_tx = prev_tx + cur_tx;
@@ -355,10 +355,10 @@ static void wifi_statistics_update_state(wifi_service_state_e state, void *user_
 		if (prev_state != NETCONFIG_WIFI_CONNECTED)
 			return;
 
-		vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_SNT, &val);
+		netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_SNT, &val);
 		last_tx = (guint64)val;
 
-		vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_RCV, &val);
+		netconfig_vconf_get_int(VCONFKEY_NETWORK_WIFI_PKT_LAST_RCV, &val);
 		last_rx = (guint64)val;
 
 		last_tx = tx < last_tx ? 0 : tx - last_tx;

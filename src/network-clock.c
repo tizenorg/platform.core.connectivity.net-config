@@ -95,7 +95,7 @@ static void __netconfig_clock(
 	if (state != NETCONFIG_WIFI_CONNECTED)
 		return;
 
-	vconf_get_bool(
+	netconfig_vconf_get_bool(
 			VCONFKEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL,
 			&automatic_time_update);
 
@@ -120,7 +120,7 @@ static void __automatic_time_update_changed_cb(keynode_t *node, void *user_data)
 	if (node != NULL)
 		automatic_time_update = vconf_keynode_get_bool(node);
 	else
-		vconf_get_bool(VCONFKEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL, &automatic_time_update);
+		netconfig_vconf_get_bool(VCONFKEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL, &automatic_time_update);
 
 	if (automatic_time_update == FALSE) {
 		INFO("Automatic time update is changed to 'FALSE'");

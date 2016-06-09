@@ -7,6 +7,8 @@ BusName=net.netconfig
 RemainAfterExit=yes
 ExecStartPre=-/usr/sbin/net-config.service
 ExecStart=/usr/sbin/net-config
+CapabilityBoundingSet=~CAP_MAC_ADMIN
+CapabilityBoundingSet=~CAP_MAC_OVERRIDE
 
 [Install]
 WantedBy=multi-user.target

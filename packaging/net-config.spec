@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.72
+Version:	1.1.73
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -128,7 +128,7 @@ cp LICENSE %{buildroot}%{_datadir}/license/net-config
 #Network logs
 mkdir -p /opt/usr/data/network
 chmod 755 /opt/usr/data/network
-chsmack -a net-config::logging /opt/usr/data/network
+chsmack -a 'System' /opt/usr/data/network
 
 #Add net-config.service to systemd extra default dependency ignore list
 mkdir -p %{_sysconfdir}/systemd/default-extra-dependencies/ignore-units.d/

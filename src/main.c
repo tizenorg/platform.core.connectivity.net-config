@@ -125,6 +125,10 @@ int main(int argc, char *argv[])
 	/* For device policy manager */
 	netconfig_dpm_init();
 
+#if defined TIZEN_WLAN_BOARD_SPRD
+	wifi_firmware_download();
+#endif
+
 	/*In case no emulator, set the ETH0 Mac address*/
 #if defined TIZEN_TV
 	if (emulator_is_emulated() == FALSE)

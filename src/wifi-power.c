@@ -1094,6 +1094,10 @@ gboolean handle_load_driver(Wifi *wifi,
 		return TRUE;
 	}
 
+#if defined TIZEN_WLAN_BOARD_SPRD
+	wifi_firmware_download();
+#endif
+
 #if defined TIZEN_WEARABLE
 	err = wifi_power_on_wearable(device_picker_test);
 #else

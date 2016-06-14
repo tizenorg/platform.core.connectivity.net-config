@@ -40,6 +40,11 @@
 #include "wifi-config.h"
 #include "wifi-tdls.h"
 
+#if defined TIZEN_WLAN_BOARD_SPRD
+#define SPRD_CP2_FIRMWARE_PATH "/usr/bin/cp2-downloader"
+static int is_wifi_firmware_downloaded = FALSE;
+#endif
+
 static Wifi *wifi_object = NULL;
 static NetConnmanAgent *connman_agent_object = NULL;
 static WifiFirmware *wififirmware_object = NULL;
@@ -62,7 +67,7 @@ static void _set_wifi_mac_address(void)
 	gchar *mac_addr = NULL;
 
 	mac_addr = vconf_get_str(VCONFKEY_WIFI_BSSID_ADDRESS);
-	if (mac_addr != NULL) {
+	if (mac_addr == NULL) {
 		if (strlen(mac_addr) == 0)
 			netconfig_set_mac_address_from_file();
 		g_free(mac_addr);
@@ -94,6 +99,28 @@ void __netconfig_wifi_connect_reply(GObject *source_object, GAsyncResult *res,
 	netconfig_gdbus_pending_call_unref();
 	return;
 }
+
+#if defined TIZEN_WLAN_BOARD_SPRD
+int wifi_firmware_download(void)
+{
+	int rv = 0;
+	const char *path = SPRD_CP2_FIRMWARE_PATH;
+	char *const args[] = { SPRD_CP2_FIRMWARE_PATH, NULL };
+	char *const envs[] = { NULL };
+
+	if (!is_wifi_firmware_downloaded) {
+		rv = netconfig_execute_file(path, args, envs);
+		if (rv < 0) {
+			DBG("wifi firmware download fails");
+			return -EIO;
+		}
+		is_wifi_firmware_downloaded = TRUE;
+		DBG("wifi firmware download successes");
+	}
+
+	return 0;
+}
+#endif
 
 void wifi_object_create_and_init(void)
 {

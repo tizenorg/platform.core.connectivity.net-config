@@ -37,6 +37,10 @@ extern "C" {
 void __netconfig_wifi_connect_reply(GObject *source_object, GAsyncResult *res,
 		gpointer user_data);
 
+#if defined TIZEN_WLAN_BOARD_SPRD
+int wifi_firmware_download(void);
+#endif
+
 void wifi_object_create_and_init(void);
 void wifi_object_deinit(void);
 

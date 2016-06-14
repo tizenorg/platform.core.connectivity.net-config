@@ -94,7 +94,7 @@ static int __config_save(const char *ssid, GKeyFile *keyfile)
 
 	/* Do POSIX file operation to create and remove config files,
 	 * Do not use g_file_set_contents, it breaks inotify operations */
-	if (fputs(data, file) < 0) {
+	if (!data && fputs(data, file) < 0) {
 		ERR("Failed to write %s", config_file);
 
 		err = -EIO;

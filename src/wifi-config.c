@@ -139,7 +139,7 @@ static gboolean __get_mac_address(gchar **mac_address)
 #endif
 	tmp = g_ascii_strdown(tmp_mac, (gssize)strlen(tmp_mac));
 	g_free(tmp_mac);
-	while (tmp[i]) {
+	while (tmp && tmp[i]) {
 		if (tmp[i] != ':')
 			mac[j++] = tmp[i];
 		i++;

@@ -41,6 +41,7 @@
 static GDBusObjectManagerServer *manager_server_wifi = NULL;
 static GDBusObjectManagerServer *manager_server_state = NULL;
 static GDBusObjectManagerServer *manager_server_statistics = NULL;
+static GDBusObjectManagerServer *manager_server_vpn = NULL;
 static guint owner_id = 0;
 static got_name_cb g_callback = NULL;
 
@@ -65,6 +66,11 @@ GDBusObjectManagerServer *netdbus_get_state_manager(void)
 GDBusObjectManagerServer *netdbus_get_statistics_manager(void)
 {
 	return manager_server_statistics;
+}
+
+GDBusObjectManagerServer *netdbus_get_vpn_manager(void)
+{
+	return manager_server_vpn;
 }
 
 GDBusConnection *netdbus_get_connection(void)
@@ -315,6 +321,12 @@ int setup_gdbus(got_name_cb cb)
 	manager_server_statistics = g_dbus_object_manager_server_new(NETCONFIG_NETWORK_STATISTICS_PATH);
 	if (manager_server_statistics == NULL) {
 		ERR("Manager server for STATISTICS_PATH not created.");
+		exit(1);
+	}
+
+	manager_server_vpn= g_dbus_object_manager_server_new(NETCONFIG_VPNSVC_PATH);
+	if (manager_server_vpn == NULL) {
+		ERR("Manager server for VPNSVC_PATH not created.");
 		exit(1);
 	}
 

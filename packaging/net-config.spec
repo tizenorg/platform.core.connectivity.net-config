@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.75
+Version:	1.1.76
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -18,6 +18,7 @@ BuildRequires:	pkgconfig(syspopup-caller)
 BuildRequires:	pkgconfig(capi-system-info)
 BuildRequires:	pkgconfig(capi-appfw-application)
 BuildRequires:	pkgconfig(capi-network-wifi-direct)
+BuildRequires:	pkgconfig(capi-vpnsvc)
 BuildRequires:	cmake
 BuildRequires:	pkgconfig(sqlite3)
 BuildRequires:	pkgconfig(libtzplatform-config)

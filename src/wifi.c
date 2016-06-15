@@ -67,7 +67,7 @@ static void _set_wifi_mac_address(void)
 	gchar *mac_addr = NULL;
 
 	mac_addr = vconf_get_str(VCONFKEY_WIFI_BSSID_ADDRESS);
-	if (mac_addr == NULL) {
+	if (mac_addr != NULL) {
 		if (strlen(mac_addr) == 0)
 			netconfig_set_mac_address_from_file();
 		g_free(mac_addr);

@@ -21,6 +21,8 @@ SET(SRCS
 	src/wifi-passpoint.c
 	src/utils/log.c
 	src/utils/util.c
+	src/vpnsvc.c
+	src/vpnsvc-internal.c
 	src/dbus/netdbus.c
 	src/network-clock.c
 	src/network-state.c
@@ -142,7 +144,7 @@ ADD_CUSTOM_COMMAND(
 			--generate-c-code generated-code
 			--c-generate-object-manager
 			--generate-docbook generated-code-docs
-			${INTERFACES}/netconfig-iface-network-state.xml ${INTERFACES}/netconfig-iface-network-statistics.xml ${INTERFACES}/netconfig-iface-wifi.xml
+			${INTERFACES}/netconfig-iface-network-state.xml ${INTERFACES}/netconfig-iface-network-statistics.xml ${INTERFACES}/netconfig-iface-wifi.xml ${INTERFACES}/netconfig-iface-vpnsvc.xml
 			COMMENT "Generating GDBus .c/.h")
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS} ${CMAKE_SOURCE_DIR}/generated-code.c)

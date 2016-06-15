@@ -30,6 +30,7 @@
 #include "neterror.h"
 #include "wifi-agent.h"
 #include "wifi-power.h"
+#include "vpnsvc.h"
 #include "network-clock.h"
 #include "network-dpm.h"
 #include "network-state.h"
@@ -56,6 +57,7 @@ void _got_name_cb(void)
 	wifi_object_create_and_init();
 	state_object_create_and_init();
 	statistics_object_create_and_init();
+	vpnsvc_create_and_init();
 
 	register_gdbus_signal();
 	connman_register_agent();
@@ -71,6 +73,7 @@ static void _objects_deinit(void)
 	wifi_object_deinit();
 	state_object_deinit();
 	statistics_object_deinit();
+	vpnsvc_destroy_deinit();
 }
 
 int main(int argc, char *argv[])

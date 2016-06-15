@@ -18,6 +18,7 @@ BuildRequires:	pkgconfig(syspopup-caller)
 BuildRequires:	pkgconfig(capi-system-info)
 BuildRequires:	pkgconfig(capi-appfw-application)
 BuildRequires:	pkgconfig(capi-network-wifi-direct)
+BuildRequires:	pkgconfig(capi-vpnsvc)
 BuildRequires:	cmake
 BuildRequires:	pkgconfig(sqlite3)
 BuildRequires:	pkgconfig(libtzplatform-config)

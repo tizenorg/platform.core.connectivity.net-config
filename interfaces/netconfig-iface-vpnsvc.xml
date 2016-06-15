@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node name="/net/netconfig/vpnsvc">
+	<interface name="net.netconfig.vpnsvc">
+		<method name="vpn_init">
+			<arg type="s" name="iface_name" direction="in"/>
+			<arg type="u" name="iface_name_len" direction="in"/>
+			<arg type="i" name="result" direction="out"/>
+			<arg type="i" name="h_index" direction="out"/>
+			<arg type="s" name="h_name" direction="out"/>
+		</method>
+		<method name="vpn_deinit">
+			<arg type="s" name="dev_name" direction="in"/>
+			<arg type="i" name="result" direction="out"/>
+		</method>
+		<method name="vpn_protect">
+			<arg type="s" name="dev_name" direction="in"/>
+			<arg type="i" name="result" direction="out"/>
+		</method>
+		<method name="vpn_up">
+			<arg type="i" name="iface_index" direction="in"/>
+			<arg type="s" name="local_ip" direction="in"/>
+			<arg type="s" name="remote_ip" direction="in"/>
+			<arg type="v" name="routes" direction="in"/>
+			<arg type="u" name="nr_routes" direction="in"/>
+			<arg type="v" name="dns_servers" direction="in"/>
+			<arg type="u" name="nr_dns" direction="in"/>
+			<arg type="s" name="dns_suffix" direction="in"/>
+			<arg type="u" name="mtu" direction="in"/>
+			<arg type="i" name="result" direction="out"/>
+		</method>
+		<method name="vpn_down">
+			<arg type="i" name="iface_index" direction="in"/>
+			<arg type="i" name="result" direction="out"/>
+		</method>
+		<method name="vpn_block_networks">
+			<arg type="v" name="nets_vpn" direction="in"/>
+			<arg type="u" name="nr_nets_vpn" direction="in"/>
+			<arg type="v" name="nets_orig" direction="in"/>
+			<arg type="u" name="nr_nets_orig" direction="in"/>
+			<arg type="i" name="result" direction="out"/>
+		</method>
+		<method name="vpn_unblock_networks">
+			<arg type="i" name="result" direction="out"/>
+		</method>
+	</interface>
+</node>
+

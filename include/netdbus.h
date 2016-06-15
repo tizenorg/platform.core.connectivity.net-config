@@ -61,6 +61,8 @@ extern "C" {
 #define NETCONFIG_NETWORK_STATISTICS_PATH	"/net/netconfig/network_statistics"
 #define NETCONFIG_NETWORK_PATH			"/net/netconfig/network"
 #define NETCONFIG_NETWORK_INTERFACE		"net.netconfig.network"
+#define NETCONFIG_VPNSVC_PATH		"/net/netconfig/vpnsvc"
+#define NETCONFIG_VPNSVC_INTERFACE	"net.netconfig.vpnsvc"
 
 #define DBUS_PATH_MAX_BUFLEN		512
 #define DBUS_STATE_MAX_BUFLEN		64
@@ -75,6 +77,7 @@ typedef void (*got_name_cb)(void);
 GDBusObjectManagerServer	*netdbus_get_wifi_manager(void);
 GDBusObjectManagerServer	*netdbus_get_state_manager(void);
 GDBusObjectManagerServer	*netdbus_get_statistics_manager(void);
+GDBusObjectManagerServer	*netdbus_get_vpn_manager(void);
 
 GDBusConnection				*netdbus_get_connection(void);
 GCancellable				*netdbus_get_cancellable(void);

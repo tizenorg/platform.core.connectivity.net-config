@@ -998,6 +998,13 @@ static gboolean handle_check_profile_privilege(Network *object,
 	return TRUE;
 }
 
+static gboolean handle_check_internet_privilege(Network *object,
+		GDBusMethodInvocation *context)
+{
+	network_complete_check_internet_privilege(object, context);
+	return TRUE;
+}
+
 gboolean handle_ethernet_cable_state(Network *object,
 	GDBusMethodInvocation *context)
 {
@@ -1038,6 +1045,8 @@ void state_object_create_and_init(void)
 				G_CALLBACK(handle_check_get_privilege), NULL);
 	g_signal_connect(netconfigstate, "handle-check-profile-privilege",
 				G_CALLBACK(handle_check_profile_privilege), NULL);
+	g_signal_connect(netconfigstate, "handle-check-internet-privilege",
+				G_CALLBACK(handle_check_internet_privilege), NULL);
 	g_signal_connect(netconfigstate, "handle-ethernet-cable-state",
 				G_CALLBACK(handle_ethernet_cable_state), NULL);
 	g_signal_connect(netconfigstate, "handle-remove-route",

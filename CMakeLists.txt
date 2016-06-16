@@ -91,7 +91,6 @@ ENDIF(TIZEN_DEBUG_DISABLE)
 
 INCLUDE(FindPkgConfig)
 PKG_CHECK_MODULES(pkgs REQUIRED
-	aul
 	dlog
 	tapi
 	vconf

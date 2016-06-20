@@ -36,15 +36,6 @@ extern "C" {
 
 #define MAX_SIZE_ERROR_BUFFER 256
 
-#if defined TIZEN_WEARABLE
-typedef enum {
-	WC_POPUP_TYPE_SESSION_OVERLAPPED,
-	WC_POPUP_TYPE_WIFI_CONNECTED,
-	WC_POPUP_TYPE_CAPTIVE_PORTAL,
-	WC_POPUP_TYPE_WIFI_RESTRICT
-}netconfig_wcpopup_type_e;
-#endif
-
 GKeyFile *netconfig_keyfile_load(const char *pathname);
 void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname);
 
@@ -82,10 +73,6 @@ int netconfig_send_message_to_net_popup(const char *title,
 int netconfig_send_restriction_to_net_popup(const char *title,
 		const char *type, const char *restriction);
 void netconfig_set_system_event(const char * sys_evt, const char * evt_key, const char * evt_val);
-#if defined TIZEN_WEARABLE
-int wc_launch_syspopup(netconfig_wcpopup_type_e type);
-int wc_launch_popup(netconfig_wcpopup_type_e type);
-#endif
 void netconfig_set_vconf_int(const char * key, int value);
 void netconfig_set_vconf_str(const char * key, const char * value);
 int netconfig_vconf_get_int(const char * key, int *value);

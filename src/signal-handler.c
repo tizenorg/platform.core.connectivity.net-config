@@ -529,8 +529,8 @@ static void _supplicant_session_overlapped(GDBusConnection *conn,
 {
 	DBG("Driver session overlapped handling!");
 	ERR("WPS PBC SESSION OVERLAPPED");
-#if defined TIZEN_WEARABLE
-	wc_launch_syspopup(WC_POPUP_TYPE_SESSION_OVERLAPPED);
+#if defined TIZEN_WEARABLE 
+	return;
 #else
 	netconfig_send_message_to_net_popup("WPS Error",
 					"wps session overlapped", "popup", NULL);

@@ -400,7 +400,6 @@ static gboolean is_monitor_notifier_registered = FALSE;
 
 #if defined TIZEN_WEARABLE
 static gboolean is_portal_msg_shown = FALSE;
-static guint portal_msg_timer = 0;
 #endif
 
 struct poll_timer_data {
@@ -530,18 +529,6 @@ static gboolean __netconfig_wifi_portal_login_timeout(gpointer data)
 	return FALSE;
 }
 
-#if defined TIZEN_WEARABLE
-static gboolean __netconfig_display_portal_msg(gpointer data)
-{
-	DBG("");
-	wc_launch_popup(WC_POPUP_TYPE_CAPTIVE_PORTAL);
-
-	netconfig_stop_timer(&portal_msg_timer);
-
-	return FALSE;
-}
-#endif
-
 static void __netconfig_wifi_portal_login_timer_start(struct poll_timer_data
 		*data)
 {
@@ -593,17 +580,7 @@ gboolean handle_request_browser(NetConnmanAgent *connman_agent,
 		is_monitor_notifier_registered = TRUE;
 	}
 
-#if defined TIZEN_WEARABLE
-	if (is_portal_msg_shown) {
-		net_connman_agent_complete_request_browser(connman_agent, context);
-		return TRUE;
-	}
-
-	is_portal_msg_shown = TRUE;
-	netconfig_start_timer_seconds(4, __netconfig_display_portal_msg, NULL, &portal_msg_timer);
-#else
 	ret = netconfig_send_notification_to_net_popup(NETCONFIG_ADD_PORTAL_NOTI, ssid);
-#endif
 
 	timer_data.time_elapsed = 0;
 	__netconfig_wifi_portal_login_timer_start(&timer_data);

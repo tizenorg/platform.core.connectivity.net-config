@@ -47,11 +47,6 @@
 #define WLAN_SUPPLICANT_SCRIPT		"/usr/sbin/wpa_supp.sh"
 #define P2P_SUPPLICANT_SCRIPT		"/usr/sbin/p2p_supp.sh"
 
-#if defined TIZEN_WEARABLE
-#include <weconn.h>
-static weconn_h weconn_handle = NULL;
-#endif
-
 #define VCONF_WIFI_OFF_STATE_BY_AIRPLANE	"file/private/wifi/wifi_off_by_airplane"
 #define VCONF_WIFI_OFF_STATE_BY_RESTRICTED	"file/private/wifi/wifi_off_by_restricted"
 #define VCONF_WIFI_OFF_STATE_BY_EMERGENCY	"file/private/wifi/wifi_off_by_emergency"
@@ -427,19 +422,6 @@ int netconfig_wifi_on_wearable(gboolean device_picker_test)
 	int err = 0;
 	int wifi_use;
 	int ps_mode;
-	enum netconfig_wifi_tech_state wifi_tech_state;
-	weconn_service_state_e weconn_state;
-
-	wifi_tech_state = wifi_state_get_technology_state();
-	if (wifi_tech_state >= NETCONFIG_WIFI_TECH_POWERED)
-		return -EALREADY;
-
-	err = weconn_get_service_state(weconn_handle, W_SERVICE_TYPE_BT,
-			&weconn_state);
-	if (err == 0 && weconn_state == W_SERVICE_STATE_CONNECTED) {
-		WARN("Not permitted Wi-Fi on");
-		return -EPERM;
-	}
 
 	if (netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use) < 0) {
 		ERR("Fail to get VCONF_WIFI_WEARABLE_WIFI_USE");
@@ -473,47 +455,10 @@ int netconfig_wifi_on_wearable(gboolean device_picker_test)
 	return err;
 }
 
-static void __weconn_service_state_changed_cb(weconn_service_state_e state, void *user_data)
-{
-	if (state == W_SERVICE_STATE_CONNECTED) {
-		DBG("SAP is connected");
-		if (wifi_state > VCONFKEY_WIFI_OFF)
-			wifi_power_off();
-	} else if (state == W_SERVICE_STATE_DISCONNECTED) {
-		DBG("SAP is disconnected");
-		wifi_power_on_wearable(FALSE);
-	}
-}
-
-static int _weconn_set_state_changed_cb(int service_type, void *user_data)
-{
-	int ret;
-
-	if (weconn_handle) {
-		weconn_destroy(weconn_handle);
-		weconn_handle = NULL;
-	}
-
-	ret = weconn_create(&weconn_handle);
-	if (ret < 0) {
-		ERR("Failed weconn_create(%d)", ret);
-		return -1;
-	}
-
-	ret = weconn_set_service_state_change_cb(weconn_handle, __weconn_service_state_changed_cb, service_type, user_data);
-	if (ret < 0) {
-		ERR("Failed weconn_set_service_state_change_cb(%d)", ret);
-		return -1;
-	}
-
-	return 0;
-}
-
 static void __wearable_wifi_use_changed_cb(keynode_t* node, void* user_data)
 {
 	int wifi_state;
 	int wifi_use = 1;
-	gboolean wifi_restrict = FALSE;
 
 	if (netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state) < 0) {
 		ERR("Fail to get VCONFKEY_WIFI_STATE");
@@ -531,15 +476,7 @@ static void __wearable_wifi_use_changed_cb(keynode_t* node, void* user_data)
 			WARN("Wi-Fi is already turned on");
 			return;
 		}
-
-		wifi_restrict = netconfig_is_wifi_allowed();
-		if (wifi_restrict == FALSE) {
-			DBG("launch wifi restrict popup");
-			netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 0);
-			wc_launch_syspopup(WC_POPUP_TYPE_WIFI_RESTRICT);
-		} else {
-			wifi_power_on_wearable(TRUE);
-		}
+		wifi_power_on_wearable(TRUE);
 	} else {
 		ERR("## wifi use [OFF]");
 		if (wifi_state == VCONFKEY_WIFI_OFF) {
@@ -986,17 +923,10 @@ int wifi_power_on_wearable(gboolean device_picker_test)
 	int err = 0;
 	int wifi_use = 1;
 	wifi_tech_state_e tech_state;
-	weconn_service_state_e weconn_state;
 
 	tech_state = wifi_state_get_technology_state();
 	if (tech_state >= NETCONFIG_WIFI_TECH_POWERED)
 		return -EALREADY;
-
-	err = weconn_get_service_state(weconn_handle, W_SERVICE_TYPE_BT, &weconn_state);
-	if (err == 0 && weconn_state == W_SERVICE_STATE_CONNECTED) {
-		WARN("Not permitted Wi-Fi on");
-		return -EPERM;
-	}
 
 	if (netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use) < 0) {
 		ERR("Fail to get VCONF_WIFI_WEARABLE_WIFI_USE");
@@ -1055,7 +985,6 @@ void wifi_power_initialize(void)
 	}
 
 #if defined TIZEN_WEARABLE
-	_weconn_set_state_changed_cb(W_SERVICE_TYPE_BT, NULL);
 	vconf_notify_key_changed(VCONF_WIFI_WEARABLE_WIFI_USE, __wearable_wifi_use_changed_cb, NULL);
 
 #if defined TIZEN_TELEPHONY_ENABLE

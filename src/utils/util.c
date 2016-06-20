@@ -17,9 +17,6 @@
  *
  */
 
-#if defined TIZEN_WEARABLE
-#include <aul.h>
-#endif
 #include <app.h>
 #include <errno.h>
 #include <vconf.h>
@@ -45,7 +42,6 @@
 #include "neterror.h"
 #include "wifi-state.h"
 
-#define WC_POPUP_EXTRA_DATA_KEY	"http://tizen.org/appcontrol/data/connection_type"
 #define MAC_INFO_FILEPATH		tzplatform_mkpath(TZ_SYS_ETC, "/.mac.info")
 #define MAC_ADDRESS_MAX_LEN		18
 
@@ -271,18 +267,11 @@ void netconfig_wifi_device_picker_service_start(void)
 	else
 		return;
 
-#if defined TIZEN_WEARABLE
-	if (aul_app_is_running("org.tizen.wifi") > 0) {
-		DBG("wifi app is running");
-		return;
-	}
-#else
 	int wifi_ug_state;
 
 	netconfig_vconf_get_int(VCONFKEY_WIFI_UG_RUN_STATE, &wifi_ug_state);
 	if (wifi_ug_state == VCONFKEY_WIFI_UG_RUN_STATE_ON_FOREGROUND)
 		return;
-#endif
 
 	DBG("Register device picker timer with %d milliseconds", NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL);
 	netconfig_start_timer(NETCONFIG_WIFI_DEVICE_PICKER_INTERVAL, __netconfig_wifi_try_device_picker, NULL, &timer_id);
@@ -937,86 +926,6 @@ void netconfig_set_system_event(const char * sys_evt, const char * evt_key, cons
 	eventsystem_send_system_event(sys_evt, b);
 	bundle_free(b);
 }
-
-#if defined TIZEN_WEARABLE
-int wc_launch_syspopup(netconfig_wcpopup_type_e type)
-{
-	int ret;
-	bundle* b;
-	char *ssid = NULL;
-
-	b = bundle_create();
-	if (!b) {
-		ERR("Failed to create bundle");
-		return -1;
-	}
-
-	switch (type) {
-	case WC_POPUP_TYPE_SESSION_OVERLAPPED:
-		bundle_add(b, "event-type", "wps-session-overlapped");
-		break;
-	case WC_POPUP_TYPE_WIFI_CONNECTED:
-		ssid = vconf_get_str(VCONFKEY_WIFI_CONNECTED_AP_NAME);
-		if (ssid == NULL) {
-			ERR("Failed to get connected ap ssid");
-			ssid = g_strdup(" ");
-		}
-		bundle_add(b, "event-type", "wifi-connected");
-		bundle_add(b, "ssid", ssid);
-		if (ssid)
-			g_free(ssid);
-		break;
-	case WC_POPUP_TYPE_WIFI_RESTRICT:
-		bundle_add(b, "event-type", "wifi-restrict");
-		break;
-	default:
-		ERR("Popup is not supported[%d]", type);
-		bundle_free(b);
-		return -1;
-	}
-
-	ret = syspopup_launch("wc-syspopup", b);
-	if (ret < 0)
-		ERR("Failed to launch syspopup");
-
-	bundle_free(b);
-	return ret;
-}
-
-int wc_launch_popup(netconfig_wcpopup_type_e type)
-{
-	int ret;
-	app_control_h app_control = NULL;
-
-	ret = app_control_create(&app_control);
-	if (ret != APP_CONTROL_ERROR_NONE) {
-		ERR("Failed to create appcontrol[%d]", ret);
-		return -1;
-	}
-
-	switch (type) {
-	case WC_POPUP_TYPE_CAPTIVE_PORTAL:
-		app_control_add_extra_data(app_control, WC_POPUP_EXTRA_DATA_KEY, "captive-portal");
-		break;
-	default:
-		ERR("Popup is not supported[%d]", type);
-		app_control_destroy(app_control);
-		return -1;
-	}
-
-	app_control_set_app_id(app_control, "com.samsung.weconn-popup");
-	ret = app_control_send_launch_request(app_control, NULL, NULL);
-	if (ret != APP_CONTROL_ERROR_NONE) {
-		DBG("failed appcontrol launch request [%d]", ret);
-		app_control_destroy(app_control);
-		return -1;
-	}
-
-	app_control_destroy(app_control);
-
-	return 0;
-}
-#endif
 
 void netconfig_set_vconf_int(const char * key, int value)
 {

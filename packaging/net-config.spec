@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.76
+Version:	1.1.77
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -48,7 +48,7 @@ cmake -DCMAKE_INSTALL_PREFIX=%{_prefix} \
 	-DTIZEN_TETHERING_ENABLE=1 \
 %endif
 %if "%{profile}" == "mobile"
-        -DTIZEN_TELEPHONY_ENABLE=1 \
+    -DTIZEN_TELEPHONY_ENABLE=1 \
 	-DTIZEN_WLAN_BOARD_SPRD=1 \
 %else
 %if "%{profile}" == "tv"

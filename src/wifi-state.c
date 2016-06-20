@@ -587,9 +587,6 @@ void wifi_state_set_service_state(wifi_service_state_e new_state)
 
 	if (new_state == NETCONFIG_WIFI_CONNECTED) {
 		_wifi_state_connected_activation();
-#if defined TIZEN_WEARABLE
-		wc_launch_syspopup(WC_POPUP_TYPE_WIFI_CONNECTED);
-#endif
 	}
 }
 
@@ -677,9 +674,6 @@ wifi_tech_state_e wifi_state_get_technology_state(void)
 void wifi_state_set_connected_essid(void)
 {
 	__set_wifi_connected_essid();
-#if defined TIZEN_WEARABLE
-	wc_launch_syspopup(WC_POPUP_TYPE_WIFI_CONNECTED);
-#endif
 }
 
 void wifi_state_get_connected_essid(gchar **essid)

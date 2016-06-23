@@ -62,6 +62,7 @@ GKeyFile *netconfig_keyfile_load(const char *pathname)
 		keyfile = NULL;
 	}
 
+	DBG("loaded keyfile %s", pathname);
 	return keyfile;
 }
 
@@ -80,6 +81,7 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 
 	if (directory == NULL || (*directory) == '\0') {
 		g_free(directory);
+		ERR("directory is NULL");
 		return;
 	}
 
@@ -87,6 +89,7 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 		if (g_mkdir_with_parents(directory,
 				S_IRUSR | S_IWUSR | S_IXUSR) != 0) {
 			g_free(directory);
+			ERR("failed to make directory");
 			return;
 		}
 	}
@@ -94,11 +97,12 @@ void netconfig_keyfile_save(GKeyFile *keyfile, const char *pathname)
 
 	keydata = g_key_file_to_data(keyfile, &size, &error);
 	if (g_file_set_contents(pathname, keydata, size, &error) != TRUE) {
-		DBG("Unable to save %s, error %s", pathname, error->message);
+		ERR("Unable to save %s, error %s", pathname, error->message);
 		g_error_free(error);
 	}
 
 	chmod(pathname, S_IRUSR | S_IWUSR);
+	DBG("Successfully saved keyfile %s", pathname);
 
 	g_free(keydata);
 }

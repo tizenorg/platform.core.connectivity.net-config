@@ -26,13 +26,28 @@ extern "C" {
 
 #include "wifi.h"
 
+/* WPS Errors */
+#define WPS_CFG_NO_ERROR 0
+#define WPS_CFG_MSG_TIMEOUT 16
+#define WPS_EI_NO_ERROR 0
+#define WPS_EI_OPERATION_FAILED 1
+
 gboolean netconfig_wifi_is_wps_enabled(void);
 
 void netconfig_wifi_wps_signal_scandone(void);
 void netconfig_wifi_wps_signal_scanaborted(void);
 
 gboolean handle_request_wps_scan(Wifi *wifi, GDBusMethodInvocation *context);
-gboolean netconfig_iface_wifi_request_wps_cancel(Wifi *wifi, GDBusMethodInvocation **context);
+gboolean handle_request_wps_connect(Wifi *wifi, GDBusMethodInvocation *context, gchar *param);
+gboolean handle_request_wps_cancel(Wifi *wifi, GDBusMethodInvocation *context);
+void netconfig_wifi_notify_wps_completed(const char *ssid);
+void netconfig_wifi_notify_wps_fail_event(int config_error, int error_indication);
+void netconfig_wifi_notify_wps_credentials(const char *ssid, const char *wps_key);
+gboolean netconfig_get_wps_field();
+
+#if defined TIZEN_TV
+gboolean netconfig_wifi_wps_connect();
+#endif
 
 #ifdef __cplusplus
 }

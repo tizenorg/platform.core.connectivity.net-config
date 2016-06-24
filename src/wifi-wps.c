@@ -51,6 +51,15 @@ struct wps_bss_info_t {
 	int mode;
 };
 
+#if defined TIZEN_TV
+struct netconfig_wifi_wps {
+	char *pin;
+	gboolean pbc;
+};
+
+static struct netconfig_wifi_wps wifi_wps;
+#endif
+
 static GSList *wps_bss_info_list = NULL;
 
 static void __netconfig_wps_set_mode(gboolean enable)
@@ -64,6 +73,82 @@ static void __netconfig_wps_set_mode(gboolean enable)
 gboolean netconfig_wifi_is_wps_enabled(void)
 {
 	return netconfig_is_wps_enabled;
+}
+
+
+void netconfig_wifi_notify_wps_credentials(const char *ssid, const char *wps_key)
+{
+	GVariantBuilder *builder;
+	GVariant *params;
+	const char *sig_name = "WpsCredentials";
+	const char *prop_ssid = "ssid";
+	const char *prop_key = "key";
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
+	g_variant_builder_add(builder, "{sv}", prop_ssid, g_variant_new_string(ssid));
+	g_variant_builder_add(builder, "{sv}", prop_key, g_variant_new_string(wps_key));
+
+	params = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
+	g_variant_builder_unref(builder);
+
+	netconfig_dbus_emit_signal(NULL,
+				NETCONFIG_WIFI_PATH,
+				NETCONFIG_WIFI_INTERFACE,
+				sig_name,
+				params);
+
+	INFO("Sent signal (%s)", sig_name);
+	return;
+}
+
+void netconfig_wifi_notify_wps_completed(const char *ssid)
+{
+	GVariantBuilder *builder;
+	GVariant *params;
+	const char *sig_name = "WpsCompleted";
+	const char *prop_ssid = "ssid";
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
+	g_variant_builder_add(builder, "{sv}", prop_ssid, g_variant_new_string(ssid));
+
+	params = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
+	g_variant_builder_unref(builder);
+
+	netconfig_dbus_emit_signal(NULL,
+				NETCONFIG_WIFI_PATH,
+				NETCONFIG_WIFI_INTERFACE,
+				sig_name,
+				params);
+
+	INFO("Sent signal (%s)", sig_name);
+	return;
+}
+
+void netconfig_wifi_notify_wps_fail_event(int config_error, int error_indication)
+{
+	GVariantBuilder *builder;
+	GVariant *params;
+	const char *sig_name = "WpsFailEvent";
+	const char *prop_config_error = "config_error";
+	const char *prop_error_indication = "error_indication";
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
+	g_variant_builder_add(builder, "{sv}", prop_config_error,
+				g_variant_new_int32(config_error));
+	g_variant_builder_add(builder, "{sv}", prop_error_indication,
+				g_variant_new_int32(error_indication));
+
+	params = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
+	g_variant_builder_unref(builder);
+
+	netconfig_dbus_emit_signal(NULL,
+				NETCONFIG_WIFI_PATH,
+				NETCONFIG_WIFI_INTERFACE,
+				sig_name,
+				params);
+
+	INFO("Sent signal (%s)", sig_name);
+	return;
 }
 
 static void __netconfig_wifi_wps_notify_scan_done(void)
@@ -540,6 +625,126 @@ gboolean handle_request_wps_scan(Wifi *wifi, GDBusMethodInvocation *context)
 }
 
 #if defined TIZEN_TV
+
+static void interface_wps_start_result(GObject *source_object,
+			GAsyncResult *res, gpointer user_data)
+{
+	GVariant *reply;
+	GDBusConnection *conn = NULL;
+	GError *error = NULL;
+
+	conn = G_DBUS_CONNECTION (source_object);
+	reply = g_dbus_connection_call_finish(conn, res, &error);
+
+	if (reply == NULL) {
+		if (error != NULL) {
+			ERR("Fail to request status [%d: %s]",
+					error->code, error->message);
+			g_error_free(error);
+		} else
+			ERR("Fail to request status");
+	} else
+		DBG("Successfully M/W--->WPAS: Interface.WPS.Start Method");
+
+	g_variant_unref(reply);
+	netconfig_gdbus_pending_call_unref();
+}
+
+static void __netconfig_wifi_invoke_wps_connect(GObject *source_object,
+			GAsyncResult *res, gpointer user_data)
+{
+	GVariant *message = NULL;
+	GVariantBuilder *builder = NULL;
+	const char *role = "enrollee", *type, *key;
+	const char *if_path = NULL;
+	gboolean reply = FALSE;
+
+	if (if_path == NULL)
+		if_path = netconfig_wifi_get_supplicant_interface();
+
+	if (if_path == NULL) {
+		DBG("Fail to get wpa_supplicant DBus path");
+		return;
+	}
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE ("a{sv}"));
+
+	key = "Role";
+	g_variant_builder_add(builder, "{sv}", key, g_variant_new_string(role));
+
+	key = "Type";
+	if (wifi_wps.pbc == TRUE)
+		type = "pbc";
+	else
+		type = "pin";
+	g_variant_builder_add(builder, "{sv}", key, g_variant_new_string(type));
+
+	if (wifi_wps.pin != NULL) {
+		key="Pin";
+		g_variant_builder_add(builder, "{sv}", key,
+					g_variant_new_string(wifi_wps.pin));
+	}
+	message = g_variant_new("(@a{sv})", g_variant_builder_end(builder));
+	g_variant_builder_unref(builder);
+
+	DBG("[net-config]: TizenMW-->WPAS: .Interface.WPS.Start");
+        reply = netconfig_supplicant_invoke_dbus_method_nonblock(
+			SUPPLICANT_SERVICE,
+                        if_path,
+			SUPPLICANT_IFACE_WPS,
+			"Start",
+                        message,
+			(GAsyncReadyCallback) interface_wps_start_result);
+
+	if (reply != TRUE)
+		ERR("Fail to Scan");
+
+	return;
+}
+
+static gboolean __netconfig_wifi_invoke_wps_process_credentials(
+							const char *object_path)
+{
+	gboolean reply = FALSE;
+	GVariant *params = NULL;
+	const char *interface = SUPPLICANT_IFACE_WPS;
+	const char *key = "ProcessCredentials";
+	gboolean credentials = TRUE;
+	GVariant *var = NULL;
+
+	 var = g_variant_new_boolean(credentials);
+	params = g_variant_new("(ssv)", interface, key, var);
+
+	ERR("[net-config]: TizenMW-->WPAS: .Set");
+	reply = netconfig_invoke_dbus_method_nonblock(SUPPLICANT_SERVICE,
+			object_path, DBUS_INTERFACE_PROPERTIES,
+			"Set", params, __netconfig_wifi_invoke_wps_connect);
+
+	if (reply != TRUE)
+		ERR("M/W--->WPAS: Interface.WPS.Set Method Failed");
+
+	return reply;
+}
+
+gboolean netconfig_wifi_wps_connect()
+{
+	const char *if_path = NULL;
+
+	if_path = netconfig_wifi_get_supplicant_interface();
+	if (if_path == NULL) {
+		DBG("Fail to get wpa_supplicant DBus path");
+		 return FALSE;
+	}
+
+	if (__netconfig_wifi_invoke_wps_process_credentials(if_path) == TRUE) {
+		ERR("Wi-Fi WPS Connect started");
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static void __interface_wps_cancel_result(GObject *source_object,
 			GAsyncResult *res, gpointer user_data)
 {
@@ -547,7 +752,7 @@ static void __interface_wps_cancel_result(GObject *source_object,
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION(source_object);
+	conn = G_DBUS_CONNECTION (source_object);
 	reply = g_dbus_connection_call_finish(conn, res, &error);
 
 	if (reply == NULL) {
@@ -588,16 +793,59 @@ static gboolean __netconfig_wifi_invoke_wps_cancel()
 
 	return reply;
 }
+
+gboolean netconfig_get_wps_field()
+{
+	return wifi_wps.pbc;
+}
 #endif
 
-gboolean netconfig_iface_wifi_request_wps_cancel(Wifi *wifi, GDBusMethodInvocation **context)
+gboolean handle_request_wps_cancel(Tv_profile *tv_profile,
+				   GDBusMethodInvocation *context)
 {
 #if defined TIZEN_TV
-	DBG("Received WPS PBC Cancel Request");
-	g_return_val_if_fail(wifi != NULL, FALSE);
-	return __netconfig_wifi_invoke_wps_cancel();
+	ERR("Received WPS PBC Cancel Request");
+	g_return_val_if_fail(tv_profile != NULL, FALSE);
+	__netconfig_wifi_invoke_wps_cancel();
+
+	tv_profile_complete_request_wps_connect(tv_profile, context);
+	return TRUE;
 #else
 	/*Not supported for mobile and Wearable profile*/
+	tv_profile_complete_request_wps_connect(tv_profile, context);
+	return FALSE;
+#endif
+}
+
+gboolean handle_request_wps_connect(Tv_profile *tv_profile,
+				    GDBusMethodInvocation *context,
+					gchar *param)
+{
+#if defined TIZEN_TV
+
+	ERR("Received WPS PBC/PIN Connection Request");
+
+	g_return_val_if_fail(tv_profile != NULL, FALSE);
+
+	/* Checking the value of pin if param have a string "PBC"
+	 * in that scenario PBC will trigger otherwise PIN Connection */
+
+	if (g_strcmp0(param, "PBC") == 0){
+		wifi_wps.pbc = TRUE;
+		wifi_wps.pin = NULL;
+	} else {
+		wifi_wps.pin = g_strdup(param);
+		wifi_wps.pbc = FALSE;
+	}
+
+	netconfig_wifi_wps_connect();
+
+	tv_profile_complete_request_wps_connect(tv_profile, context);
+	return TRUE;
+#else
+	/*Tizen Mobile & Wearable Profile does not support
+		this feature*/
+	tv_profile_complete_request_wps_connect(tv_profile, context);
 	return FALSE;
 #endif
 }

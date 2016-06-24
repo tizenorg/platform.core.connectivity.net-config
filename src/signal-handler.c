@@ -53,12 +53,17 @@
 #define SIGNAL_TDLS_CONNECTED				"TDLSConnected"
 #define SIGNAL_TDLS_DISCONNECTED			"TDLSDisconnected"
 #define SIGNAL_TDLS_PEER_FOUND				"TDLSPeerFound"
+
+#define SIGNAL_WPS_CONNECTED				"WPSConnected"
+#define SIGNAL_WPS_EVENT					"Event"
+#define SIGNAL_WPS_CREDENTIALS				"Credentials"
+
 #define CONNMAN_SIGNAL_SERVICES_CHANGED		"ServicesChanged"
 #define CONNMAN_SIGNAL_PROPERTY_CHANGED		"PropertyChanged"
 #define CONNMAN_SIGNAL_NAME_CHANGED		"NameOwnerChanged"
 
 #define MAX_SIG_LEN 64
-#define TOTAL_CONN_SIGNALS 4
+#define TOTAL_CONN_SIGNALS 5
 
 typedef enum {
 	SIG_INTERFACE_REMOVED = 0,
@@ -565,6 +570,193 @@ static void _supplicant_tdls_peer_found(GDBusConnection *conn,
 	return;
 }
 
+static void _supplicant_wifi_wps_connected(GVariant *param)
+{
+	gchar *key;
+	char ssid[32] = {0, };
+	gchar *name;
+	GVariantIter *iter;
+	GVariant *variant;
+	int config_error = 0;
+	int error_indication = 0;
+	gsize ssid_len;
+
+	if (param == NULL) {
+		ERR("Param is NULL");
+		return;
+	}
+
+	g_variant_get(param, "(sa{sv})", &name, &iter);
+	ERR("wps Result: %s", name);
+	while (g_variant_iter_loop(iter, "{sv}", &key, &variant)) {
+		INFO("wps Key is %s",key);
+		if (g_strcmp0(key, "SSID") == 0) {
+			const char *t_key = NULL;
+			ssid_len = g_variant_get_size(variant);
+			INFO("wps ssid_len is %d ", ssid_len);
+			t_key = g_variant_get_fixed_array(variant, &ssid_len, sizeof(guchar));
+			if(t_key == NULL) {
+				g_free(key);
+				g_variant_unref(variant);
+				ERR("WPS PBC Connection Failed");
+				goto error;
+			} else {
+				strncpy(ssid, t_key, ssid_len);
+				ssid[ssid_len] = '\0';
+				ERR("WPS PBC Connection completed with AP %s", ssid);
+				netconfig_wifi_notify_wps_completed(ssid);
+			}
+		}
+	}
+
+	g_variant_iter_free(iter);
+	g_free(name);
+	return;
+
+error:
+	g_variant_iter_free(iter);
+	g_free(name);
+	error_indication = WPS_EI_OPERATION_FAILED;
+	config_error = WPS_CFG_NO_ERROR;
+	ERR("Error Occured! Notifying Fail Event");
+	netconfig_wifi_notify_wps_fail_event(config_error, error_indication);
+
+}
+
+static void _supplicant_wifi_wps_event(GVariant *param)
+{
+	gchar *key;
+	gchar *name;
+	GVariantIter *iter;
+	GVariant *variant;
+	gint32 config_error = 0;
+	gint32 error_indication = 0;
+
+	if (param == NULL) {
+		ERR("Param is NULL");
+		return;
+	}
+
+	g_variant_get(param, "(sa{sv})", &name, &iter);
+	ERR("Event Result: %s", name);
+	if(g_strcmp0(name, "failed") == 0) {
+		while (g_variant_iter_loop(iter, "{sv}", &key, &variant)) {
+			if (key == NULL)
+				goto error;
+			ERR("Key is %s",key);
+			if (g_strcmp0(key, "config_error") == 0) {
+				config_error = g_variant_get_int32(variant);
+				ERR("Config Error %d", config_error);
+			} else if (g_strcmp0(key, "error_indication") == 0) {
+				error_indication = g_variant_get_int32(variant);
+				ERR("Error Indication %d", error_indication);
+			}
+		}
+		netconfig_wifi_notify_wps_fail_event(config_error, error_indication);
+	}
+
+	g_variant_iter_free(iter);
+	g_free(name);
+	return;
+
+error:
+	g_variant_iter_free(iter);
+	g_free(name);
+	error_indication = WPS_EI_OPERATION_FAILED;
+	config_error = WPS_CFG_NO_ERROR;
+	ERR("Error Occured! Notifying Fail Event");
+	netconfig_wifi_notify_wps_fail_event(config_error, error_indication);
+}
+
+static void _supplicant_wifi_wps_credentials(GVariant *param)
+{
+	gchar *key;
+	char ssid[32];
+	char wps_key[100];
+	GVariantIter *iter;
+	GVariant *variant;
+	int config_error = 0;
+	int error_indication = 0;
+
+	if (param == NULL) {
+		ERR("Param is NULL");
+		return;
+	}
+
+	g_variant_get(param, "(a{sv})", &iter);
+	while (g_variant_iter_loop(iter, "{sv}", &key, &variant)) {
+		if (key == NULL)
+			goto error;
+		ERR("wps Key is %s",key);
+		if (g_strcmp0(key, "Key") == 0) {
+			gsize key_len =0;
+			const char *t_key = NULL;
+			key_len = g_variant_get_size(variant);
+
+			ERR("wps password len %d ", key_len);
+			if(key_len > 0){
+				t_key = g_variant_get_fixed_array(variant, &key_len, sizeof(guchar));
+				if (!t_key) {
+					g_free(key);
+					g_variant_unref(variant);
+					goto error;
+				}
+				strncpy(wps_key, t_key, key_len);
+				wps_key[key_len] = '\0';
+				ERR("WPS Key in process credentials %s", wps_key);
+			} else
+				SLOGI("WPS AP Security ->Open");
+		} else if (g_strcmp0(key, "SSID") == 0) {
+			const char *t_key = NULL;
+			gsize ssid_len = g_variant_get_size(variant);
+			ERR("wps ssid_len is %d ", ssid_len);
+			t_key = g_variant_get_fixed_array(variant, &ssid_len, sizeof(guchar));
+			if (!t_key) {
+				g_free(key);
+				g_variant_unref(variant);
+				goto error;
+			}
+			strncpy(ssid, t_key, ssid_len);
+			ssid[ssid_len] = '\0';
+			ERR("SSID in process credentials %s", ssid);
+		}
+	}
+
+	g_variant_iter_free(iter);
+	/*
+	 * Notify WPS Credentials only when requested through WPS PBC
+	 * In case of WPS PIN connman will take care of notification
+	 */
+	if(netconfig_get_wps_field() == TRUE)
+		netconfig_wifi_notify_wps_credentials(ssid, wps_key);
+	return;
+
+error:
+	g_variant_iter_free(iter);
+	error_indication = WPS_EI_OPERATION_FAILED;
+	config_error = WPS_CFG_NO_ERROR;
+	ERR("Error Occured! Notifying Fail Event");
+	netconfig_wifi_notify_wps_fail_event(config_error, error_indication);
+}
+
+static void __netconfig_wps_signal_filter_handler(GDBusConnection *conn,
+		const gchar *name, const gchar *path, const gchar *interface,
+		const gchar *sig, GVariant *param, gpointer user_data)
+{
+	if (g_strcmp0(sig, SIGNAL_WPS_CREDENTIALS) == 0) {
+		ERR("Received wps CREDENTIALS Signal from Supplicant");
+		_supplicant_wifi_wps_credentials(param);
+	} else if (g_strcmp0(sig, SIGNAL_WPS_EVENT) == 0) {
+		ERR("Received wps EVENT Signal from Supplicant");
+		_supplicant_wifi_wps_event(param);
+	} else if (g_strcmp0(sig, SIGNAL_WPS_CONNECTED) == 0) {
+		ERR("Received WPSConnected Signal from Supplicant");
+		_supplicant_wifi_wps_connected(param);
+	}
+
+	return;
+}
+
 static supplicant_signal_cb supplicant_cbs[SIG_MAX] = {
 		_supplicant_interface_removed,
 		_supplicant_properties_changed,
@@ -661,6 +853,20 @@ void register_gdbus_signal(void)
 			NULL);
 
 	INFO("Successfully register connman DBus signal filters");
+
+	conn_subscription_ids[4] = g_dbus_connection_signal_subscribe(
+			connection,
+			SUPPLICANT_SERVICE,
+			SUPPLICANT_INTERFACE ".Interface.WPS",
+			NULL,
+			NULL,
+			NULL,
+			G_DBUS_SIGNAL_FLAGS_NONE,
+			__netconfig_wps_signal_filter_handler,
+			NULL,
+			NULL);
+
+	INFO("Successfully register Supplicant WPS DBus signal filters");
 
 	for (sig = SIG_INTERFACE_REMOVED; sig < SIG_MAX; sig++) {
 		/*

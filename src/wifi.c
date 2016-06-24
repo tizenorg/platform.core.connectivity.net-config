@@ -160,6 +160,12 @@ void wifi_object_create_and_init(void)
 	g_signal_connect(wifi_object, "handle-request-wps-scan",
 			G_CALLBACK(handle_request_wps_scan), NULL);
 
+	/* WPS Connect */
+	g_signal_connect(wifi_object, "handle-request-wps-connect",
+			G_CALLBACK(handle_request_wps_connect), NULL);
+	g_signal_connect(wifi_object, "handle-request-wps-cancel",
+			G_CALLBACK(handle_request_wps_cancel), NULL);
+
 	/* WIFI direct */
 	g_signal_connect(wifi_object, "handle-launch-direct",
 			G_CALLBACK(handle_launch_direct), NULL);

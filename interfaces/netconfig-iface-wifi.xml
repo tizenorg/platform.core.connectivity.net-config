@@ -27,6 +27,11 @@
 		</method>
 		<method name="RequestWpsScan">
 		</method>
+		<method name="RequestWpsCancel">
+		</method>
+		<method name="RequestWpsConnect">
+			<arg type="s" name="param" direction="in"/>
+		</method>
 		<method name="GetPasspoint">
 			<arg type="i" name="enable" direction="out"/>
 		</method>

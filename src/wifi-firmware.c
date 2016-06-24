@@ -242,9 +242,7 @@ int netconfig_wifi_firmware(enum netconfig_wifi_firmware type, gboolean enable)
 #endif
 
 #if defined WLAN_CONCURRENT_MODE
-#if defined TIZEN_TELEPHONY_ENABLE
 			netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &flight_mode);
-#endif
 			if (flight_mode == 0 && type == NETCONFIG_WIFI_STA &&
 					netconfig_is_wifi_direct_on() == TRUE) {
 				netconfig_interface_down(WIFI_IFNAME);

@@ -487,99 +487,7 @@ static void __wearable_wifi_use_changed_cb(keynode_t* node, void* user_data)
 		wifi_power_off();
 	}
 }
-
-#if defined TIZEN_TELEPHONY_ENABLE
-static void __netconfig_wifi_wearable_airplane_mode(keynode_t *node,
-		void *user_data)
-{
-	int wifi_use = 0, airplane_state = 0;
-	int wifi_use_off_by_airplane = 0;
-
-	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE,
-			&wifi_use_off_by_airplane);
-
-	netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_use);
-
-	if (node != NULL)
-		airplane_state = vconf_keynode_get_bool(node);
-	else
-		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
-
-	DBG("airplane mode %s (prev:%d)", airplane_state > 0 ? "ON" : "OFF", airplane_mode);
-	DBG("Wi-Fi use %d, Wi-Fi was off by flight mode %s", wifi_use,
-			wifi_use_off_by_airplane ? "Yes" : "No");
-
-	if (airplane_mode == airplane_state)
-		return ;
-
-	airplane_mode = airplane_state;
-
-	if (airplane_state > 0) {
-		/* airplane mode on */
-		if (wifi_use == 0)
-			return;
-
-		netconfig_set_vconf_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, 1);
-		netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 0);
-
-	} else {
-		/* airplane mode off */
-		if (!wifi_use_off_by_airplane)
-			return;
-
-		netconfig_set_vconf_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, 0);
-		netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 1);
-	}
-}
-#endif
 #else
-#if defined TIZEN_TELEPHONY_ENABLE
-static void __netconfig_wifi_airplane_mode(keynode_t *node, void *user_data)
-{
-	int wifi_state = 0, airplane_state = 0;
-	int wifi_off_by_airplane = 0;
-
-	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, &wifi_off_by_airplane);
-
-	netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
-
-	if (node != NULL)
-		airplane_state = vconf_keynode_get_bool(node);
-	else
-		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
-
-	DBG("airplane mode %s (prev:%d)", airplane_state > 0 ? "ON" : "OFF", airplane_mode);
-	DBG("Wi-Fi state %d, Wi-Fi was off by flight mode %s", wifi_state,
-			wifi_off_by_airplane ? "Yes" : "No");
-
-	if (airplane_mode == airplane_state)
-		return ;
-
-	airplane_mode = airplane_state;
-
-	if (airplane_state > 0) {
-		/* airplane mode on */
-		if (wifi_state == VCONFKEY_WIFI_OFF)
-			return;
-
-		wifi_power_off();
-
-		netconfig_set_vconf_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, 1);
-	} else {
-		/* airplane mode off */
-		if (!wifi_off_by_airplane)
-			return;
-
-		netconfig_set_vconf_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, 0);
-
-		if (wifi_state > VCONFKEY_WIFI_OFF)
-			return;
-
-		wifi_power_on();
-	}
-}
-#endif
-
 static void __netconfig_wifi_restrict_mode(keynode_t *node, void *user_data)
 {
 	int wifi_state = 0, restricted = 0;
@@ -620,6 +528,61 @@ static void __netconfig_wifi_restrict_mode(keynode_t *node, void *user_data)
 	}
 }
 #endif
+
+static void __netconfig_wifi_airplane_mode(keynode_t *node, void *user_data)
+{
+	int wifi_state = 0, airplane_state = 0;
+	int wifi_off_by_airplane = 0;
+
+	netconfig_vconf_get_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, &wifi_off_by_airplane);
+
+#if defined TIZEN_WEARABLE
+	netconfig_vconf_get_int(VCONF_WIFI_WEARABLE_WIFI_USE, &wifi_state)
+#else
+	netconfig_vconf_get_int(VCONFKEY_WIFI_STATE, &wifi_state);
+#endif
+
+	if (node != NULL)
+		airplane_state = vconf_keynode_get_bool(node);
+	else
+		netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_state);
+
+	DBG("airplane mode %s (prev:%d)", airplane_state > 0 ? "ON" : "OFF", airplane_mode);
+	DBG("Wi-Fi state(or use) %d, Wi-Fi was off by flight mode %s", wifi_state,
+			wifi_off_by_airplane ? "Yes" : "No");
+
+	if (airplane_mode == airplane_state)
+		return ;
+
+	airplane_mode = airplane_state;
+
+	if (airplane_state > 0) {
+		/* airplane mode on */
+		if (wifi_state == VCONFKEY_WIFI_OFF)
+			return;
+
+		wifi_power_off();
+
+		netconfig_set_vconf_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, 1);
+#if defined TIZEN_WEARABLE
+		netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 0);
+#endif
+	} else {
+		/* airplane mode off */
+		if (!wifi_off_by_airplane)
+			return;
+
+		netconfig_set_vconf_int(VCONF_WIFI_OFF_STATE_BY_AIRPLANE, 0);
+#if defined TIZEN_WEARABLE
+		netconfig_set_vconf_int(VCONF_WIFI_WEARABLE_WIFI_USE, 1);
+#else
+		if (wifi_state > VCONFKEY_WIFI_OFF)
+			return;
+
+		wifi_power_on();
+#endif
+	}
+}
 
 static void __emergency_mode_changed_cb(keynode_t *node, void *user_data)
 {
@@ -956,9 +919,7 @@ void wifi_power_initialize(void)
 	int wifi_last_power_state = 0;
 
 	/* Initialize Airplane mode */
-#if defined TIZEN_TELEPHONY_ENABLE
 	netconfig_vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &airplane_mode);
-#endif
 	DBG("Airplane[%s]", airplane_mode > 0 ? "ON" : "OFF");
 
 	/* Update the last Wi-Fi power state */
@@ -987,17 +948,13 @@ void wifi_power_initialize(void)
 #if defined TIZEN_WEARABLE
 	vconf_notify_key_changed(VCONF_WIFI_WEARABLE_WIFI_USE, __wearable_wifi_use_changed_cb, NULL);
 
-#if defined TIZEN_TELEPHONY_ENABLE
 	vconf_notify_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-			__netconfig_wifi_wearable_airplane_mode, NULL);
-#endif
+			__netconfig_wifi_airplane_mode, NULL);
 #else
 	vconf_notify_key_changed(VCONFKEY_SETAPPL_NETWORK_RESTRICT_MODE,
 			__netconfig_wifi_restrict_mode, NULL);
-#if defined TIZEN_TELEPHONY_ENABLE
 	vconf_notify_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE,
 			__netconfig_wifi_airplane_mode, NULL);
-#endif
 #endif
 
 	vconf_notify_key_changed(VCONFKEY_SETAPPL_PSMODE, __emergency_mode_changed_cb, NULL);

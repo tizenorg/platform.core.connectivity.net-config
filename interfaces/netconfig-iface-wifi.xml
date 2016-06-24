@@ -148,5 +148,8 @@
 	<interface name="net.netconfig.tv_profile">
 		<method name="RequestWpsCancel">
 		</method>
+		<method name="RequestWpsConnect">
+			<arg type="s" name="param" direction="in"/>
+		</method>
 	</interface>
 </node>

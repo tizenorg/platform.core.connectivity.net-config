@@ -48,6 +48,7 @@ static int is_wifi_firmware_downloaded = FALSE;
 static Wifi *wifi_object = NULL;
 static NetConnmanAgent *connman_agent_object = NULL;
 static WifiFirmware *wififirmware_object = NULL;
+static Tv_profile *tv_profile_object = NULL;
 
 Wifi *get_wifi_object(void){
 	return wifi_object;
@@ -128,6 +129,7 @@ void wifi_object_create_and_init(void)
 	GDBusInterfaceSkeleton *interface_wifi = NULL;
 	GDBusInterfaceSkeleton *interface_connman_agent = NULL;
 	GDBusInterfaceSkeleton *interface_wifi_firmware = NULL;
+	GDBusInterfaceSkeleton *interface_tv_profile = NULL;
 	GDBusConnection *connection = NULL;
 	GDBusObjectManagerServer *server = netdbus_get_wifi_manager();
 	if (server == NULL)
@@ -260,6 +262,21 @@ void wifi_object_create_and_init(void)
 	if (!g_dbus_interface_skeleton_export(interface_wifi_firmware, connection,
 			NETCONFIG_WIFI_PATH, NULL)) {
 		ERR("Export WIFI_PATH for firmware failed");
+	}
+
+	/* Interface netconfig.tv_profile */
+	tv_profile_object = tv_profile_skeleton_new();
+	interface_tv_profile = G_DBUS_INTERFACE_SKELETON(tv_profile_object);
+
+	/* WPS Connect */
+	g_signal_connect(tv_profile_object, "handle-request-wps-connect",
+			G_CALLBACK(handle_request_wps_connect), NULL);
+	g_signal_connect(tv_profile_object, "handle-request-wps-cancel",
+			G_CALLBACK(handle_request_wps_cancel), NULL);
+
+	if (!g_dbus_interface_skeleton_export(interface_tv_profile, connection,
+			NETCONFIG_WIFI_PATH, NULL)) {
+		ERR("Export WIFI_PATH for tv_profile failed");
 	}
 
 	_set_wifi_mac_address();

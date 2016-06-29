@@ -1,4 +1,5 @@
 #!/bin/sh
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 # $1 is passed by dump_service
 

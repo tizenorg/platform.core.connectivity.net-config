@@ -1,4 +1,5 @@
 #!/bin/sh
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 #Keep network config files
 pkg -k /var/lib/connman

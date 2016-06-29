@@ -1,4 +1,5 @@
 #!/bin/sh
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
 # Make directory for backup
 /bin/mkdir -p /opt/system/softreset_preserved/network/

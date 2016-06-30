@@ -9,6 +9,7 @@ ExecStartPre=-/usr/sbin/net-config.service
 ExecStart=/usr/sbin/net-config
 Restart=always
 CapabilityBoundingSet=~CAP_MAC_ADMIN
+CapabilityBoundingSet=~CAP_MAC_OVERRIDE
 
 [Install]
 WantedBy=multi-user.target

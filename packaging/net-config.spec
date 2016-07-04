@@ -1,6 +1,6 @@
 Name:		net-config
 Summary:	TIZEN Network Configuration service
-Version:	1.1.80
+Version:	1.1.81
 Release:	2
 Group:		System/Network
 License:	Apache-2.0
@@ -125,6 +125,7 @@ mkdir -p %{buildroot}%{_datadir}/license
 cp LICENSE %{buildroot}%{_datadir}/license/net-config
 
 %post
+chsmack -a 'System::Shared' %{_sysconfdir}/resolv.conf
 
 #Network logs
 mkdir -p /opt/usr/data/network

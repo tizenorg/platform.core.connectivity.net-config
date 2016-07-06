@@ -125,6 +125,7 @@ mkdir -p %{buildroot}%{_datadir}/license
 cp LICENSE %{buildroot}%{_datadir}/license/net-config
 
 %post
+chsmack -a 'System::Shared' %{_sysconfdir}/resolv.conf
 
 #Network logs
 mkdir -p /opt/usr/data/network

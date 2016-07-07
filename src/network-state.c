@@ -165,20 +165,36 @@ static char *__netconfig_get_default_profile(void)
 static void __netconfig_get_default_connection_info(const char *profile)
 {
 	GVariant *message = NULL, *variant = NULL, *variant2 = NULL;
-	GVariantIter *iter = NULL, *iter1 = NULL;
+	GVariantIter *iter = NULL, *iter1 = NULL,  *service = NULL;
 	GVariant *next = NULL;
+	gchar *obj_path;
 	gchar *key = NULL;
 	gchar *key1 = NULL;
 	gchar *key2 = NULL;
+	gboolean found_profile = 0;
 
-	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, profile,
-			CONNMAN_SERVICE_INTERFACE, "GetProperties", NULL);
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE,
+			"GetServices", NULL);
 	if (message == NULL) {
-		ERR("Failed to get service properties");
+		ERR("Failed to get services informations");
 		goto done;
 	}
 
-	g_variant_get(message, "(a{sv})", &iter);
+	g_variant_get(message, "(a(oa{sv}))", &service);
+	while (g_variant_iter_loop(service, "(oa{sv})", &obj_path, &iter)) {
+		if (g_strcmp0(obj_path, profile) == 0) {
+			g_free(obj_path);
+			found_profile = 1;
+			break;
+		}
+	}
+
+	if (found_profile == 0) {
+		ERR("Profile %s doesn't exist", profile);
+		goto done;
+	}
+
 	while (g_variant_iter_loop(iter, "{sv}", &key, &next)) {
 		const gchar *value = NULL;
 		guint16 freq = 0;
@@ -273,6 +289,9 @@ done:
 
 	if (iter1)
 		g_variant_iter_free(iter1);
+
+	if (service)
+		g_variant_iter_free(service);
 
 	return;
 }
@@ -810,23 +829,40 @@ void netconfig_update_default(void)
 char *netconfig_get_ifname(const char *profile)
 {
 	GVariant *message = NULL, *variant;
-	GVariantIter *iter, *next;
+	GVariantIter *iter, *next, *service;
+	gchar *obj_path;
 	gchar *key;
 	gchar *key1;
 	const gchar *value = NULL;
 	gchar *ifname = NULL;
+	gboolean found_profile = 0;
 
 	if (profile == NULL)
 		return NULL;
 
-	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE, profile,
-			CONNMAN_SERVICE_INTERFACE, "GetProperties", NULL);
+	message = netconfig_invoke_dbus_method(CONNMAN_SERVICE,
+			CONNMAN_MANAGER_PATH, CONNMAN_MANAGER_INTERFACE,
+			"GetServices", NULL);
 	if (message == NULL) {
-		ERR("Failed to get service properties");
+		ERR("Failed to get services informations");
 		return NULL;
 	}
 
-	g_variant_get(message, "(a{sv})", &iter);
+	g_variant_get(message, "(a(oa{sv}))", &service);
+	while (g_variant_iter_loop(service, "(oa{sv})", &obj_path, &iter)) {
+		if (g_strcmp0(obj_path, profile) == 0) {
+			g_free(obj_path);
+			found_profile = 1;
+			break;
+		}
+	}
+
+	if (found_profile == 0) {
+		ERR("Profile %s doesn't exist", profile);
+		g_variant_iter_free(service);
+		return NULL;
+	}
+
 	while (g_variant_iter_loop(iter, "{sv}", &key, &next)) {
 		if (g_strcmp0(key, "Ethernet") == 0) {
 			while (g_variant_iter_loop(next, "{sv}", &key1, &variant)) {
@@ -840,6 +876,7 @@ char *netconfig_get_ifname(const char *profile)
 
 	g_variant_unref(message);
 
+	g_variant_iter_free(service);
 	g_variant_iter_free(iter);
 
 	return ifname;

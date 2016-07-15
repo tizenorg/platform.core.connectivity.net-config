@@ -778,12 +778,6 @@ gboolean handle_launch_mdns(Network *object, GDBusMethodInvocation *context)
 {
 	DBG("Launch mdnsresponder daemon");
 
-	if (mdnsd_ref_count != 0) {
-		ERR("Invalid access");
-		netconfig_error_invalid_parameter(context);
-		return FALSE;
-	}
-
 	if (execute_mdnsd_script("start") < 0) {
 		ERR("Failed to launch mdnsresponder daemon");
 		netconfig_error_invalid_parameter(context);

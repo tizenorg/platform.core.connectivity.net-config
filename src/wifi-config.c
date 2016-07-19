@@ -159,6 +159,8 @@ static gboolean __get_group_name(const gchar *prefix, const gchar *config_id, gc
 	ret = __get_mac_address(&mac_address);
 	if ((ret != TRUE) || (strlen(mac_address) == 0)) {
 		ERR("Cannot get WIFI MAC address");
+		if (mac_address)
+			g_free(mac_address);
 		return FALSE;
 	}
 

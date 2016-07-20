@@ -5,6 +5,7 @@ After=dbus.socket
 
 [Service]
 Type=forking
+SmackProcessLabel=System
 ExecStartPre=-/usr/sbin/net-config.service
 ExecStart=/usr/sbin/net-config
 Restart=always

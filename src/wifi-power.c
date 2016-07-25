@@ -92,26 +92,57 @@ static gboolean __is_wifi_restricted(void)
 	return FALSE;
 }
 
-static void __technology_reply(GObject *source_object, GAsyncResult *res, gpointer user_data)
+static void __technology_on_reply(GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
 	GVariant *reply;
 	GDBusConnection *conn = NULL;
 	GError *error = NULL;
 
-	conn = G_DBUS_CONNECTION(source_object);
+	conn = G_DBUS_CONNECTION (source_object);
 	reply = g_dbus_connection_call_finish(conn, res, &error);
 
 	if (reply == NULL) {
 		if (error != NULL) {
-			if (g_strcmp0(error->message, CONNMAN_ERROR_INTERFACE ".AlreadyEnabled") == 0)
+			if (g_strstr_len(error->message, strlen(error->message),
+					CONNMAN_ERROR_INTERFACE ".AlreadyEnabled") != NULL) {
 				wifi_state_update_power_state(TRUE);
-			else if (g_strcmp0(error->message, CONNMAN_ERROR_INTERFACE ".AlreadyDisabled") == 0)
-				wifi_state_update_power_state(FALSE);
-			else
+			} else {
 				ERR("Fail to request status [%d: %s]", error->code, error->message);
+				wifi_state_update_power_state(FALSE);
+			}
 			g_error_free(error);
 		} else {
-			ERR("Fail torequest status");
+			ERR("Fail to request status");
+			wifi_state_update_power_state(FALSE);
+		}
+	} else {
+		DBG("Successfully requested");
+	}
+
+	g_variant_unref(reply);
+	netconfig_gdbus_pending_call_unref();
+}
+
+static void __technology_off_reply(GObject *source_object, GAsyncResult *res, gpointer user_data)
+{
+	GVariant *reply;
+	GDBusConnection *conn = NULL;
+	GError *error = NULL;
+
+	conn = G_DBUS_CONNECTION (source_object);
+	reply = g_dbus_connection_call_finish(conn, res, &error);
+
+	if (reply == NULL) {
+		if (error != NULL) {
+			if (g_strstr_len(error->message, strlen(error->message),
+					CONNMAN_ERROR_INTERFACE ".AlreadyDisabled") != NULL) {
+				wifi_state_update_power_state(FALSE);
+			} else {
+				ERR("Fail to request status [%d: %s]", error->code, error->message);
+			}
+			g_error_free(error);
+		} else {
+			ERR("Fail to request status");
 		}
 	} else {
 		DBG("Successfully requested");
@@ -287,9 +318,15 @@ static int _set_connman_technology_power(gboolean enable)
 
 	params = g_variant_new("(sv)", key, param0);
 
-	reply = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
-			CONNMAN_WIFI_TECHNOLOGY_PREFIX, CONNMAN_TECHNOLOGY_INTERFACE,
-			"SetProperty", params, __technology_reply);
+	if (enable == TRUE) {
+		reply = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
+				CONNMAN_WIFI_TECHNOLOGY_PREFIX, CONNMAN_TECHNOLOGY_INTERFACE,
+				"SetProperty", params, __technology_on_reply);
+	} else {
+		reply = netconfig_invoke_dbus_method_nonblock(CONNMAN_SERVICE,
+				CONNMAN_WIFI_TECHNOLOGY_PREFIX, CONNMAN_TECHNOLOGY_INTERFACE,
+				"SetProperty", params, __technology_off_reply);
+	}
 
 	if (reply != TRUE) {
 		ERR("Fail to set technology %s", enable == TRUE ? "enable" : "disable");

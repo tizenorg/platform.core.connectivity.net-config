@@ -182,6 +182,11 @@ static void __netconfig_get_default_connection_info(const char *profile)
 	}
 
 	g_variant_get(message, "(a(oa{sv}))", &service);
+	if (service == NULL) {
+		ERR("Failed to get services iter");
+		goto done;
+	}
+
 	while (g_variant_iter_loop(service, "(oa{sv})", &obj_path, &iter)) {
 		if (g_strcmp0(obj_path, profile) == 0) {
 			g_free(obj_path);
@@ -190,7 +195,7 @@ static void __netconfig_get_default_connection_info(const char *profile)
 		}
 	}
 
-	if (found_profile == 0) {
+	if (iter == NULL || found_profile == 0) {
 		ERR("Profile %s doesn't exist", profile);
 		goto done;
 	}
@@ -207,36 +212,42 @@ static void __netconfig_get_default_connection_info(const char *profile)
 			}
 		} else if (g_strcmp0(key, "Ethernet") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
+			if (iter1 == NULL)
+				continue;
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
 				if (g_strcmp0(key1, "Interface") == 0) {
 					value = g_variant_get_string(variant, NULL);
 					netconfig_default_connection_info.ifname = g_strdup(value);
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			g_variant_iter_free(iter1);
 		} else if (g_strcmp0(key, "IPv4") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
+			if (iter1 == NULL)
+				continue;
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
 				if (g_strcmp0(key1, "Address") == 0) {
 					value = g_variant_get_string(variant, NULL);
 					netconfig_default_connection_info.ipaddress = g_strdup(value);
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			g_variant_iter_free(iter1);
 		} else if (g_strcmp0(key, "IPv6") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
+			if (iter1 == NULL)
+				continue;
 			while (g_variant_iter_loop(iter1, "{sv}", &key1, &variant)) {
 				if (g_strcmp0(key1, "Address") == 0) {
 					value = g_variant_get_string(variant, NULL);
 					netconfig_default_connection_info.ipaddress6 = g_strdup(value);
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			g_variant_iter_free(iter1);
+
 		} else if (g_strcmp0(key, "Proxy") == 0) {
 			g_variant_get(next, "a{sv}", &iter1);
+			if (iter1 == NULL)
+				continue;
 			while (g_variant_iter_loop(iter1, "{sv}", &key2, &variant2)) {
 				GVariantIter *iter_sub = NULL;
 
@@ -270,8 +281,7 @@ static void __netconfig_get_default_connection_info(const char *profile)
 					}
 				}
 			}
-			if (iter1)
-				g_variant_iter_free(iter1);
+			g_variant_iter_free(iter1);
 		} else if (g_strcmp0(key, "Frequency") == 0) {
 			if (g_variant_is_of_type(next, G_VARIANT_TYPE_UINT16)) {
 				freq = g_variant_get_uint16(next);
@@ -286,9 +296,6 @@ done:
 
 	if (iter)
 		g_variant_iter_free(iter);
-
-	if (iter1)
-		g_variant_iter_free(iter1);
 
 	if (service)
 		g_variant_iter_free(service);

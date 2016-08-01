@@ -1091,8 +1091,6 @@ void state_object_create_and_init(void)
 				G_CALLBACK(handle_remove_route), NULL);
 	g_signal_connect(netconfigstate, "handle-launch-mdns",
 				G_CALLBACK(handle_launch_mdns), NULL);
-	g_signal_connect(netconfigstate, "handle-ref-mdns",
-				G_CALLBACK(handle_ref_mdns), NULL);
 	g_signal_connect(netconfigstate, "handle-unref-mdns",
 				G_CALLBACK(handle_unref_mdns), NULL);
 	g_signal_connect(netconfigstate, "handle-device-policy-set-wifi",

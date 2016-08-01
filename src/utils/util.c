@@ -784,16 +784,10 @@ gboolean handle_launch_mdns(Network *object, GDBusMethodInvocation *context)
 		return FALSE;
 	}
 
-	network_complete_launch_mdns(object, context);
-	return TRUE;
-}
-
-gboolean handle_ref_mdns(Network *object, GDBusMethodInvocation *context)
-{
 	mdnsd_ref_count++;
-
 	DBG("Ref mdnsresponder daemon. ref count: %d", mdnsd_ref_count);
-	network_complete_ref_mdns(object, context);
+
+	network_complete_launch_mdns(object, context);
 	return TRUE;
 }
 

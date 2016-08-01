@@ -24,7 +24,6 @@
 		<method name="CheckProfilePrivilege"></method>
 		<method name="CheckInternetPrivilege"></method>
 		<method name="LaunchMdns"></method>
-		<method name="RefMdns"></method>
 		<method name="UnrefMdns"></method>
 		<method name="DevicePolicySetWifi">
 			<arg type="i" name="state" direction="in"/>

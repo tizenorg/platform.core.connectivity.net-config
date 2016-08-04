@@ -82,6 +82,7 @@ static void __free_wifi_configuration(struct wifi_config *conf)
 	g_free(conf->security_type);
 	g_free(conf->is_hidden);
 	g_free(conf->proxy_address);
+	g_free(conf->last_error);
 	if (conf->eap_config) {
 		g_free(conf->eap_config->anonymous_identity);
 		g_free(conf->eap_config->ca_cert);
@@ -282,6 +283,8 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 	}
 
 	config->name = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_NAME, NULL);
+	DBG("name [%s]", config->name);
+
 	ret = __get_security_type(config_id, &config->security_type);
 	if (ret != TRUE) {
 		ERR("Fail to _get_security_type");
@@ -289,12 +292,18 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 		g_free(group_name);
 		return FALSE;
 	}
+	DBG("security_type [%s]", config->security_type);
+
 	config->proxy_address = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_PROXY_SERVER, NULL);
+	if (config->proxy_address)
+		DBG("proxy_address [%s]", config->proxy_address);
+
 	hidden = g_key_file_get_boolean(keyfile, group_name, WIFI_CONFIG_HIDDEN, NULL);
 	if (hidden)
 		config->is_hidden = g_strdup("TRUE");
 	else
 		config->is_hidden = g_strdup("FALSE");
+	DBG("is_hidden [%s]", config->is_hidden);
 
 	if (g_strcmp0(config->security_type, WIFI_SECURITY_EAP) == 0) {
 		config->eap_config->anonymous_identity = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY, NULL);
@@ -305,9 +314,28 @@ static gboolean _load_configuration(const gchar *config_id, struct wifi_config *
 		config->eap_config->eap_type = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_EAP_TYPE, NULL);
 		config->eap_config->eap_auth_type = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_EAP_AUTH_TYPE, NULL);
 		config->eap_config->subject_match = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_EAP_SUBJECT_MATCH, NULL);
+
+		if (config->eap_config->anonymous_identity)
+			DBG("anonymous_identity [%s]", config->eap_config->anonymous_identity);
+		if (config->eap_config->ca_cert)
+			DBG("ca_cert [%s]", config->eap_config->ca_cert);
+		if (config->eap_config->client_cert)
+			DBG("client_cert [%s]", config->eap_config->client_cert);
+		if (config->eap_config->private_key)
+			DBG("private_key [%s]", config->eap_config->private_key);
+		if (config->eap_config->identity)
+			DBG("identity [%s]", config->eap_config->identity);
+		if (config->eap_config->eap_type)
+			DBG("eap_type [%s]", config->eap_config->eap_type);
+		if (config->eap_config->eap_auth_type)
+			DBG("eap_auth_type [%s]", config->eap_config->eap_auth_type);
+		if (config->eap_config->subject_match)
+			DBG("subject_match [%s]", config->eap_config->subject_match);
 	}
 
 	config->last_error = g_key_file_get_string(keyfile, group_name, WIFI_CONFIG_FAILURE, NULL);
+	if (config->last_error)
+		DBG("last_error [%s]", config->last_error);
 
 	g_key_file_free(keyfile);
 	g_free(group_name);
@@ -623,19 +651,19 @@ gboolean handle_load_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 	g_variant_builder_add(b, "{sv}", WIFI_CONFIG_NAME, g_variant_new_string(conf->name));
 	g_variant_builder_add(b, "{sv}", WIFI_CONFIG_SECURITY_TYPE, g_variant_new_string(conf->security_type));
 	g_variant_builder_add(b, "{sv}", WIFI_CONFIG_HIDDEN, g_variant_new_string(conf->is_hidden));
-	if (conf->proxy_address != NULL) {
-		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string(conf->proxy_address));
-		g_free(conf->proxy_address);
-	} else {
-		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string("NONE"));
-	}
-	if (conf->last_error != NULL) {
-		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string(conf->last_error));
-		g_free(conf->last_error);
-	} else {
-		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string("ERROR_NONE"));
-	}
 
+	if (conf->proxy_address != NULL)
+		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string(conf->proxy_address));
+	else
+		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string("NONE"));
+
+	if (conf->last_error != NULL)
+		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string(conf->last_error));
+	else
+		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string("ERROR_NONE"));
+
+	g_free(conf->proxy_address);
+	g_free(conf->last_error);
 	g_free(conf->name);
 	g_free(conf->security_type);
 	g_free(conf->is_hidden);
@@ -660,11 +688,8 @@ gboolean handle_save_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 	if ((wifi == NULL) || (config_id == NULL) || (configuration == NULL)) {
 		ERR("Invalid parameter");
 		netconfig_error_invalid_parameter(context);
-		SLOG(LOG_INFO, "MDM_LOG_USER", "Object=wifi-profile, AccessType=Create, Result=Failed");
 		return FALSE;
 	}
-
-	ERR("save_configuration [%s]", config_id);
 
 	conf = g_new0(struct wifi_config, 1);
 
@@ -673,35 +698,35 @@ gboolean handle_save_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 		if (g_strcmp0(field, WIFI_CONFIG_NAME) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->name = g_strdup(g_variant_get_string(value, NULL));
-				ERR("name [%s]", conf->name);
+				DBG("name [%s]", conf->name);
 			} else {
 				conf->name = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_SSID) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->ssid = g_strdup(g_variant_get_string(value, NULL));
-				ERR("ssid [%s]", conf->ssid);
+				DBG("ssid [%s]", conf->ssid);
 			} else {
 				conf->ssid = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_PASSPHRASE) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->passphrase = g_strdup(g_variant_get_string(value, NULL));
-				ERR("passphrase []");
+				DBG("passphrase []");
 			} else {
 				conf->passphrase = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_HIDDEN) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->is_hidden = g_strdup(g_variant_get_string(value, NULL));
-				ERR("is_hidden [%s]", conf->is_hidden);
+				DBG("is_hidden [%s]", conf->is_hidden);
 			} else {
 				conf->is_hidden = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_PROXYADDRESS) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->proxy_address = g_strdup(g_variant_get_string(value, NULL));
-				ERR("proxy_address [%s]", conf->proxy_address);
+				DBG("proxy_address [%s]", conf->proxy_address);
 			} else {
 				conf->proxy_address = NULL;
 			}
@@ -741,10 +766,10 @@ gboolean handle_save_configuration(Wifi *wifi, GDBusMethodInvocation *context,
 
 	ret = _save_configuration(config_id, keyfile);
 	if (ret == TRUE) {
-		SLOG(LOG_INFO, "MDM_LOG_USER", "Object=wifi-profile, AccessType=Create, Result=Succeed");
+		INFO("Success to save configuration [%s]", config_id);
 		wifi_complete_save_configuration(wifi, context);
 	} else {
-		SLOG(LOG_INFO, "MDM_LOG_USER", "Object=wifi-profile, AccessType=Create, Result=Failed");
+		INFO("Fail to save configuration [%s]", config_id);
 		netconfig_error_dbus_method_return(context, NETCONFIG_ERROR_INTERNAL, "FailSaveConfiguration");
 	}
 
@@ -788,13 +813,11 @@ gboolean handle_load_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 	g_variant_builder_add(b, "{sv}", WIFI_CONFIG_HIDDEN, g_variant_new_string(conf->is_hidden));
 	if (conf->proxy_address != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string(conf->proxy_address));
-		g_free(conf->proxy_address);
 	} else
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_PROXYADDRESS, g_variant_new_string("NONE"));
 
 	if (conf->last_error != NULL) {
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string(conf->last_error));
-		g_free(conf->last_error);
 	} else
 		g_variant_builder_add(b, "{sv}", WIFI_CONFIG_FAILURE, g_variant_new_string("ERROR_NONE"));
 
@@ -861,11 +884,8 @@ gboolean handle_save_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 	if ((wifi == NULL) || (config_id == NULL) || (configuration == NULL)) {
 		ERR("Invalid parameter");
 		netconfig_error_invalid_parameter(context);
-		SLOG(LOG_INFO, "MDM_LOG_USER", "Object=wifi-profile, AccessType=Create, Result=Failed");
 		return FALSE;
 	}
-
-	INFO("save [%s]", config_id);
 
 	conf = g_new0(struct wifi_config, 1);
 	conf->eap_config = g_new0(struct wifi_eap_config, 1);
@@ -875,91 +895,91 @@ gboolean handle_save_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 		if (g_strcmp0(field, WIFI_CONFIG_NAME) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->name = g_strdup(g_variant_get_string(value, NULL));
-				ERR("name [%s]", conf->name);
+				DBG("name [%s]", conf->name);
 			} else {
 				conf->name = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_SSID) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->ssid = g_strdup(g_variant_get_string(value, NULL));
-				ERR("ssid [%s]", conf->ssid);
+				DBG("ssid [%s]", conf->ssid);
 			} else {
 				conf->ssid = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_PASSPHRASE) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->passphrase = g_strdup(g_variant_get_string(value, NULL));
-				ERR("passphrase [%s]", conf->passphrase);
+				DBG("passphrase [%s]", conf->passphrase);
 			} else {
 				conf->passphrase = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_HIDDEN) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->is_hidden = g_strdup(g_variant_get_string(value, NULL));
-				ERR("is_hidden [%s]", conf->is_hidden);
+				DBG("is_hidden [%s]", conf->is_hidden);
 			} else {
 				conf->is_hidden = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_PROXYADDRESS) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->proxy_address = g_strdup(g_variant_get_string(value, NULL));
-				ERR("proxy_address [%s]", conf->proxy_address);
+				DBG("proxy_address [%s]", conf->proxy_address);
 			} else {
 				conf->proxy_address = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->anonymous_identity = g_strdup(g_variant_get_string(value, NULL));
-				ERR("anonymous_identity [%s]", conf->eap_config->anonymous_identity);
+				DBG("anonymous_identity [%s]", conf->eap_config->anonymous_identity);
 			} else {
 				conf->eap_config->anonymous_identity = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_CACERT) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->ca_cert = g_strdup(g_variant_get_string(value, NULL));
-				ERR("ca_cert [%s]", conf->eap_config->ca_cert);
+				DBG("ca_cert [%s]", conf->eap_config->ca_cert);
 			} else {
 				conf->eap_config->ca_cert = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_CLIENTCERT) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->client_cert = g_strdup(g_variant_get_string(value, NULL));
-				ERR("client_cert [%s]", conf->eap_config->client_cert);
+				DBG("client_cert [%s]", conf->eap_config->client_cert);
 			} else {
 				conf->eap_config->client_cert = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_PRIVATEKEY) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->private_key = g_strdup(g_variant_get_string(value, NULL));
-				ERR("private_key [%s]", conf->eap_config->private_key);
+				DBG("private_key [%s]", conf->eap_config->private_key);
 			} else {
 				conf->eap_config->private_key = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_IDENTITY) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->identity = g_strdup(g_variant_get_string(value, NULL));
-				ERR("identity [%s]", conf->eap_config->identity);
+				DBG("identity [%s]", conf->eap_config->identity);
 			} else {
 				conf->eap_config->identity = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_TYPE) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->eap_type = g_strdup(g_variant_get_string(value, NULL));
-				ERR("eap_type [%s]", conf->eap_config->eap_type);
+				DBG("eap_type [%s]", conf->eap_config->eap_type);
 			} else {
 				conf->eap_config->eap_type = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_AUTH_TYPE) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->eap_auth_type = g_strdup(g_variant_get_string(value, NULL));
-				ERR("eap_auth_type [%s]", conf->eap_config->eap_auth_type);
+				DBG("eap_auth_type [%s]", conf->eap_config->eap_auth_type);
 			} else {
 				conf->eap_config->eap_auth_type = NULL;
 			}
 		} else if (g_strcmp0(field, WIFI_CONFIG_EAP_SUBJECT_MATCH) == 0) {
 			if (g_variant_is_of_type(value, G_VARIANT_TYPE_STRING)) {
 				conf->eap_config->subject_match = g_strdup(g_variant_get_string(value, NULL));
-				ERR("subject_match [%s]", conf->eap_config->subject_match);
+				DBG("subject_match [%s]", conf->eap_config->subject_match);
 			} else {
 				conf->eap_config->subject_match = NULL;
 			}
@@ -998,12 +1018,44 @@ gboolean handle_save_eap_configuration(Wifi *wifi, GDBusMethodInvocation *contex
 		g_key_file_set_boolean(keyfile, group_name, WIFI_CONFIG_HIDDEN, hidden);
 	}
 
+	if (conf->eap_config->anonymous_identity != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_ANONYMOUS_IDENTITY, conf->eap_config->anonymous_identity);
+
+	if (conf->eap_config->ca_cert != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_CACERT, conf->eap_config->ca_cert);
+
+	if (conf->eap_config->client_cert != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_CLIENTCERT, conf->eap_config->client_cert);
+
+	if (conf->eap_config->private_key != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_PRIVATEKEY, conf->eap_config->private_key);
+
+	if (conf->eap_config->identity != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_IDENTITY, conf->eap_config->identity);
+
+	if (conf->eap_config->eap_type != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_TYPE, conf->eap_config->eap_type);
+
+	if (conf->eap_config->eap_auth_type != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_AUTH_TYPE, conf->eap_config->eap_auth_type);
+
+	if (conf->eap_config->subject_match != NULL)
+		g_key_file_set_string(keyfile, group_name,
+			WIFI_CONFIG_EAP_SUBJECT_MATCH, conf->eap_config->subject_match);
+
 	ret = _save_configuration(config_id, keyfile);
 	if (ret == TRUE) {
-		SLOG(LOG_INFO, "MDM_LOG_USER", "Object=wifi-profile, AccessType=Create, Result=Succeed");
+		INFO("Success to save eap configuration [%s]", config_id);
 		wifi_complete_save_eap_configuration(wifi, context);
 	} else {
-		SLOG(LOG_INFO, "MDM_LOG_USER", "Object=wifi-profile, AccessType=Create, Result=Failed");
+		INFO("Fail to save eap configuration [%s]", config_id);
 		netconfig_error_dbus_method_return(context, NETCONFIG_ERROR_INTERNAL, "FailSaveEapConfiguration");
 	}
 
